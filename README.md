@@ -1,6 +1,6 @@
 # OpenLens
 
-AI-powered code review for your terminal. OpenLens runs specialized agents in parallel to catch security vulnerabilities, bugs, performance issues, and style violations before they land.
+AI-powered code review, OpenLens runs specialized agents in parallel to catch security vulnerabilities, bugs, performance issues, and style violations before they land.
 
 ## Overview
 
