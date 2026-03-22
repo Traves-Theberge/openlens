@@ -79,4 +79,78 @@ describe("getDiffStats", () => {
     expect(stats.insertions).toBe(0)
     expect(stats.deletions).toBe(2)
   })
+
+  test("handles renamed files", () => {
+    const diff = `diff --git a/old-name.ts b/new-name.ts
+similarity index 95%
+rename from old-name.ts
+rename to new-name.ts
+--- a/old-name.ts
++++ b/new-name.ts
+@@ -1,2 +1,2 @@
+-const x = 1
++const x = 2
+`
+    const stats = getDiffStats(diff)
+    expect(stats.filesChanged).toBe(1)
+    expect(stats.files).toEqual(["new-name.ts"])
+    expect(stats.insertions).toBe(1)
+    expect(stats.deletions).toBe(1)
+  })
+
+  test("handles binary file diffs", () => {
+    const diff = `diff --git a/image.png b/image.png
+new file mode 100644
+index 0000000..abcdef1
+Binary files /dev/null and b/image.png differ
+`
+    const stats = getDiffStats(diff)
+    expect(stats.filesChanged).toBe(1)
+    expect(stats.files).toEqual(["image.png"])
+    // Binary files have no +/- lines
+    expect(stats.insertions).toBe(0)
+    expect(stats.deletions).toBe(0)
+  })
+
+  test("handles mode change only", () => {
+    const diff = `diff --git a/script.sh b/script.sh
+old mode 100644
+new mode 100755
+`
+    const stats = getDiffStats(diff)
+    expect(stats.filesChanged).toBe(1)
+    expect(stats.files).toEqual(["script.sh"])
+    expect(stats.insertions).toBe(0)
+    expect(stats.deletions).toBe(0)
+  })
+
+  test("handles files with spaces in path", () => {
+    const diff = `diff --git a/my file.ts b/my file.ts
+--- a/my file.ts
++++ b/my file.ts
+@@ -1 +1 @@
+-old
++new
+`
+    const stats = getDiffStats(diff)
+    expect(stats.files).toEqual(["my file.ts"])
+  })
+
+  test("handles many files", () => {
+    const files = Array.from({ length: 50 }, (_, i) => `file${i}.ts`)
+    const diff = files
+      .map(
+        (f) => `diff --git a/${f} b/${f}
+--- a/${f}
++++ b/${f}
+@@ -1 +1 @@
+-old
++new`
+      )
+      .join("\n")
+    const stats = getDiffStats(diff)
+    expect(stats.filesChanged).toBe(50)
+    expect(stats.insertions).toBe(50)
+    expect(stats.deletions).toBe(50)
+  })
 })

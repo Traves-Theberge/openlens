@@ -4,6 +4,8 @@ import { runReview } from "../session/review.js"
 import { loadAgents, filterAgents } from "../agent/agent.js"
 import { getDiffStats, getDiff } from "../tool/diff.js"
 
+const VALID_MODES = new Set(["staged", "unstaged", "branch", "auto"])
+
 export function createServer(config: Config) {
   const app = new Hono()
 
@@ -15,17 +17,20 @@ export function createServer(config: Config) {
     const body = await c.req.json().catch(() => ({}))
     const cwd = process.cwd()
 
-    let reviewConfig = filterAgents(config, body.agents?.join(","))
+    // Validate body fields
+    const agents = Array.isArray(body.agents) ? body.agents.join(",") : undefined
+    const mode = typeof body.mode === "string" && VALID_MODES.has(body.mode)
+      ? body.mode
+      : config.review.defaultMode
+    const branch = typeof body.branch === "string" ? body.branch : undefined
 
-    if (body.branch) reviewConfig.review.baseBranch = body.branch
+    let reviewConfig = filterAgents(config, agents)
+
+    if (branch) reviewConfig.review.baseBranch = branch
     if (body.verify === false) reviewConfig.review.verify = false
     if (body.fullFileContext === false) reviewConfig.review.fullFileContext = false
 
-    const result = await runReview(
-      reviewConfig,
-      body.mode || config.review.defaultMode,
-      cwd
-    )
+    const result = await runReview(reviewConfig, mode, cwd)
     return c.json(result)
   })
 
@@ -45,16 +50,25 @@ export function createServer(config: Config) {
   })
 
   app.get("/config", (c) => {
-    // Strip sensitive data
-    const safe = { ...config }
+    // Strip sensitive data — shallow clone top-level, redact env-derived secrets
+    const safe = {
+      ...config,
+      // Never expose the raw mcp block (may contain tokens in environment)
+      mcp: Object.fromEntries(
+        Object.entries(config.mcp).map(([name, mcp]) => [
+          name,
+          { type: mcp.type, enabled: mcp.enabled },
+        ])
+      ),
+    }
     return c.json(safe)
   })
 
   app.get("/diff", async (c) => {
-    const mode = (c.req.query("mode") || "staged") as
-      | "staged"
-      | "unstaged"
-      | "branch"
+    const raw = c.req.query("mode") || "staged"
+    const mode = (["staged", "unstaged", "branch"] as const).includes(raw as any)
+      ? (raw as "staged" | "unstaged" | "branch")
+      : "staged"
     const diff = await getDiff(mode, config.review.baseBranch)
     const stats = getDiffStats(diff)
     return c.json({ mode, stats })

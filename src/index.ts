@@ -307,16 +307,8 @@ yargs(hideBin(process.argv))
             fatal("Agent name must be lowercase alphanumeric with hyphens (e.g. 'api-review')")
           }
 
-          // Check if agent already exists
           const agentsDir = path.join(cwd, "agents")
           const agentPath = path.join(agentsDir, `${name}.md`)
-
-          try {
-            await fs.access(agentPath)
-            fatal(`Agent '${name}' already exists at agents/${name}.md`)
-          } catch {
-            // Good — doesn't exist yet
-          }
 
           const description = argv.description || `${name} code reviewer`
           const model = argv.model || "anthropic/claude-sonnet-4-20250514"
@@ -382,7 +374,14 @@ If no issues found, return \`[]\`
 `
 
           await fs.mkdir(agentsDir, { recursive: true })
-          await fs.writeFile(agentPath, agentContent)
+          try {
+            await fs.writeFile(agentPath, agentContent, { flag: "wx" })
+          } catch (err: any) {
+            if (err.code === "EEXIST") {
+              fatal(`Agent '${name}' already exists at agents/${name}.md`)
+            }
+            throw err
+          }
           console.log(`  ${G}created${R} agents/${name}.md`)
 
           // Update openlens.json if it exists

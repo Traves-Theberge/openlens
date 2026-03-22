@@ -34,6 +34,8 @@ async function readChangedFiles(
 
   for (const file of stats.files) {
     const filePath = path.resolve(cwd, file)
+    // Guard against path traversal from malformed diff output
+    if (!filePath.startsWith(cwd + path.sep) && filePath !== cwd) continue
     try {
       const content = await fs.readFile(filePath, "utf-8")
       const lines = content.split("\n")
@@ -660,6 +662,7 @@ export async function runSingleAgentReview(
     const sections: string[] = []
     for (const file of focus.files) {
       const filePath = path.resolve(cwd, file)
+      if (!filePath.startsWith(cwd + path.sep) && filePath !== cwd) continue
       try {
         const content = await fs.readFile(filePath, "utf-8")
         const lines = content.split("\n")
