@@ -610,7 +610,7 @@ bun run src/index.ts serve
 
 ## License
 
-OpenReview is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+OpenLens is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
 ## Contributing
 
