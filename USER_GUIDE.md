@@ -14,13 +14,14 @@ Built on the [OpenCode SDK](https://github.com/opencode-ai/opencode), OpenLens s
 2. [Getting Started](#2-getting-started)
 3. [Configuration](#3-configuration)
 4. [Agents](#4-agents)
-5. [CLI Reference](#5-cli-reference)
-6. [Output Formats & SARIF](#6-output-formats--sarif)
-7. [HTTP Server API](#7-http-server-api)
-8. [CI/CD Integration](#8-cicd-integration)
-9. [Library & Plugin API](#9-library--plugin-api)
-10. [Advanced Topics](#10-advanced-topics)
-11. [Troubleshooting](#11-troubleshooting)
+5. [Skills](#5-skills)
+6. [CLI Reference](#6-cli-reference)
+7. [Output Formats & SARIF](#7-output-formats--sarif)
+8. [HTTP Server API](#8-http-server-api)
+9. [CI/CD Integration](#9-cicd-integration)
+10. [Library & Plugin API](#10-library--plugin-api)
+11. [Advanced Topics](#11-advanced-topics)
+12. [Troubleshooting](#12-troubleshooting)
 
 ---
 
@@ -194,8 +195,6 @@ Both `.json` and `.jsonc` (JSON with comments) are supported.
       "model": "anthropic/claude-sonnet-4-20250514",
       "prompt": "{file:./agents/security.md}",
       "steps": 5,
-      "temperature": 0.2,
-      "top_p": 0.95,
       "disable": false,
       "hidden": false,
       "color": "#FF0000",
@@ -393,13 +392,22 @@ OpenLens ships with four agents, copied to your `agents/` directory on `openlens
 
 Agents are markdown files with YAML frontmatter. The frontmatter configures behavior; the markdown body is the review prompt.
 
+Every effective agent follows a consistent structure — what we call the **review methodology pattern**. This is the same pattern used by all four built-in agents:
+
+1. **Role declaration** — who the agent is and what tools it has
+2. **How to review** — step-by-step tool usage methodology (the critical part)
+3. **What to look for** — specific, actionable criteria
+4. **What NOT to flag** — reduces false positives by setting clear boundaries
+5. **Output format** — JSON schema for structured results
+
+Here's a complete custom agent example following this pattern:
+
 ```markdown
 ---
 description: Accessibility checker
 mode: subagent
 model: anthropic/claude-sonnet-4-20250514
 steps: 5
-temperature: 0.2
 permission:
   read: allow
   grep: allow
@@ -409,14 +417,33 @@ permission:
   bash: deny
 ---
 
-You are an accessibility-focused code reviewer with full codebase access.
+You are an accessibility-focused code reviewer with access to the full codebase.
 
-## What to Look For
+## How to review
 
-- Missing ARIA labels on interactive elements
-- Insufficient color contrast ratios
-- Missing alt text on images
-- Keyboard navigation issues
+1. Read the diff carefully to understand what changed
+2. For each changed file, use `read` to view the full source for context
+3. Use `grep` to check if similar accessibility patterns exist elsewhere (indicates systemic issues)
+4. Use `glob` to find related component files, layout templates, and config files
+5. Only report issues you can confirm by investigating the actual code
+
+## What to look for
+
+- Missing ARIA labels on interactive elements — read the component to check
+- Insufficient color contrast ratios — check CSS/style values
+- Missing alt text on images — grep for `<img` without `alt`
+- Keyboard navigation issues — check for onClick without onKeyDown
+- Screen reader compatibility — missing role attributes, live regions
+- Focus management in modals and dialogs
+- Form inputs without associated labels
+
+## What NOT to flag
+
+- Components in test files or storybook stories
+- Accessibility issues in third-party/vendor code
+- Theoretical issues you cannot confirm from the actual code
+- Styling preferences that don't affect accessibility
+- Issues in generated or minified files
 
 ## Output
 
@@ -429,14 +456,38 @@ Return a JSON array of issues:
     "line": 12,
     "severity": "warning",
     "title": "Missing aria-label on icon button",
-    "message": "Icon-only buttons need an aria-label for screen readers.",
-    "fix": "Add aria-label=\"Close\" to the button element"
+    "message": "Icon-only buttons need an aria-label for screen readers. This button renders only an SVG icon with no visible text.",
+    "fix": "Add aria-label=\"Close\" to the button element",
+    "patch": "-<button onClick={onClose}>\n+<button onClick={onClose} aria-label=\"Close\">"
   }
 ]
 \`\`\`
 
 If no issues found, return `[]`
 ```
+
+### The Review Methodology Pattern
+
+The **"How to review"** section is the most important part of any agent. It teaches the AI *how to use its tools* to investigate code rather than guessing. The built-in agents all follow this generalized pattern:
+
+| Step | Action | Why |
+| ---- | ------ | --- |
+| 1 | **Read the diff** | Understand what changed |
+| 2 | **`read` full files** | Get surrounding context — the diff alone isn't enough |
+| 3 | **`grep` for patterns** | Find callers, related code, systemic issues |
+| 4 | **`glob` for related files** | Discover configs, related modules, test files |
+| 5 | **Only report confirmed issues** | Eliminate false positives — if you can't prove it, don't flag it |
+
+This methodology is what separates a high-quality agent from a noisy one. Without it, agents tend to hallucinate issues based on the diff alone. With it, they investigate the actual codebase and only report what they can verify.
+
+### Writing Effective "What NOT to Flag" Rules
+
+The "What NOT to flag" section is equally critical. It sets boundaries that prevent the agent from drifting into another agent's territory or reporting noise:
+
+- **Stay in your lane**: A security agent should not flag style issues. A performance agent should not flag bugs.
+- **Require evidence**: "Theoretical vulnerabilities requiring unrealistic conditions" — forces the agent to ground findings in reality.
+- **Exclude noise sources**: Test files, generated code, vendor directories, startup-only code.
+- **Respect project context**: Issues that match existing codebase patterns are intentional, not bugs.
 
 ### Agent Configuration Fields
 
@@ -447,8 +498,6 @@ If no issues found, return `[]`
 | `model`          | string                                 | Global model | Provider/model-id override          |
 | `prompt`         | string                                 | —            | Inline text or `{file:./path.md}`   |
 | `steps`          | number                                 | `5`          | Max agentic loop iterations         |
-| `temperature`    | number                                 | —            | Sampling temperature (0–1)          |
-| `top_p`          | number                                 | —            | Nucleus sampling (0–1)              |
 | `disable`        | boolean                                | `false`      | Turn off without deleting           |
 | `hidden`         | boolean                                | `false`      | Hide from listings                  |
 | `color`          | string                                 | —            | Hex color for terminal output       |
@@ -537,7 +586,125 @@ openlens run --no-verify
 
 ---
 
-## 5. CLI Reference
+## 5. Skills
+
+OpenLens is built on the [OpenCode SDK](https://opencode.ai/docs/skills/), which includes a **skills** system. Skills are reusable instruction sets that agents can discover and load on-demand, keeping context efficient through lazy-loading.
+
+While OpenLens focuses on its agent-based review system, skills from the underlying OpenCode platform are available and can extend agent capabilities.
+
+### What Are Skills?
+
+Skills are markdown files (`SKILL.md`) with YAML frontmatter that define reusable behaviors. Unlike agents (which are always-running reviewers), skills are loaded on-demand when an agent determines it needs specialized knowledge.
+
+### Skill File Format
+
+Each skill lives in its own directory with a `SKILL.md` file:
+
+```markdown
+---
+name: react-review
+description: React-specific code review patterns including hooks rules, component lifecycle, and performance anti-patterns
+---
+
+## React Review Patterns
+
+### Hooks Rules
+- Hooks must be called at the top level, never inside conditions or loops
+- Custom hooks must start with `use`
+- Dependencies arrays must be complete
+
+### Performance Anti-patterns
+- Inline object/array creation in JSX props causes unnecessary re-renders
+- Missing `useMemo`/`useCallback` for expensive computations passed as props
+- Components re-rendering due to unstable references
+
+### Common Mistakes
+- Using `useEffect` for derived state (use `useMemo` instead)
+- Missing cleanup functions in effects with subscriptions
+- Stale closures from missing dependency array entries
+```
+
+**Required frontmatter fields:**
+
+| Field         | Description                                            |
+| ------------- | ------------------------------------------------------ |
+| `name`        | 1–64 chars, lowercase alphanumeric with hyphens        |
+| `description` | 1–1024 chars, guides agent selection (be specific)     |
+
+The `name` must match the directory name and follow the pattern `^[a-z0-9]+(-[a-z0-9]+)*$`.
+
+### Skill Discovery Locations
+
+OpenCode discovers skills from these directories (searched in order):
+
+| Location | Scope |
+| -------- | ----- |
+| `.opencode/skills/<name>/SKILL.md` | Project |
+| `~/.config/opencode/skills/<name>/SKILL.md` | Global |
+| `.claude/skills/<name>/SKILL.md` | Project (Claude-compatible) |
+| `~/.claude/skills/<name>/SKILL.md` | Global (Claude-compatible) |
+| `.agents/skills/<name>/SKILL.md` | Project (agent-compatible) |
+| `~/.agents/skills/<name>/SKILL.md` | Global (agent-compatible) |
+
+For project paths, OpenCode walks up from your working directory to the git worktree root, loading all matching definitions.
+
+### Skill Permissions
+
+Control which skills are available via pattern-based rules in your OpenCode config:
+
+```json
+{
+  "permission": {
+    "skill": {
+      "*": "allow",
+      "internal-*": "deny",
+      "experimental-*": "ask"
+    }
+  }
+}
+```
+
+| Permission | Behavior |
+| ---------- | -------- |
+| `allow`    | Immediate access |
+| `deny`     | Hidden from agents |
+| `ask`      | Requires user approval |
+
+### How Agents Use Skills
+
+Agents invoke skills via the `skill` tool:
+
+```
+skill({ name: "react-review" })
+```
+
+The agent sees available skills listed in the tool description and loads them when relevant. This lazy-loading keeps the context window efficient — agents only pull in the knowledge they need.
+
+### Skills vs. Agents
+
+| Aspect | Agents | Skills |
+| ------ | ------ | ------ |
+| **When they run** | Always active during review | Loaded on-demand by agents |
+| **Context cost** | Full prompt always in context | Lazy-loaded, minimal cost until used |
+| **Autonomy** | Runs independently, produces issues | Provides knowledge to the invoking agent |
+| **Output** | Structured JSON issue array | Instructions/knowledge (no fixed format) |
+| **Best for** | Review domains (security, bugs, etc.) | Domain knowledge, project conventions, language patterns |
+
+### Disabling Skills
+
+Disable the skill tool entirely for specific agents:
+
+```yaml
+---
+description: My agent
+tools:
+  skill: false
+---
+```
+
+---
+
+## 6. CLI Reference
 
 ### Commands Overview
 
@@ -658,7 +825,7 @@ Run a comprehensive environment check: git, OpenCode binary, API keys, config fi
 
 ---
 
-## 6. Output Formats & SARIF
+## 7. Output Formats & SARIF
 
 OpenLens supports three output formats, selected with `--format` or `-f`.
 
@@ -734,7 +901,7 @@ openlens run --format sarif > results.sarif
 
 ---
 
-## 7. HTTP Server API
+## 8. HTTP Server API
 
 OpenLens includes a built-in HTTP server for programmatic access and integration with other tools.
 
@@ -828,7 +995,7 @@ curl "http://localhost:4096/diff?mode=staged"
 
 ---
 
-## 8. CI/CD Integration
+## 9. CI/CD Integration
 
 OpenLens is designed for CI/CD pipelines. It auto-detects CI environments and adjusts defaults accordingly.
 
@@ -926,7 +1093,7 @@ openlens run --branch main --format text
 
 ---
 
-## 9. Library & Plugin API
+## 10. Library & Plugin API
 
 ### Using OpenLens as a Library
 
@@ -1056,7 +1223,7 @@ OpenLens can run as a plugin inside [OpenCode](https://opencode.ai/) sessions, m
 
 ---
 
-## 10. Advanced Topics
+## 11. Advanced Topics
 
 ### Event Bus
 
@@ -1230,7 +1397,7 @@ If an agent exceeds the timeout, it fails with an `agent.failed` event and the r
 
 ---
 
-## 11. Troubleshooting
+## 12. Troubleshooting
 
 ### `openlens doctor`
 
