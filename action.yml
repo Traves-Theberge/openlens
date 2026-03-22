@@ -1,0 +1,132 @@
+name: "OpenReview"
+description: "AI-powered code review using specialized agents"
+branding:
+  icon: "eye"
+  color: "blue"
+
+inputs:
+  mode:
+    description: "Review mode: staged, unstaged, branch, auto"
+    required: false
+    default: "branch"
+  agents:
+    description: "Comma-separated agent names (default: all)"
+    required: false
+  format:
+    description: "Output format: text, json, sarif"
+    required: false
+    default: "sarif"
+  base-branch:
+    description: "Base branch for branch mode diff"
+    required: false
+    default: "main"
+  verify:
+    description: "Run verification pass"
+    required: false
+    default: "true"
+  config:
+    description: "Path to openreview.json config file"
+    required: false
+  upload-sarif:
+    description: "Upload SARIF to GitHub Code Scanning"
+    required: false
+    default: "true"
+  fail-on-critical:
+    description: "Fail the workflow if critical issues are found"
+    required: false
+    default: "true"
+
+outputs:
+  issues:
+    description: "Number of issues found"
+    value: ${{ steps.review.outputs.issues }}
+  critical:
+    description: "Number of critical issues found"
+    value: ${{ steps.review.outputs.critical }}
+  sarif-file:
+    description: "Path to SARIF output file"
+    value: ${{ steps.review.outputs.sarif-file }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Bun
+      uses: oven-sh/setup-bun@v2
+      with:
+        bun-version: latest
+
+    - name: Install OpenReview
+      shell: bash
+      run: |
+        cd ${{ github.action_path }}
+        bun install --frozen-lockfile
+
+    - name: Run OpenReview
+      id: review
+      shell: bash
+      env:
+        OPENREVIEW_MODE: ${{ inputs.mode }}
+        OPENREVIEW_AGENTS: ${{ inputs.agents }}
+        OPENREVIEW_FORMAT: ${{ inputs.format }}
+        OPENREVIEW_BASE_BRANCH: ${{ inputs.base-branch }}
+        OPENREVIEW_VERIFY: ${{ inputs.verify }}
+        OPENREVIEW_CONFIG: ${{ inputs.config }}
+      run: |
+        FLAGS="--${OPENREVIEW_MODE:-branch}"
+        FLAGS="$FLAGS --format ${OPENREVIEW_FORMAT:-sarif}"
+
+        if [ -n "$OPENREVIEW_AGENTS" ]; then
+          FLAGS="$FLAGS --agents $OPENREVIEW_AGENTS"
+        fi
+
+        if [ -n "$OPENREVIEW_BASE_BRANCH" ]; then
+          FLAGS="$FLAGS --branch $OPENREVIEW_BASE_BRANCH"
+        fi
+
+        if [ "$OPENREVIEW_VERIFY" = "false" ]; then
+          FLAGS="$FLAGS --no-verify"
+        fi
+
+        SARIF_FILE="${{ runner.temp }}/openreview-results.sarif"
+
+        # Run review
+        set +e
+        bun run ${{ github.action_path }}/src/index.ts run $FLAGS > "$SARIF_FILE" 2>&1
+        EXIT_CODE=$?
+        set -e
+
+        # Parse issue counts from SARIF
+        if [ -f "$SARIF_FILE" ] && command -v jq &> /dev/null; then
+          TOTAL=$(jq '.runs[0].results | length' "$SARIF_FILE" 2>/dev/null || echo "0")
+          CRITICAL=$(jq '[.runs[0].results[] | select(.level == "error")] | length' "$SARIF_FILE" 2>/dev/null || echo "0")
+        else
+          TOTAL="0"
+          CRITICAL="0"
+        fi
+
+        echo "issues=$TOTAL" >> "$GITHUB_OUTPUT"
+        echo "critical=$CRITICAL" >> "$GITHUB_OUTPUT"
+        echo "sarif-file=$SARIF_FILE" >> "$GITHUB_OUTPUT"
+
+        # Show summary in text mode too
+        if [ "$OPENREVIEW_FORMAT" = "sarif" ]; then
+          echo "### OpenReview Results" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Issues found:** $TOTAL" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Critical:** $CRITICAL" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Mode:** $OPENREVIEW_MODE" >> "$GITHUB_STEP_SUMMARY"
+        fi
+
+        # Fail if critical issues and configured to do so
+        if [ "${{ inputs.fail-on-critical }}" = "true" ] && [ "$EXIT_CODE" = "1" ]; then
+          echo "::error::OpenReview found $CRITICAL critical issue(s)"
+          exit 1
+        fi
+
+    - name: Upload SARIF
+      if: inputs.upload-sarif == 'true' && inputs.format == 'sarif' && always()
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: ${{ steps.review.outputs.sarif-file }}
+        category: openreview
+      continue-on-error: true

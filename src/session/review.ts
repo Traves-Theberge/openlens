@@ -126,13 +126,32 @@ function getAllowedToolNames(permission: Record<string, any>): string[] {
     .map(([k]) => k)
 }
 
-// Wait for session to become idle using session.status() instead of polling messages
+// Wait for session to become idle.
+// Try SSE event streaming first (instant notification), fall back to status polling.
 async function waitForSession(
   client: OpencodeClient,
   sessionId: string,
   timeoutMs: number
 ): Promise<void> {
   const start = Date.now()
+
+  // Try SSE event streaming for instant notification
+  try {
+    const resolved = await Promise.race([
+      waitViaSSE(client, sessionId),
+      timeout(timeoutMs),
+    ])
+    if (resolved === "timeout") {
+      try { await client.session.abort({ path: { id: sessionId } }) } catch {}
+      throw new Error(`Session ${sessionId} timed out after ${timeoutMs}ms`)
+    }
+    return
+  } catch (err: any) {
+    // SSE not available or failed — fall back to status polling
+    if (err.message?.includes("timed out")) throw err
+  }
+
+  // Fallback: poll session.status()
   let delay = 300
   const maxDelay = 3000
 
@@ -148,27 +167,69 @@ async function waitForSession(
       const sessionStatus = statuses[sessionId]
       if (!sessionStatus) continue
 
-      // Session is done when status is "idle"
       if (sessionStatus.type === "idle") return
-
-      // If retrying, keep waiting
-      if (sessionStatus.type === "retry") continue
-
-      // If busy, keep waiting
-      if (sessionStatus.type === "busy") continue
     } catch {
       // Network error — retry
     }
   }
 
-  // Timeout — abort the session before throwing
-  try {
-    await client.session.abort({ path: { id: sessionId } })
-  } catch {
-    // Best effort cleanup
-  }
-
+  try { await client.session.abort({ path: { id: sessionId } }) } catch {}
   throw new Error(`Session ${sessionId} timed out after ${timeoutMs}ms`)
+}
+
+// SSE-based wait: subscribe to events and resolve when session becomes idle
+async function waitViaSSE(
+  client: OpencodeClient,
+  sessionId: string
+): Promise<void> {
+  const stream = await client.event.subscribe()
+  const reader = (stream as any)?.getReader?.() || (stream as any)?.[Symbol.asyncIterator]?.()
+
+  if (!reader) throw new Error("SSE not available")
+
+  try {
+    // Handle both ReadableStream and AsyncIterator patterns
+    if (typeof reader.read === "function") {
+      // ReadableStream reader
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        const event = (value as any)?.payload || value
+        if (
+          event?.type === "session.idle" &&
+          event?.properties?.sessionID === sessionId
+        ) return
+        if (
+          event?.type === "session.status" &&
+          event?.properties?.sessionID === sessionId &&
+          event?.properties?.status?.type === "idle"
+        ) return
+      }
+    } else {
+      // AsyncIterator
+      for await (const value of reader) {
+        const event = (value as any)?.payload || value
+        if (
+          event?.type === "session.idle" &&
+          event?.properties?.sessionID === sessionId
+        ) return
+        if (
+          event?.type === "session.status" &&
+          event?.properties?.sessionID === sessionId &&
+          event?.properties?.status?.type === "idle"
+        ) return
+      }
+    }
+  } finally {
+    try {
+      if (typeof reader.cancel === "function") reader.cancel()
+      else if (typeof reader.return === "function") reader.return()
+    } catch {}
+  }
+}
+
+function timeout(ms: number): Promise<"timeout"> {
+  return new Promise((resolve) => setTimeout(() => resolve("timeout"), ms))
 }
 
 async function getSessionResponse(
@@ -381,6 +442,45 @@ function bySeverity(a: Issue, b: Issue): number {
   return severityRank(a.severity) - severityRank(b.severity)
 }
 
+// Connect MCP servers configured in openreview.json
+async function connectMcpServers(
+  client: OpencodeClient,
+  config: Config
+): Promise<void> {
+  for (const [name, mcp] of Object.entries(config.mcp)) {
+    if (!mcp.enabled) continue
+
+    try {
+      if (mcp.type === "local" && mcp.command) {
+        await client.mcp.add({
+          body: {
+            name,
+            config: {
+              type: "local",
+              command: [mcp.command, ...(mcp.args || [])],
+              environment: mcp.environment,
+            },
+          },
+        })
+      } else if (mcp.type === "remote" && mcp.url) {
+        await client.mcp.add({
+          body: {
+            name,
+            config: {
+              type: "remote",
+              url: mcp.url,
+            },
+          },
+        })
+      }
+
+      await client.mcp.connect({ path: { name } })
+    } catch {
+      // MCP server failed to connect — non-fatal, continue
+    }
+  }
+}
+
 // Try to connect to an existing OpenCode server, or start one
 async function getClient(
   config: Config
@@ -392,6 +492,10 @@ async function getClient(
   try {
     const res = await existingClient.app.agents()
     if (res.data) {
+      // Connect MCP servers to existing instance
+      if (Object.keys(config.mcp).length > 0) {
+        await connectMcpServers(existingClient, config)
+      }
       return { client: existingClient }
     }
   } catch {
@@ -403,6 +507,12 @@ async function getClient(
       hostname: config.server.hostname,
       port: config.server.port,
     })
+
+    // Connect MCP servers to new instance
+    if (Object.keys(config.mcp).length > 0) {
+      await connectMcpServers(client, config)
+    }
+
     return { client, cleanup: () => server.close() }
   } catch {
     // Fall back to client-only (maybe server starts later)
