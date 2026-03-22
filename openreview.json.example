@@ -1,0 +1,43 @@
+{
+  "$schema": "https://openreview.dev/config.json",
+
+  "model": "anthropic/claude-sonnet-4-20250514",
+
+  "agent": {
+    "security": {
+      "description": "Security vulnerability scanner",
+      "model": "anthropic/claude-sonnet-4-20250514",
+      "prompt": "{file:./agents/security.md}"
+    },
+    "bugs": {
+      "description": "Bug and logic error detector",
+      "model": "anthropic/claude-sonnet-4-20250514",
+      "prompt": "{file:./agents/bugs.md}"
+    },
+    "performance": {
+      "description": "Performance issue finder",
+      "model": "openai/gpt-4o",
+      "prompt": "{file:./agents/performance.md}"
+    },
+    "style": {
+      "description": "Style and convention checker",
+      "model": "anthropic/claude-haiku-4-5-20251001",
+      "prompt": "{file:./agents/style.md}"
+    }
+  },
+
+  "server": {
+    "port": 4096,
+    "hostname": "localhost"
+  },
+
+  "review": {
+    "defaultMode": "staged",
+    "instructions": ["REVIEW.md"],
+    "baseBranch": "main"
+  },
+
+  "mcp": {},
+
+  "disabled_agents": []
+}

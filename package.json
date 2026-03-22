@@ -1,0 +1,30 @@
+{
+  "name": "openreview",
+  "version": "0.1.0",
+  "type": "module",
+  "bin": {
+    "openreview": "./src/index.ts"
+  },
+  "main": "./src/lib.ts",
+  "exports": {
+    ".": "./src/lib.ts",
+    "./plugin": "./src/plugin.ts"
+  },
+  "scripts": {
+    "dev": "bun run src/index.ts",
+    "start": "bun run src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@opencode-ai/sdk": "^1.2.27",
+    "@opencode-ai/plugin": "^1.2.27",
+    "gray-matter": "^4.0.3",
+    "hono": "^4.7.0",
+    "yargs": "^17.7.2",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@types/yargs": "^17.0.33",
+    "typescript": "^5.8.2"
+  }
+}
