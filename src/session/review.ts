@@ -56,7 +56,8 @@ function buildUserMessage(
   instructions: string,
   diff: string,
   fileContext: string,
-  availableTools: string[]
+  availableTools: string[],
+  availableSubagents?: Agent[]
 ): string {
   const parts: string[] = []
 
@@ -74,13 +75,29 @@ function buildUserMessage(
     ? availableTools.map((t) => `\`${t}\``).join(", ")
     : "none"
 
+  let toolInstructions =
+    `You have access to tools: ${toolList}. ` +
+    "Use them to explore the codebase for context when needed — " +
+    "check imports, read related files, understand call sites. " +
+    "Do NOT just guess. Investigate."
+
+  // If this is a primary agent, tell it about delegation capabilities
+  if (availableSubagents && availableSubagents.length > 0) {
+    const agentList = availableSubagents
+      .map((a) => `- \`${a.name}\`: ${a.description || a.name}`)
+      .join("\n")
+
+    toolInstructions +=
+      "\n\nYou are a primary orchestrator agent. You can delegate focused review tasks to specialist agents using the `openlens-delegate` tool.\n\n" +
+      "## Available specialist agents\n\n" +
+      agentList +
+      "\n\nDecide which specialists are relevant based on the diff, delegate to them with specific questions, then synthesize their findings with your own analysis."
+  }
+
   parts.push(
     "## Important\n\n" +
-      `You have access to tools: ${toolList}. ` +
-      "Use them to explore the codebase for context when needed — " +
-      "check imports, read related files, understand call sites. " +
-      "Do NOT just guess. Investigate.\n\n" +
-      "When done, output your findings as a JSON array of issues. " +
+      toolInstructions +
+      "\n\nWhen done, output your findings as a JSON array of issues. " +
       "If no issues, return `[]`."
   )
 
@@ -266,7 +283,9 @@ async function runSingleAgent(
   diff: string,
   instructions: string,
   fileContext: string,
-  timeoutMs: number
+  timeoutMs: number,
+  mcpToolIds?: Set<string>,
+  availableSubagents?: Agent[]
 ): Promise<Issue[]> {
   const sessionRes = await client.session.create({
     body: { title: `openlens-${agent.name}` },
@@ -278,8 +297,28 @@ async function runSingleAgent(
 
   try {
     const tools = permissionToTools(agent.permission)
-    const allowedTools = getAllowedToolNames(agent.permission)
-    const userMessage = buildUserMessage(instructions, diff, fileContext, allowedTools)
+
+    // Enable MCP tools that the agent hasn't explicitly denied
+    if (mcpToolIds) {
+      for (const id of mcpToolIds) {
+        if (!(id in tools)) {
+          // MCP tools default to available unless agent denies them
+          tools[id] = agent.permission[id] !== "deny"
+        }
+      }
+    }
+
+    // Primary agents get access to delegation tools
+    if (agent.mode === "primary" && availableSubagents && availableSubagents.length > 0) {
+      tools["openlens-delegate"] = true
+      tools["openlens-agents"] = true
+      tools["openlens-conventions"] = true
+    }
+
+    const allowedTools = Object.entries(tools)
+      .filter(([_, v]) => v)
+      .map(([k]) => k)
+    const userMessage = buildUserMessage(instructions, diff, fileContext, allowedTools, availableSubagents)
     const model = parseModel(agent.model)
 
     // Use promptAsync to fire-and-forget, then poll status
@@ -520,6 +559,74 @@ async function getClient(
   }
 }
 
+// Run a single agent as a focused review — used by the delegation tool
+export async function runSingleAgentReview(
+  config: Config,
+  agent: Agent,
+  focus: { question: string; files?: string[] },
+  cwd: string = process.cwd()
+): Promise<ReviewResult> {
+  const diff = await getDiff(
+    (config.review.defaultMode === "auto" ? "staged" : config.review.defaultMode) as "staged" | "unstaged" | "branch",
+    config.review.baseBranch
+  )
+
+  let fileContext = ""
+  if (focus.files) {
+    const sections: string[] = []
+    for (const file of focus.files) {
+      const filePath = path.resolve(cwd, file)
+      try {
+        const content = await fs.readFile(filePath, "utf-8")
+        const lines = content.split("\n")
+        const truncated =
+          lines.length > 500
+            ? lines.slice(0, 500).join("\n") + `\n\n... (truncated, ${lines.length} total lines)`
+            : content
+        sections.push(`### ${file}\n\`\`\`\n${truncated}\n\`\`\``)
+      } catch {
+        // File might not exist
+      }
+    }
+    if (sections.length > 0) {
+      fileContext = "## Source files\n\n" + sections.join("\n\n")
+    }
+  } else if (config.review.fullFileContext) {
+    fileContext = await readChangedFiles(diff, cwd)
+  }
+
+  const instructions = focus.question
+  const { client, cleanup } = await getClient(config)
+
+  try {
+    const start = performance.now()
+    const issues = await runSingleAgent(
+      client,
+      agent,
+      diff,
+      instructions,
+      fileContext,
+      config.review.timeoutMs
+    )
+    const time = performance.now() - start
+
+    return {
+      issues: issues.sort(bySeverity),
+      timing: { [agent.name]: Math.round(time) },
+      meta: {
+        mode: config.review.defaultMode,
+        filesChanged: getDiffStats(diff).filesChanged,
+        agentsRun: 1,
+        agentsFailed: 0,
+        suppressed: 0,
+        verified: false,
+      },
+    }
+  } finally {
+    if (cleanup) cleanup()
+  }
+}
+
 export async function runReview(
   config: Config,
   mode?: string,
@@ -568,10 +675,14 @@ export async function runReview(
   const allAgents = await loadAgents(config, cwd)
   const suppressRules = await loadSuppressRules(config, cwd)
 
-  // Filter agents by mode: "subagent" and "all" run in review
-  const agents = allAgents.filter(
+  // Separate primary orchestrator agents from subagents
+  const primaryAgents = allAgents.filter((a) => a.mode === "primary")
+  const subagents = allAgents.filter(
     (a) => a.mode === "subagent" || a.mode === "all"
   )
+
+  // If primary agents exist, they orchestrate; otherwise run subagents directly
+  const agents = primaryAgents.length > 0 ? primaryAgents : subagents
 
   if (agents.length === 0) {
     return {
@@ -630,7 +741,10 @@ export async function runReview(
               diff,
               instructions,
               agentFileContext,
-              config.review.timeoutMs
+              config.review.timeoutMs,
+              serverToolIds || undefined,
+              // Primary agents get the list of subagents for delegation
+              agent.mode === "primary" ? subagents : undefined
             )
             const time = performance.now() - start
 

@@ -1,5 +1,5 @@
 // Public library API
-export { runReview } from "./session/review.js"
+export { runReview, runSingleAgentReview } from "./session/review.js"
 export { loadConfig, loadInstructions } from "./config/config.js"
 export { loadAgents, filterAgents } from "./agent/agent.js"
 export { getDiff, getAutoDetectedDiff, getDiffStats } from "./tool/diff.js"

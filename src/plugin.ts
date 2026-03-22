@@ -1,14 +1,14 @@
 import { type Plugin, tool } from "@opencode-ai/plugin"
-import { runReview } from "./session/review.js"
-import { loadConfig } from "./config/config.js"
-import { filterAgents } from "./agent/agent.js"
+import { runReview, runSingleAgentReview } from "./session/review.js"
+import { loadConfig, loadInstructions } from "./config/config.js"
+import { loadAgents, filterAgents } from "./agent/agent.js"
 import { formatText } from "./output/format.js"
 
 const plugin: Plugin = async (ctx) => {
   const directory = ctx.directory
 
   return {
-    // Register the openlens tool
+    // Register tools
     tool: {
       openlens: tool({
         description:
@@ -41,6 +41,94 @@ const plugin: Plugin = async (ctx) => {
 
           const result = await runReview(config, args.mode || "staged", directory)
           return formatText(result)
+        },
+      }),
+
+      // Delegation tool — lets a primary agent ask a specialist to review specific code
+      "openlens-delegate": tool({
+        description:
+          "Delegate a focused review question to a specialist agent. " +
+          "Use this when you want a specific agent (security, bugs, performance, etc.) " +
+          "to analyze a particular file or code pattern.",
+        args: {
+          agent: tool.schema
+            .string()
+            .describe("Name of the agent to delegate to (e.g. 'security', 'bugs')"),
+          question: tool.schema
+            .string()
+            .describe("Specific question or focus area for the agent"),
+          files: tool.schema
+            .string()
+            .optional()
+            .describe("Comma-separated file paths to focus on"),
+        },
+        async execute(args) {
+          const config = await loadConfig(directory)
+          const agents = await loadAgents(config, directory)
+          const target = agents.find((a) => a.name === args.agent)
+
+          if (!target) {
+            const available = agents.map((a) => a.name).join(", ")
+            return `Agent '${args.agent}' not found. Available: ${available}`
+          }
+
+          try {
+            const result = await runSingleAgentReview(
+              config,
+              target,
+              {
+                question: args.question,
+                files: args.files?.split(",").map((f) => f.trim()),
+              },
+              directory
+            )
+            return formatText(result)
+          } catch (err: any) {
+            return `Delegation to '${args.agent}' failed: ${err.message}`
+          }
+        },
+      }),
+
+      // Conventions tool — retrieves project review instructions
+      "openlens-conventions": tool({
+        description:
+          "Get this project's review conventions and instructions (from REVIEW.md and config). " +
+          "Use this to understand project-specific rules before reviewing.",
+        args: {},
+        async execute() {
+          const config = await loadConfig(directory)
+          const instructions = await loadInstructions(
+            config.review.instructions,
+            directory
+          )
+
+          if (!instructions.trim()) {
+            return "No project review instructions found. Check for a REVIEW.md file or configure review.instructions in openlens.json."
+          }
+
+          return instructions
+        },
+      }),
+
+      // Agent list tool — discover available agents and their capabilities
+      "openlens-agents": tool({
+        description:
+          "List all available review agents and their capabilities. " +
+          "Use this to understand what specialists are available for delegation.",
+        args: {},
+        async execute() {
+          const config = await loadConfig(directory)
+          const agents = await loadAgents(config, directory)
+
+          const lines = agents.map((a) => {
+            const tools = Object.entries(a.permission)
+              .filter(([_, v]) => v === "allow")
+              .map(([k]) => k)
+              .join(", ")
+            return `- **${a.name}**: ${a.description || "No description"} (model: ${a.model}, tools: ${tools}, steps: ${a.steps})`
+          })
+
+          return `## Available Agents\n\n${lines.join("\n")}`
         },
       }),
     },
