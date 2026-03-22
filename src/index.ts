@@ -1,6 +1,8 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 import yargs from "yargs"
 import { hideBin } from "yargs/helpers"
+import { spawnSync } from "child_process"
+import { fileURLToPath } from "url"
 import { loadConfig } from "./config/config.js"
 import { loadAgents, filterAgents } from "./agent/agent.js"
 import { runReview, runSingleAgentReview } from "./session/review.js"
@@ -70,10 +72,11 @@ yargs(hideBin(process.argv))
       const cwd = process.cwd()
 
       // Validate git repo
-      const gitCheck = Bun.spawnSync(["git", "rev-parse", "--git-dir"], {
+      const gitCheck = spawnSync("git", ["rev-parse", "--git-dir"], {
         cwd,
+        encoding: "utf-8",
       })
-      if (gitCheck.exitCode !== 0) {
+      if (gitCheck.status !== 0) {
         fatal("Not a git repository. Run this from a git project root.")
       }
 
@@ -258,7 +261,7 @@ yargs(hideBin(process.argv))
       const agentsDir = path.join(cwd, "agents")
       await fs.mkdir(agentsDir, { recursive: true })
 
-      const srcAgentsDir = path.join(import.meta.dir, "../agents")
+      const srcAgentsDir = path.join(path.dirname(fileURLToPath(import.meta.url)), "../agents")
       const defaultAgents = [
         "security",
         "bugs",
@@ -709,11 +712,131 @@ If no issues found, return \`[]\`
         `\n  ${B}OpenLens Server${R} listening on http://${hostname}:${port}\n`
       )
 
-      Bun.serve({
-        fetch: server.fetch,
-        port,
-        hostname,
-      })
+      // Use Hono's built-in Node.js adapter when available, fall back to Bun.serve
+      try {
+        const { serve } = await import("@hono/node-server")
+        serve({ fetch: server.fetch, port, hostname })
+      } catch {
+        // @hono/node-server not installed — try Bun.serve (works when running under bun)
+        if (typeof globalThis.Bun !== "undefined") {
+          Bun.serve({ fetch: server.fetch, port, hostname })
+        } else {
+          fatal(
+            "Install @hono/node-server for Node.js support: npm install @hono/node-server"
+          )
+        }
+      }
+    }
+  )
+
+  .command(
+    "doctor",
+    "Check environment and configuration",
+    (y) => y,
+    async () => {
+      const cwd = process.cwd()
+      let hasErrors = false
+
+      console.log(`\n  ${B}OpenLens Doctor${R}\n`)
+
+      // 1. Check git
+      const gitCheck = spawnSync("git", ["--version"], { encoding: "utf-8" })
+      if (gitCheck.status === 0) {
+        console.log(`  ${G}✓${R} git  ${D}${gitCheck.stdout.trim()}${R}`)
+      } else {
+        console.log(`  ${RD}✗${R} git not found`)
+        hasErrors = true
+      }
+
+      // 2. Check OpenCode binary
+      const { resolveOpencodeBin } = await import("./env.js")
+      const bin = resolveOpencodeBin(cwd)
+      const ocCheck = spawnSync(bin, ["--version"], { encoding: "utf-8" })
+      if (ocCheck.status === 0) {
+        console.log(`  ${G}✓${R} opencode  ${D}v${ocCheck.stdout.trim()} (${bin})${R}`)
+      } else {
+        console.log(`  ${RD}✗${R} opencode binary not found at ${D}${bin}${R}`)
+        console.log(`    ${D}Install with: npm install opencode-ai${R}`)
+        hasErrors = true
+      }
+
+      // 3. Check API keys
+      const hasAnthropic = !!process.env.ANTHROPIC_API_KEY
+      const hasOpenAI = !!process.env.OPENAI_API_KEY
+      if (hasAnthropic) {
+        console.log(`  ${G}✓${R} ANTHROPIC_API_KEY  ${D}set${R}`)
+      } else {
+        console.log(`  ${YELLOW}!${R} ANTHROPIC_API_KEY  ${D}not set${R}`)
+      }
+      if (hasOpenAI) {
+        console.log(`  ${G}✓${R} OPENAI_API_KEY  ${D}set${R}`)
+      } else {
+        console.log(`  ${D}○${R} OPENAI_API_KEY  ${D}not set${R}`)
+      }
+      if (!hasAnthropic && !hasOpenAI) {
+        console.log(`    ${YELLOW}No API keys found. Set at least one provider key.${R}`)
+        hasErrors = true
+      }
+
+      // 4. Check config
+      console.log("")
+      try {
+        const config = await loadConfig(cwd)
+        console.log(`  ${G}✓${R} config  ${D}${config.model}${R}`)
+
+        // 5. Check agents
+        const agents = await loadAgents(config, cwd)
+        if (agents.length > 0) {
+          console.log(`  ${G}✓${R} agents  ${D}${agents.length} loaded (${agents.map((a) => a.name).join(", ")})${R}`)
+
+          // Validate each agent
+          for (const agent of agents) {
+            const issues: string[] = []
+            if (!agent.model.includes("/")) {
+              issues.push(`model missing provider prefix`)
+            }
+            if (!agent.prompt.trim()) {
+              issues.push("empty prompt")
+            }
+            const tools = Object.entries(agent.permission)
+              .filter(([_, v]) => v === "allow")
+              .map(([k]) => k)
+            if (tools.length === 0) {
+              issues.push("no tools allowed")
+            }
+            if (issues.length > 0) {
+              console.log(`  ${YELLOW}!${R} ${agent.name}  ${D}${issues.join(", ")}${R}`)
+            }
+          }
+        } else {
+          console.log(`  ${YELLOW}!${R} agents  ${D}none configured${R}`)
+          console.log(`    ${D}Run: openlens init${R}`)
+        }
+
+        // 6. Check MCP servers
+        const mcpCount = Object.entries(config.mcp).filter(([_, v]) => v.enabled).length
+        if (mcpCount > 0) {
+          console.log(`  ${G}✓${R} mcp  ${D}${mcpCount} server(s)${R}`)
+        }
+      } catch (err: any) {
+        console.log(`  ${RD}✗${R} config  ${D}${err.message}${R}`)
+        hasErrors = true
+      }
+
+      // 7. CI detection
+      const { detectCI } = await import("./env.js")
+      const ci = detectCI()
+      if (ci.isCI) {
+        console.log(`  ${G}✓${R} CI  ${D}${ci.provider}${R}`)
+      }
+
+      console.log("")
+      if (hasErrors) {
+        console.log(`  ${YELLOW}Some issues found. Fix them before running reviews.${R}\n`)
+        process.exit(1)
+      } else {
+        console.log(`  ${G}All checks passed.${R}\n`)
+      }
     }
   )
 

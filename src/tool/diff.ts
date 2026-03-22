@@ -1,19 +1,20 @@
+import { spawnSync } from "child_process"
+
 export async function getDiff(
   mode: "staged" | "unstaged" | "branch",
   baseBranch: string = "main"
 ): Promise<string> {
-  const cmd = {
-    staged: ["git", "diff", "--cached"],
-    unstaged: ["git", "diff"],
-    branch: ["git", "diff", `${baseBranch}...HEAD`],
+  const args = {
+    staged: ["diff", "--cached"],
+    unstaged: ["diff"],
+    branch: ["diff", `${baseBranch}...HEAD`],
   }[mode]
 
-  const proc = Bun.spawnSync(cmd)
-  if (proc.exitCode !== 0) {
-    const stderr = new TextDecoder().decode(proc.stderr)
-    throw new Error(`git diff failed: ${stderr}`)
+  const proc = spawnSync("git", args, { encoding: "utf-8", maxBuffer: 50 * 1024 * 1024 })
+  if (proc.status !== 0) {
+    throw new Error(`git diff failed: ${proc.stderr || "unknown error"}`)
   }
-  return new TextDecoder().decode(proc.stdout)
+  return proc.stdout
 }
 
 export async function getAutoDetectedDiff(

@@ -1,5 +1,9 @@
-import { resolve, join } from "path"
+import { resolve, join, dirname } from "path"
 import { existsSync } from "fs"
+import { fileURLToPath } from "url"
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
 
 /**
  * Detect if running in a CI environment and which provider.

@@ -1,6 +1,7 @@
 import matter from "gray-matter"
 import path from "path"
 import fs from "fs/promises"
+import { fileURLToPath } from "url"
 import type { Config, AgentConfig } from "../config/schema.js"
 
 export interface Agent {
@@ -19,7 +20,8 @@ export interface Agent {
   permission: Record<string, any>
 }
 
-const BUILTIN_PROMPTS_DIR = path.join(import.meta.dir, "../../agents")
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const BUILTIN_PROMPTS_DIR = path.join(__dirname, "../../agents")
 
 async function resolvePrompt(
   raw: string | undefined,
