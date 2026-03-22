@@ -131,3 +131,17 @@ export function filterAgents(
   }
   return filtered
 }
+
+export function excludeAgents(
+  config: Config,
+  excluded: string
+): Config {
+  const names = new Set(excluded.split(",").map((s) => s.trim()))
+  const filtered = { ...config, agent: { ...config.agent } }
+  for (const name of names) {
+    if (filtered.agent[name]) {
+      filtered.agent[name] = { ...filtered.agent[name], disable: true }
+    }
+  }
+  return filtered
+}

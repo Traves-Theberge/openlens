@@ -4,7 +4,7 @@ import { hideBin } from "yargs/helpers"
 import { spawnSync } from "child_process"
 import { fileURLToPath } from "url"
 import { loadConfig } from "./config/config.js"
-import { loadAgents, filterAgents } from "./agent/agent.js"
+import { loadAgents, filterAgents, excludeAgents } from "./agent/agent.js"
 import { runReview, runSingleAgentReview } from "./session/review.js"
 import { formatText, formatJson, formatSarif } from "./output/format.js"
 import { getDiff, getAutoDetectedDiff, getDiffStats } from "./tool/diff.js"
@@ -49,7 +49,15 @@ yargs(hideBin(process.argv))
         })
         .option("agents", {
           type: "string",
-          describe: "Comma-separated agent list",
+          describe: "Comma-separated agent list (whitelist)",
+        })
+        .option("exclude-agents", {
+          type: "string",
+          describe: "Comma-separated agents to skip",
+        })
+        .option("model", {
+          type: "string",
+          describe: "Override model for all agents (e.g. anthropic/claude-sonnet-4-20250514)",
         })
         .option("format", {
           choices: ["text", "json", "sarif"] as const,
@@ -89,6 +97,16 @@ yargs(hideBin(process.argv))
 
       // Apply CLI overrides
       config = filterAgents(config, argv.agents)
+      if (argv.excludeAgents) {
+        config = excludeAgents(config, argv.excludeAgents)
+      }
+      if (argv.model) {
+        config.model = argv.model
+        // Override all agents to use this model
+        for (const agent of Object.values(config.agent)) {
+          agent.model = argv.model
+        }
+      }
 
       if (argv.noVerify) config.review.verify = false
       if (argv.noContext) config.review.fullFileContext = false
@@ -496,6 +514,10 @@ If no issues found, return \`[]\`
           default: "text" as const,
           describe: "Output format",
         })
+        .option("model", {
+          type: "string",
+          describe: "Override model (e.g. anthropic/claude-sonnet-4-20250514)",
+        })
         .option("verbose", {
           type: "boolean",
           default: true,
@@ -510,6 +532,14 @@ If no issues found, return \`[]\`
         config = await loadConfig(cwd)
       } catch (err: any) {
         fatal(`Config error: ${err.message}`)
+      }
+
+      // Apply model override before loading agents
+      if (argv.model) {
+        config.model = argv.model
+        for (const agent of Object.values(config.agent)) {
+          agent.model = argv.model
+        }
       }
 
       const agents = await loadAgents(config, cwd)
@@ -678,6 +708,82 @@ If no issues found, return \`[]\`
 
       console.log("")
       process.exit(hasErrors ? 1 : 0)
+    }
+  )
+
+  .command(
+    "agent enable <name>",
+    "Enable a disabled agent",
+    (y) =>
+      y.positional("name", {
+        type: "string",
+        describe: "Agent name to enable",
+        demandOption: true,
+      }),
+    async (argv) => {
+      const cwd = process.cwd()
+      const name = argv.name as string
+      const configPath = path.join(cwd, "openlens.json")
+
+      let raw: string
+      let config: any
+      try {
+        raw = await fs.readFile(configPath, "utf-8")
+        config = JSON.parse(raw)
+      } catch {
+        fatal("openlens.json not found. Run: openlens init")
+      }
+
+      // Remove from disabled_agents list
+      if (Array.isArray(config.disabled_agents)) {
+        config.disabled_agents = config.disabled_agents.filter(
+          (n: string) => n !== name
+        )
+      }
+
+      // Remove disable: true from agent config
+      if (config.agent?.[name]) {
+        delete config.agent[name].disable
+      } else {
+        fatal(`Agent '${name}' not found in config`)
+      }
+
+      await fs.writeFile(configPath, JSON.stringify(config, null, 2) + "\n")
+      console.log(`  ${G}✓${R} ${B}${name}${R} enabled`)
+    }
+  )
+
+  .command(
+    "agent disable <name>",
+    "Disable an agent",
+    (y) =>
+      y.positional("name", {
+        type: "string",
+        describe: "Agent name to disable",
+        demandOption: true,
+      }),
+    async (argv) => {
+      const cwd = process.cwd()
+      const name = argv.name as string
+      const configPath = path.join(cwd, "openlens.json")
+
+      let raw: string
+      let config: any
+      try {
+        raw = await fs.readFile(configPath, "utf-8")
+        config = JSON.parse(raw)
+      } catch {
+        fatal("openlens.json not found. Run: openlens init")
+      }
+
+      if (!config.agent?.[name]) {
+        fatal(`Agent '${name}' not found in config`)
+      }
+
+      config.agent[name].disable = true
+
+      await fs.writeFile(configPath, JSON.stringify(config, null, 2) + "\n")
+      console.log(`  ${D}○${R} ${B}${name}${R} disabled`)
     }
   )
 

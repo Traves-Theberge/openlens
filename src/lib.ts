@@ -1,7 +1,7 @@
 // Public library API
 export { runReview, runSingleAgentReview } from "./session/review.js"
 export { loadConfig, loadInstructions } from "./config/config.js"
-export { loadAgents, filterAgents } from "./agent/agent.js"
+export { loadAgents, filterAgents, excludeAgents } from "./agent/agent.js"
 export { getDiff, getAutoDetectedDiff, getDiffStats } from "./tool/diff.js"
 export { formatText, formatJson, formatSarif } from "./output/format.js"
 export { loadSuppressRules, shouldSuppress } from "./suppress.js"

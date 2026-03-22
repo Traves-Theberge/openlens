@@ -1,5 +1,5 @@
 import { describe, test, expect } from "bun:test"
-import { filterAgents } from "../../src/agent/agent.js"
+import { filterAgents, excludeAgents } from "../../src/agent/agent.js"
 import { ConfigSchema } from "../../src/config/schema.js"
 
 function baseConfig() {
@@ -48,5 +48,44 @@ describe("filterAgents", () => {
     filterAgents(config, "security")
     expect(config.agent.bugs.disable).toBe(false)
     expect(config.agent.style.disable).toBe(false)
+  })
+})
+
+describe("excludeAgents", () => {
+  test("disables specified agents", () => {
+    const config = baseConfig()
+    const result = excludeAgents(config, "style")
+    expect(result.agent.security.disable).toBe(false)
+    expect(result.agent.bugs.disable).toBe(false)
+    expect(result.agent.style.disable).toBe(true)
+  })
+
+  test("disables multiple agents", () => {
+    const config = baseConfig()
+    const result = excludeAgents(config, "security,style")
+    expect(result.agent.security.disable).toBe(true)
+    expect(result.agent.bugs.disable).toBe(false)
+    expect(result.agent.style.disable).toBe(true)
+  })
+
+  test("trims whitespace", () => {
+    const config = baseConfig()
+    const result = excludeAgents(config, " security , style ")
+    expect(result.agent.security.disable).toBe(true)
+    expect(result.agent.style.disable).toBe(true)
+  })
+
+  test("ignores unknown agent names", () => {
+    const config = baseConfig()
+    const result = excludeAgents(config, "nonexistent")
+    expect(result.agent.security.disable).toBe(false)
+    expect(result.agent.bugs.disable).toBe(false)
+    expect(result.agent.style.disable).toBe(false)
+  })
+
+  test("does not modify original config", () => {
+    const config = baseConfig()
+    excludeAgents(config, "security")
+    expect(config.agent.security.disable).toBe(false)
   })
 })
