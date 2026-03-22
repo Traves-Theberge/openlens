@@ -9,29 +9,36 @@ export const McpServerSchema = z.object({
   enabled: z.boolean().default(true),
 })
 
+// Permission value: "allow" | "deny" | "ask" OR { pattern: value } for granular control
+const PermissionValueSchema = z.union([
+  z.enum(["allow", "deny", "ask"]),
+  z.record(z.string(), z.enum(["allow", "deny", "ask"])),
+])
+
+// Agent config — mirrors opencode.json agent format exactly
 export const AgentConfigSchema = z.object({
   description: z.string().optional(),
+  mode: z.enum(["primary", "subagent", "all"]).default("subagent"),
   model: z.string().optional(),
   prompt: z.string().optional(),
-  enabled: z.boolean().default(true),
-  // OpenCode-style agent capabilities
-  tools: z
-    .record(z.string(), z.boolean())
-    .optional()
-    .describe("Tool access: { read: true, grep: true, bash: false }"),
+  temperature: z.number().min(0).max(1).optional(),
+  top_p: z.number().min(0).max(1).optional(),
+  steps: z.number().int().min(1).optional().describe("Max agentic loop iterations"),
+  disable: z.boolean().default(false),
+  hidden: z.boolean().default(false),
+  color: z.string().optional(),
   permission: z
-    .record(z.string(), z.enum(["allow", "deny", "ask"]))
+    .record(z.string(), PermissionValueSchema)
     .optional()
-    .describe("Permission rules per tool"),
-  temperature: z.number().min(0).max(2).optional(),
-  maxTurns: z.number().int().min(1).optional().describe("Max agentic loop iterations"),
-  system: z.string().optional().describe("System prompt override sent to OpenCode"),
+    .describe('Tool permissions: { read: "allow", bash: "deny", edit: "ask" }'),
 })
 
 export const ConfigSchema = z.object({
   $schema: z.string().optional(),
   model: z.string().default("anthropic/claude-sonnet-4-20250514"),
   agent: z.record(z.string(), AgentConfigSchema).default({}),
+  // Global permissions (agents inherit these, can override)
+  permission: z.record(z.string(), PermissionValueSchema).optional(),
   server: z
     .object({
       port: z.number().default(4096),

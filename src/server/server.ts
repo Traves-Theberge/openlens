@@ -36,8 +36,9 @@ export function createServer(config: Config) {
         name: a.name,
         description: a.description,
         model: a.model,
-        tools: a.tools,
-        maxTurns: a.maxTurns,
+        mode: a.mode,
+        permission: a.permission,
+        steps: a.steps,
       }))
     )
   })

@@ -6,24 +6,50 @@
   "agent": {
     "security": {
       "description": "Security vulnerability scanner",
+      "mode": "subagent",
       "model": "anthropic/claude-sonnet-4-20250514",
-      "prompt": "{file:./agents/security.md}"
+      "prompt": "{file:./agents/security.md}",
+      "steps": 5,
+      "permission": {
+        "read": "allow",
+        "grep": "allow",
+        "glob": "allow",
+        "list": "allow",
+        "edit": "deny",
+        "bash": "deny"
+      }
     },
     "bugs": {
       "description": "Bug and logic error detector",
-      "model": "anthropic/claude-sonnet-4-20250514",
-      "prompt": "{file:./agents/bugs.md}"
+      "mode": "subagent",
+      "prompt": "{file:./agents/bugs.md}",
+      "steps": 5
     },
     "performance": {
       "description": "Performance issue finder",
+      "mode": "subagent",
       "model": "openai/gpt-4o",
-      "prompt": "{file:./agents/performance.md}"
+      "prompt": "{file:./agents/performance.md}",
+      "steps": 5
     },
     "style": {
       "description": "Style and convention checker",
+      "mode": "subagent",
       "model": "anthropic/claude-haiku-4-5-20251001",
-      "prompt": "{file:./agents/style.md}"
+      "prompt": "{file:./agents/style.md}",
+      "steps": 3
     }
+  },
+
+  "permission": {
+    "read": "allow",
+    "grep": "allow",
+    "glob": "allow",
+    "list": "allow",
+    "edit": "deny",
+    "write": "deny",
+    "bash": "deny",
+    "webfetch": "deny"
   },
 
   "server": {
@@ -34,7 +60,14 @@
   "review": {
     "defaultMode": "staged",
     "instructions": ["REVIEW.md"],
-    "baseBranch": "main"
+    "baseBranch": "main",
+    "fullFileContext": true,
+    "verify": true
+  },
+
+  "suppress": {
+    "files": ["generated/**", "vendor/**"],
+    "patterns": []
   },
 
   "mcp": {},

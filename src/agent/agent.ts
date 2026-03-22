@@ -6,13 +6,15 @@ import type { Config, AgentConfig } from "../config/schema.js"
 export interface Agent {
   name: string
   description?: string
+  mode: "primary" | "subagent" | "all"
   model: string
   prompt: string
-  system?: string
-  tools?: Record<string, boolean>
-  permission?: Record<string, "allow" | "deny" | "ask">
   temperature?: number
-  maxTurns?: number
+  top_p?: number
+  steps: number
+  color?: string
+  // Permission map: tool name → "allow" | "deny" | "ask" (or granular patterns)
+  permission: Record<string, any>
 }
 
 const BUILTIN_PROMPTS_DIR = path.join(import.meta.dir, "../../agents")
@@ -53,17 +55,18 @@ async function resolvePrompt(
   }
 }
 
-// Default tools that review agents can use — read-only access to explore the codebase
-const DEFAULT_TOOLS: Record<string, boolean> = {
-  read: true,
-  grep: true,
-  glob: true,
-  list: true,
-  fetch: false,
-  edit: false,
-  write: false,
-  bash: false,
-  patch: false,
+// Default permissions for review agents — read-only codebase access
+const DEFAULT_PERMISSIONS: Record<string, string> = {
+  read: "allow",
+  grep: "allow",
+  glob: "allow",
+  list: "allow",
+  edit: "deny",
+  write: "deny",
+  bash: "deny",
+  webfetch: "deny",
+  websearch: "deny",
+  task: "deny",
 }
 
 export async function loadAgents(
@@ -74,7 +77,7 @@ export async function loadAgents(
 
   for (const [name, agentConfig] of Object.entries(config.agent)) {
     if (config.disabled_agents.includes(name)) continue
-    if (!agentConfig.enabled) continue
+    if (agentConfig.disable) continue
 
     const { prompt, frontmatter } = await resolvePrompt(
       agentConfig.prompt,
@@ -82,24 +85,26 @@ export async function loadAgents(
       cwd
     )
 
-    // Merge tools: defaults < frontmatter < config
-    const tools = {
-      ...DEFAULT_TOOLS,
-      ...(frontmatter.tools || {}),
-      ...(agentConfig.tools || {}),
+    // Merge permissions: defaults < global config < frontmatter < agent config
+    const permission = {
+      ...DEFAULT_PERMISSIONS,
+      ...(config.permission || {}),
+      ...(frontmatter.permission || {}),
+      ...(agentConfig.permission || {}),
     }
 
     agents.push({
       name,
       description:
         agentConfig.description || frontmatter.description || undefined,
+      mode: agentConfig.mode || frontmatter.mode || "subagent",
       model: agentConfig.model || frontmatter.model || config.model,
       prompt,
-      system: agentConfig.system || frontmatter.system,
-      tools,
-      permission: agentConfig.permission || frontmatter.permission,
       temperature: agentConfig.temperature ?? frontmatter.temperature,
-      maxTurns: agentConfig.maxTurns ?? frontmatter.maxTurns ?? 5,
+      top_p: agentConfig.top_p ?? frontmatter.top_p,
+      steps: agentConfig.steps ?? frontmatter.steps ?? 5,
+      color: agentConfig.color || frontmatter.color,
+      permission,
     })
   }
 
@@ -115,7 +120,7 @@ export function filterAgents(
   const filtered = { ...config, agent: { ...config.agent } }
   for (const name of Object.keys(filtered.agent)) {
     if (!names.has(name)) {
-      filtered.agent[name] = { ...filtered.agent[name], enabled: false }
+      filtered.agent[name] = { ...filtered.agent[name], disable: true }
     }
   }
   return filtered

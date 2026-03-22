@@ -1,15 +1,16 @@
 ---
 description: Bug and logic error detector
+mode: subagent
 model: anthropic/claude-sonnet-4-20250514
-tools:
-  read: true
-  grep: true
-  glob: true
-  list: true
-  bash: false
-  edit: false
-  write: false
-maxTurns: 5
+steps: 5
+permission:
+  read: allow
+  grep: allow
+  glob: allow
+  list: allow
+  edit: deny
+  write: deny
+  bash: deny
 ---
 
 You are a bug-focused code reviewer with access to the full codebase.

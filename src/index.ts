@@ -155,19 +155,18 @@ yargs(hideBin(process.argv))
 
       console.log(`\n  ${B}OpenReview Agents${R}\n`)
       for (const agent of agents) {
-        const toolList = agent.tools
-          ? Object.entries(agent.tools)
-              .filter(([_, v]) => v)
-              .map(([k]) => k)
-              .join(", ")
-          : "none"
+        const allowed = Object.entries(agent.permission)
+          .filter(([_, v]) => v === "allow")
+          .map(([k]) => k)
+          .join(", ")
 
         console.log(
           `  ${B}${agent.name}${R}  ${D}${agent.description || ""}${R}`
         )
         console.log(`    model: ${agent.model}`)
-        console.log(`    tools: ${D}${toolList}${R}`)
-        if (agent.maxTurns) console.log(`    max turns: ${agent.maxTurns}`)
+        console.log(`    mode: ${D}${agent.mode}${R}`)
+        console.log(`    allowed: ${D}${allowed || "none"}${R}`)
+        console.log(`    steps: ${agent.steps}`)
         console.log("")
       }
 

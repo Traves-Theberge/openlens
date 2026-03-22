@@ -196,16 +196,24 @@ async function runSingleAgent(
   const fullPrompt = buildPrompt(agent.prompt, instructions, diff, fileContext)
   const model = parseModel(agent.model)
 
+  // Convert permission map to tools map for OpenCode session
+  // OpenCode session.prompt accepts tools: { toolName: boolean }
+  const tools: Record<string, boolean> = {}
+  if (agent.permission) {
+    for (const [tool, value] of Object.entries(agent.permission)) {
+      if (typeof value === "string") {
+        tools[tool] = value === "allow"
+      }
+    }
+  }
+
   // Send prompt with full OpenCode agent capabilities
   await client.session.prompt({
     path: { id: session.id },
     body: {
       parts: [{ type: "text" as const, text: fullPrompt }],
       model,
-      // Pass system prompt if agent defines one
-      ...(agent.system ? { system: agent.system } : {}),
-      // Enable tools so the agent can explore the codebase
-      ...(agent.tools ? { tools: agent.tools } : {}),
+      tools,
     },
   })
 
