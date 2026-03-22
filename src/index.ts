@@ -66,13 +66,15 @@ yargs(hideBin(process.argv))
           default: "text" as const,
           describe: "Output format",
         })
-        .option("no-verify", {
+        .option("verify", {
           type: "boolean",
-          describe: "Skip verification pass",
+          default: true,
+          describe: "Run verification pass (use --no-verify to skip)",
         })
-        .option("no-context", {
+        .option("context", {
           type: "boolean",
-          describe: "Skip full file context (diff only)",
+          default: true,
+          describe: "Include full file context (use --no-context for diff only)",
         })
         .option("dry-run", {
           type: "boolean",
@@ -110,8 +112,8 @@ yargs(hideBin(process.argv))
         }
       }
 
-      if (argv.noVerify) config.review.verify = false
-      if (argv.noContext) config.review.fullFileContext = false
+      if (argv.verify === false) config.review.verify = false
+      if (argv.context === false) config.review.fullFileContext = false
 
       let mode: string
       if (argv.unstaged) {
@@ -990,6 +992,7 @@ If no issues found, return \`[]\`
   )
 
   .demandCommand(1, "Please specify a command")
+  .strict()
   .help()
   .version("0.1.0")
   .parse()
