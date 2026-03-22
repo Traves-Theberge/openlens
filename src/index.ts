@@ -56,10 +56,12 @@ yargs(hideBin(process.argv))
           describe: "Comma-separated agents to skip",
         })
         .option("model", {
+          alias: "m",
           type: "string",
           describe: "Override model for all agents (e.g. anthropic/claude-sonnet-4-20250514)",
         })
         .option("format", {
+          alias: "f",
           choices: ["text", "json", "sarif"] as const,
           default: "text" as const,
           describe: "Output format",
@@ -232,41 +234,482 @@ yargs(hideBin(process.argv))
     }
   )
 
-  .command(
-    "agents",
-    "List configured review agents",
-    (y) => y,
-    async () => {
-      let config
-      try {
-        config = await loadConfig(process.cwd())
-      } catch (err: any) {
-        fatal(`Config error: ${err.message}`)
-      }
+  .command("agent", "Manage review agents", (y) =>
+    y
+      .command(
+        "list",
+        "List configured review agents",
+        (yy) => yy,
+        async () => {
+          let config
+          try {
+            config = await loadConfig(process.cwd())
+          } catch (err: any) {
+            fatal(`Config error: ${err.message}`)
+          }
 
-      const agents = await loadAgents(config, process.cwd())
+          const agents = await loadAgents(config, process.cwd())
 
-      console.log(`\n  ${B}OpenLens Agents${R}\n`)
-      for (const agent of agents) {
-        const allowed = Object.entries(agent.permission)
-          .filter(([_, v]) => v === "allow")
-          .map(([k]) => k)
-          .join(", ")
+          console.log(`\n  ${B}OpenLens Agents${R}\n`)
+          for (const agent of agents) {
+            const allowed = Object.entries(agent.permission)
+              .filter(([_, v]) => v === "allow")
+              .map(([k]) => k)
+              .join(", ")
 
-        console.log(
-          `  ${B}${agent.name}${R}  ${D}${agent.description || ""}${R}`
-        )
-        console.log(`    model: ${agent.model}`)
-        console.log(`    mode: ${D}${agent.mode}${R}`)
-        console.log(`    allowed: ${D}${allowed || "none"}${R}`)
-        console.log(`    steps: ${agent.steps}`)
-        console.log("")
-      }
+            console.log(
+              `  ${B}${agent.name}${R}  ${D}${agent.description || ""}${R}`
+            )
+            console.log(`    model: ${agent.model}`)
+            console.log(`    mode: ${D}${agent.mode}${R}`)
+            console.log(`    allowed: ${D}${allowed || "none"}${R}`)
+            console.log(`    steps: ${agent.steps}`)
+            console.log("")
+          }
 
-      if (agents.length === 0) {
-        console.log(`  No agents configured.\n`)
-      }
-    }
+          if (agents.length === 0) {
+            console.log(`  No agents configured.\n`)
+          }
+        }
+      )
+
+      .command(
+        "create <name>",
+        "Create a new review agent",
+        (yy) =>
+          yy
+            .positional("name", {
+              type: "string",
+              describe: "Agent name (e.g. accessibility, api-review)",
+              demandOption: true,
+            })
+            .option("description", {
+              type: "string",
+              describe: "Agent description",
+            })
+            .option("model", {
+              type: "string",
+              describe: "Model to use (e.g. anthropic/claude-sonnet-4-20250514)",
+            })
+            .option("steps", {
+              type: "number",
+              default: 5,
+              describe: "Max agentic loop iterations",
+            }),
+        async (argv) => {
+          const cwd = process.cwd()
+          const name = argv.name as string
+
+          // Validate name
+          if (!/^[a-z][a-z0-9-]*$/.test(name)) {
+            fatal("Agent name must be lowercase alphanumeric with hyphens (e.g. 'api-review')")
+          }
+
+          // Check if agent already exists
+          const agentsDir = path.join(cwd, "agents")
+          const agentPath = path.join(agentsDir, `${name}.md`)
+
+          try {
+            await fs.access(agentPath)
+            fatal(`Agent '${name}' already exists at agents/${name}.md`)
+          } catch {
+            // Good — doesn't exist yet
+          }
+
+          const description = argv.description || `${name} code reviewer`
+          const model = argv.model || "anthropic/claude-sonnet-4-20250514"
+          const steps = argv.steps || 5
+
+          // Generate agent prompt file with frontmatter
+          const agentContent = `---
+description: ${description}
+mode: subagent
+model: ${model}
+steps: ${steps}
+permission:
+  read: allow
+  grep: allow
+  glob: allow
+  list: allow
+  edit: deny
+  write: deny
+  bash: deny
+---
+
+You are a ${name.replace(/-/g, " ")}-focused code reviewer with access to the full codebase.
+
+## How to review
+
+1. Read the diff carefully to understand what changed
+2. Use \`read\` to view full files for context
+3. Use \`grep\` to find related patterns and callers
+4. Use \`glob\` to find related files
+5. Only report issues you can confirm by investigating the actual code
+
+## What to look for
+
+<!-- TODO: Add your review criteria here -->
+- Add specific patterns and issues to check for
+- Be precise about what constitutes a real issue vs noise
+
+## What NOT to flag
+
+- Issues unrelated to this agent's focus area
+- Theoretical issues requiring unrealistic conditions
+- Code style preferences (unless this is a style agent)
+
+## Output
+
+Return a JSON array of issues:
+
+\`\`\`json
+[
+  {
+    "file": "src/example.ts",
+    "line": 42,
+    "severity": "warning",
+    "title": "Brief issue title",
+    "message": "Detailed explanation of the issue and why it matters.",
+    "fix": "How to fix it",
+    "patch": "-old line\\n+new line"
+  }
+]
+\`\`\`
+
+If no issues found, return \`[]\`
+`
+
+          await fs.mkdir(agentsDir, { recursive: true })
+          await fs.writeFile(agentPath, agentContent)
+          console.log(`  ${G}created${R} agents/${name}.md`)
+
+          // Update openlens.json if it exists
+          const configPath = path.join(cwd, "openlens.json")
+          try {
+            const raw = await fs.readFile(configPath, "utf-8")
+            const config = JSON.parse(raw)
+            if (!config.agent) config.agent = {}
+            if (!config.agent[name]) {
+              config.agent[name] = {
+                description,
+                prompt: `{file:./agents/${name}.md}`,
+                steps,
+              }
+              await fs.writeFile(configPath, JSON.stringify(config, null, 2) + "\n")
+              console.log(`  ${G}updated${R} openlens.json`)
+            }
+          } catch {
+            console.log(`  ${D}skipped${R} openlens.json (not found — add the agent entry manually)`)
+          }
+
+          console.log(
+            `\n  ${B}Done.${R} Edit ${B}agents/${name}.md${R} to customize the review criteria.\n`
+          )
+        }
+      )
+
+      .command(
+        "test <name>",
+        "Test a single agent on current changes",
+        (yy) =>
+          yy
+            .positional("name", {
+              type: "string",
+              describe: "Agent name to test",
+              demandOption: true,
+            })
+            .option("staged", {
+              type: "boolean",
+              describe: "Review staged changes",
+            })
+            .option("unstaged", {
+              type: "boolean",
+              describe: "Review unstaged changes",
+            })
+            .option("branch", {
+              type: "string",
+              describe: "Review diff against branch",
+            })
+            .option("format", {
+              choices: ["text", "json"] as const,
+              default: "text" as const,
+              describe: "Output format",
+            })
+            .option("model", {
+              alias: "m",
+              type: "string",
+              describe: "Override model (e.g. anthropic/claude-sonnet-4-20250514)",
+            })
+            .option("verbose", {
+              type: "boolean",
+              default: true,
+              describe: "Show timing and metadata",
+            }),
+        async (argv) => {
+          const cwd = process.cwd()
+          const name = argv.name as string
+
+          let config
+          try {
+            config = await loadConfig(cwd)
+          } catch (err: any) {
+            fatal(`Config error: ${err.message}`)
+          }
+
+          // Apply model override before loading agents
+          if (argv.model) {
+            config.model = argv.model
+            for (const agent of Object.values(config.agent)) {
+              agent.model = argv.model
+            }
+          }
+
+          const agents = await loadAgents(config, cwd)
+          const agent = agents.find((a) => a.name === name)
+
+          if (!agent) {
+            const available = agents.map((a) => a.name).join(", ")
+            fatal(`Agent '${name}' not found. Available: ${available}`)
+          }
+
+          let mode: string
+          if (argv.unstaged) {
+            mode = "unstaged"
+          } else if (argv.branch) {
+            config.review.baseBranch = argv.branch
+            mode = "branch"
+          } else if (argv.staged) {
+            mode = "staged"
+          } else {
+            mode = config.review.defaultMode
+          }
+
+          // Filter to just this agent
+          config = filterAgents(config, name)
+
+          if (argv.verbose) {
+            console.log(`\n  ${B}OpenLens${R}  Testing agent ${B}${name}${R}`)
+            console.log(`  model: ${D}${agent.model}${R}`)
+            console.log(`  mode: ${D}${mode}${R}`)
+            console.log(`  steps: ${D}${agent.steps}${R}`)
+            const tools = Object.entries(agent.permission)
+              .filter(([_, v]) => v === "allow")
+              .map(([k]) => k)
+              .join(", ")
+            console.log(`  tools: ${D}${tools}${R}`)
+            console.log("")
+          }
+
+          bus.subscribe("agent.started", () => {
+            process.stdout.write(`  ${D}●${R} ${name}  reviewing...\n`)
+          })
+          bus.subscribe("agent.completed", (evt) => {
+            console.log(
+              `  ${G}✓${R} ${name}  ${evt.issueCount} issues (${(evt.time / 1000).toFixed(1)}s)`
+            )
+          })
+          bus.subscribe("agent.failed", (evt) => {
+            console.log(`  ${RD}✗${R} ${name}  ${evt.error}`)
+          })
+
+          try {
+            const result = await runReview(config, mode, cwd)
+
+            if (argv.format === "json") {
+              console.log(formatJson(result))
+            } else {
+              console.log(formatText(result))
+            }
+          } catch (err: any) {
+            fatal(err.message)
+          }
+        }
+      )
+
+      .command(
+        "validate",
+        "Validate all agent configurations",
+        (yy) => yy,
+        async () => {
+          const cwd = process.cwd()
+          let hasErrors = false
+
+          let config
+          try {
+            config = await loadConfig(cwd)
+            console.log(`  ${G}✓${R} openlens.json is valid`)
+          } catch (err: any) {
+            console.log(`  ${RD}✗${R} openlens.json: ${err.message}`)
+            process.exit(1)
+          }
+
+          const agents = await loadAgents(config, cwd)
+
+          if (agents.length === 0) {
+            console.log(`  ${YELLOW}!${R} No agents configured`)
+            process.exit(0)
+          }
+
+          for (const agent of agents) {
+            const issues: string[] = []
+
+            // Check prompt file exists
+            const agentConfig = config.agent[agent.name]
+            if (agentConfig?.prompt) {
+              const fileMatch = agentConfig.prompt.match(/^\{file:(.+)\}$/)
+              if (fileMatch) {
+                const promptPath = path.resolve(cwd, fileMatch[1])
+                try {
+                  const content = await fs.readFile(promptPath, "utf-8")
+                  // Validate frontmatter parses
+                  try {
+                    const parsed = matter(content)
+                    if (!parsed.content.trim()) {
+                      issues.push("prompt file has no content (only frontmatter)")
+                    }
+                  } catch {
+                    issues.push("invalid YAML frontmatter")
+                  }
+                } catch {
+                  issues.push(`prompt file not found: ${fileMatch[1]}`)
+                }
+              }
+            } else if (!agent.prompt.trim()) {
+              issues.push("no prompt configured")
+            }
+
+            // Check model format
+            if (!agent.model.includes("/")) {
+              issues.push(`model '${agent.model}' missing provider prefix (e.g. 'anthropic/${agent.model}')`)
+            }
+
+            // Check steps
+            if (agent.steps < 1) {
+              issues.push("steps must be at least 1")
+            }
+
+            // Check permissions make sense
+            const allowedTools = Object.entries(agent.permission)
+              .filter(([_, v]) => v === "allow")
+              .map(([k]) => k)
+            if (allowedTools.length === 0) {
+              issues.push("no tools allowed — agent won't be able to investigate code")
+            }
+
+            if (issues.length > 0) {
+              hasErrors = true
+              console.log(`  ${RD}✗${R} ${B}${agent.name}${R}`)
+              for (const issue of issues) {
+                console.log(`    ${D}-${R} ${issue}`)
+              }
+            } else {
+              console.log(`  ${G}✓${R} ${B}${agent.name}${R}  ${D}(${agent.model}, ${agent.steps} steps, ${allowedTools.length} tools)${R}`)
+            }
+          }
+
+          // Check for MCP servers
+          const mcpNames = Object.keys(config.mcp)
+          if (mcpNames.length > 0) {
+            console.log("")
+            for (const [name, mcp] of Object.entries(config.mcp)) {
+              if (!mcp.enabled) {
+                console.log(`  ${D}○${R} ${B}mcp:${name}${R}  ${D}disabled${R}`)
+                continue
+              }
+              if (mcp.type === "local" && !mcp.command) {
+                console.log(`  ${RD}✗${R} ${B}mcp:${name}${R}  missing command`)
+                hasErrors = true
+              } else if (mcp.type === "remote" && !mcp.url) {
+                console.log(`  ${RD}✗${R} ${B}mcp:${name}${R}  missing url`)
+                hasErrors = true
+              } else {
+                console.log(`  ${G}✓${R} ${B}mcp:${name}${R}  ${D}(${mcp.type})${R}`)
+              }
+            }
+          }
+
+          console.log("")
+          process.exit(hasErrors ? 1 : 0)
+        }
+      )
+
+      .command(
+        "enable <name>",
+        "Enable a disabled agent",
+        (yy) =>
+          yy.positional("name", {
+            type: "string",
+            describe: "Agent name to enable",
+            demandOption: true,
+          }),
+        async (argv) => {
+          const cwd = process.cwd()
+          const name = argv.name as string
+          const configPath = path.join(cwd, "openlens.json")
+
+          let raw: string
+          let config: any
+          try {
+            raw = await fs.readFile(configPath, "utf-8")
+            config = JSON.parse(raw)
+          } catch {
+            fatal("openlens.json not found. Run: openlens init")
+          }
+
+          // Remove from disabled_agents list
+          if (Array.isArray(config.disabled_agents)) {
+            config.disabled_agents = config.disabled_agents.filter(
+              (n: string) => n !== name
+            )
+          }
+
+          // Remove disable: true from agent config
+          if (config.agent?.[name]) {
+            delete config.agent[name].disable
+          } else {
+            fatal(`Agent '${name}' not found in config`)
+          }
+
+          await fs.writeFile(configPath, JSON.stringify(config, null, 2) + "\n")
+          console.log(`  ${G}✓${R} ${B}${name}${R} enabled`)
+        }
+      )
+
+      .command(
+        "disable <name>",
+        "Disable an agent",
+        (yy) =>
+          yy.positional("name", {
+            type: "string",
+            describe: "Agent name to disable",
+            demandOption: true,
+          }),
+        async (argv) => {
+          const cwd = process.cwd()
+          const name = argv.name as string
+          const configPath = path.join(cwd, "openlens.json")
+
+          let raw: string
+          let config: any
+          try {
+            raw = await fs.readFile(configPath, "utf-8")
+            config = JSON.parse(raw)
+          } catch {
+            fatal("openlens.json not found. Run: openlens init")
+          }
+
+          if (!config.agent?.[name]) {
+            fatal(`Agent '${name}' not found in config`)
+          }
+
+          config.agent[name].disable = true
+
+          await fs.writeFile(configPath, JSON.stringify(config, null, 2) + "\n")
+          console.log(`  ${D}○${R} ${B}${name}${R} disabled`)
+        }
+      )
+
+      .demandCommand(1, "Use: openlens agent <list|create|test|validate|enable|disable>")
   )
 
   .command(
@@ -352,440 +795,6 @@ yargs(hideBin(process.argv))
     }
   )
 
-  .command(
-    "agent create <name>",
-    "Create a new review agent",
-    (y) =>
-      y
-        .positional("name", {
-          type: "string",
-          describe: "Agent name (e.g. accessibility, api-review)",
-          demandOption: true,
-        })
-        .option("description", {
-          type: "string",
-          describe: "Agent description",
-        })
-        .option("model", {
-          type: "string",
-          describe: "Model to use (e.g. anthropic/claude-sonnet-4-20250514)",
-        })
-        .option("steps", {
-          type: "number",
-          default: 5,
-          describe: "Max agentic loop iterations",
-        }),
-    async (argv) => {
-      const cwd = process.cwd()
-      const name = argv.name as string
-
-      // Validate name
-      if (!/^[a-z][a-z0-9-]*$/.test(name)) {
-        fatal("Agent name must be lowercase alphanumeric with hyphens (e.g. 'api-review')")
-      }
-
-      // Check if agent already exists
-      const agentsDir = path.join(cwd, "agents")
-      const agentPath = path.join(agentsDir, `${name}.md`)
-
-      try {
-        await fs.access(agentPath)
-        fatal(`Agent '${name}' already exists at agents/${name}.md`)
-      } catch {
-        // Good — doesn't exist yet
-      }
-
-      const description = argv.description || `${name} code reviewer`
-      const model = argv.model || "anthropic/claude-sonnet-4-20250514"
-      const steps = argv.steps || 5
-
-      // Generate agent prompt file with frontmatter
-      const agentContent = `---
-description: ${description}
-mode: subagent
-model: ${model}
-steps: ${steps}
-permission:
-  read: allow
-  grep: allow
-  glob: allow
-  list: allow
-  edit: deny
-  write: deny
-  bash: deny
----
-
-You are a ${name.replace(/-/g, " ")}-focused code reviewer with access to the full codebase.
-
-## How to review
-
-1. Read the diff carefully to understand what changed
-2. Use \`read\` to view full files for context
-3. Use \`grep\` to find related patterns and callers
-4. Use \`glob\` to find related files
-5. Only report issues you can confirm by investigating the actual code
-
-## What to look for
-
-<!-- TODO: Add your review criteria here -->
-- Add specific patterns and issues to check for
-- Be precise about what constitutes a real issue vs noise
-
-## What NOT to flag
-
-- Issues unrelated to this agent's focus area
-- Theoretical issues requiring unrealistic conditions
-- Code style preferences (unless this is a style agent)
-
-## Output
-
-Return a JSON array of issues:
-
-\`\`\`json
-[
-  {
-    "file": "src/example.ts",
-    "line": 42,
-    "severity": "warning",
-    "title": "Brief issue title",
-    "message": "Detailed explanation of the issue and why it matters.",
-    "fix": "How to fix it",
-    "patch": "-old line\\n+new line"
-  }
-]
-\`\`\`
-
-If no issues found, return \`[]\`
-`
-
-      await fs.mkdir(agentsDir, { recursive: true })
-      await fs.writeFile(agentPath, agentContent)
-      console.log(`  ${G}created${R} agents/${name}.md`)
-
-      // Update openlens.json if it exists
-      const configPath = path.join(cwd, "openlens.json")
-      try {
-        const raw = await fs.readFile(configPath, "utf-8")
-        const config = JSON.parse(raw)
-        if (!config.agent) config.agent = {}
-        if (!config.agent[name]) {
-          config.agent[name] = {
-            description,
-            prompt: `{file:./agents/${name}.md}`,
-            steps,
-          }
-          await fs.writeFile(configPath, JSON.stringify(config, null, 2) + "\n")
-          console.log(`  ${G}updated${R} openlens.json`)
-        }
-      } catch {
-        console.log(`  ${D}skipped${R} openlens.json (not found — add the agent entry manually)`)
-      }
-
-      console.log(
-        `\n  ${B}Done.${R} Edit ${B}agents/${name}.md${R} to customize the review criteria.\n`
-      )
-    }
-  )
-
-  .command(
-    "agent test <name>",
-    "Test a single agent on current changes",
-    (y) =>
-      y
-        .positional("name", {
-          type: "string",
-          describe: "Agent name to test",
-          demandOption: true,
-        })
-        .option("staged", {
-          type: "boolean",
-          describe: "Review staged changes",
-        })
-        .option("unstaged", {
-          type: "boolean",
-          describe: "Review unstaged changes",
-        })
-        .option("branch", {
-          type: "string",
-          describe: "Review diff against branch",
-        })
-        .option("format", {
-          choices: ["text", "json"] as const,
-          default: "text" as const,
-          describe: "Output format",
-        })
-        .option("model", {
-          type: "string",
-          describe: "Override model (e.g. anthropic/claude-sonnet-4-20250514)",
-        })
-        .option("verbose", {
-          type: "boolean",
-          default: true,
-          describe: "Show timing and metadata",
-        }),
-    async (argv) => {
-      const cwd = process.cwd()
-      const name = argv.name as string
-
-      let config
-      try {
-        config = await loadConfig(cwd)
-      } catch (err: any) {
-        fatal(`Config error: ${err.message}`)
-      }
-
-      // Apply model override before loading agents
-      if (argv.model) {
-        config.model = argv.model
-        for (const agent of Object.values(config.agent)) {
-          agent.model = argv.model
-        }
-      }
-
-      const agents = await loadAgents(config, cwd)
-      const agent = agents.find((a) => a.name === name)
-
-      if (!agent) {
-        const available = agents.map((a) => a.name).join(", ")
-        fatal(`Agent '${name}' not found. Available: ${available}`)
-      }
-
-      let mode: string
-      if (argv.unstaged) {
-        mode = "unstaged"
-      } else if (argv.branch) {
-        config.review.baseBranch = argv.branch
-        mode = "branch"
-      } else if (argv.staged) {
-        mode = "staged"
-      } else {
-        mode = config.review.defaultMode
-      }
-
-      // Filter to just this agent
-      config = filterAgents(config, name)
-
-      if (argv.verbose) {
-        console.log(`\n  ${B}OpenLens${R}  Testing agent ${B}${name}${R}`)
-        console.log(`  model: ${D}${agent.model}${R}`)
-        console.log(`  mode: ${D}${mode}${R}`)
-        console.log(`  steps: ${D}${agent.steps}${R}`)
-        const tools = Object.entries(agent.permission)
-          .filter(([_, v]) => v === "allow")
-          .map(([k]) => k)
-          .join(", ")
-        console.log(`  tools: ${D}${tools}${R}`)
-        console.log("")
-      }
-
-      bus.subscribe("agent.started", () => {
-        process.stdout.write(`  ${D}●${R} ${name}  reviewing...\n`)
-      })
-      bus.subscribe("agent.completed", (evt) => {
-        console.log(
-          `  ${G}✓${R} ${name}  ${evt.issueCount} issues (${(evt.time / 1000).toFixed(1)}s)`
-        )
-      })
-      bus.subscribe("agent.failed", (evt) => {
-        console.log(`  ${RD}✗${R} ${name}  ${evt.error}`)
-      })
-
-      try {
-        const result = await runReview(config, mode, cwd)
-
-        if (argv.format === "json") {
-          console.log(formatJson(result))
-        } else {
-          console.log(formatText(result))
-        }
-      } catch (err: any) {
-        fatal(err.message)
-      }
-    }
-  )
-
-  .command(
-    "agent validate",
-    "Validate all agent configurations",
-    (y) => y,
-    async () => {
-      const cwd = process.cwd()
-      let hasErrors = false
-
-      let config
-      try {
-        config = await loadConfig(cwd)
-        console.log(`  ${G}✓${R} openlens.json is valid`)
-      } catch (err: any) {
-        console.log(`  ${RD}✗${R} openlens.json: ${err.message}`)
-        process.exit(1)
-      }
-
-      const agents = await loadAgents(config, cwd)
-
-      if (agents.length === 0) {
-        console.log(`  ${YELLOW}!${R} No agents configured`)
-        process.exit(0)
-      }
-
-      for (const agent of agents) {
-        const issues: string[] = []
-
-        // Check prompt file exists
-        const agentConfig = config.agent[agent.name]
-        if (agentConfig?.prompt) {
-          const fileMatch = agentConfig.prompt.match(/^\{file:(.+)\}$/)
-          if (fileMatch) {
-            const promptPath = path.resolve(cwd, fileMatch[1])
-            try {
-              const content = await fs.readFile(promptPath, "utf-8")
-              // Validate frontmatter parses
-              try {
-                const parsed = matter(content)
-                if (!parsed.content.trim()) {
-                  issues.push("prompt file has no content (only frontmatter)")
-                }
-              } catch {
-                issues.push("invalid YAML frontmatter")
-              }
-            } catch {
-              issues.push(`prompt file not found: ${fileMatch[1]}`)
-            }
-          }
-        } else if (!agent.prompt.trim()) {
-          issues.push("no prompt configured")
-        }
-
-        // Check model format
-        if (!agent.model.includes("/")) {
-          issues.push(`model '${agent.model}' missing provider prefix (e.g. 'anthropic/${agent.model}')`)
-        }
-
-        // Check steps
-        if (agent.steps < 1) {
-          issues.push("steps must be at least 1")
-        }
-
-        // Check permissions make sense
-        const allowedTools = Object.entries(agent.permission)
-          .filter(([_, v]) => v === "allow")
-          .map(([k]) => k)
-        if (allowedTools.length === 0) {
-          issues.push("no tools allowed — agent won't be able to investigate code")
-        }
-
-        if (issues.length > 0) {
-          hasErrors = true
-          console.log(`  ${RD}✗${R} ${B}${agent.name}${R}`)
-          for (const issue of issues) {
-            console.log(`    ${D}-${R} ${issue}`)
-          }
-        } else {
-          console.log(`  ${G}✓${R} ${B}${agent.name}${R}  ${D}(${agent.model}, ${agent.steps} steps, ${allowedTools.length} tools)${R}`)
-        }
-      }
-
-      // Check for MCP servers
-      const mcpNames = Object.keys(config.mcp)
-      if (mcpNames.length > 0) {
-        console.log("")
-        for (const [name, mcp] of Object.entries(config.mcp)) {
-          if (!mcp.enabled) {
-            console.log(`  ${D}○${R} ${B}mcp:${name}${R}  ${D}disabled${R}`)
-            continue
-          }
-          if (mcp.type === "local" && !mcp.command) {
-            console.log(`  ${RD}✗${R} ${B}mcp:${name}${R}  missing command`)
-            hasErrors = true
-          } else if (mcp.type === "remote" && !mcp.url) {
-            console.log(`  ${RD}✗${R} ${B}mcp:${name}${R}  missing url`)
-            hasErrors = true
-          } else {
-            console.log(`  ${G}✓${R} ${B}mcp:${name}${R}  ${D}(${mcp.type})${R}`)
-          }
-        }
-      }
-
-      console.log("")
-      process.exit(hasErrors ? 1 : 0)
-    }
-  )
-
-  .command(
-    "agent enable <name>",
-    "Enable a disabled agent",
-    (y) =>
-      y.positional("name", {
-        type: "string",
-        describe: "Agent name to enable",
-        demandOption: true,
-      }),
-    async (argv) => {
-      const cwd = process.cwd()
-      const name = argv.name as string
-      const configPath = path.join(cwd, "openlens.json")
-
-      let raw: string
-      let config: any
-      try {
-        raw = await fs.readFile(configPath, "utf-8")
-        config = JSON.parse(raw)
-      } catch {
-        fatal("openlens.json not found. Run: openlens init")
-      }
-
-      // Remove from disabled_agents list
-      if (Array.isArray(config.disabled_agents)) {
-        config.disabled_agents = config.disabled_agents.filter(
-          (n: string) => n !== name
-        )
-      }
-
-      // Remove disable: true from agent config
-      if (config.agent?.[name]) {
-        delete config.agent[name].disable
-      } else {
-        fatal(`Agent '${name}' not found in config`)
-      }
-
-      await fs.writeFile(configPath, JSON.stringify(config, null, 2) + "\n")
-      console.log(`  ${G}✓${R} ${B}${name}${R} enabled`)
-    }
-  )
-
-  .command(
-    "agent disable <name>",
-    "Disable an agent",
-    (y) =>
-      y.positional("name", {
-        type: "string",
-        describe: "Agent name to disable",
-        demandOption: true,
-      }),
-    async (argv) => {
-      const cwd = process.cwd()
-      const name = argv.name as string
-      const configPath = path.join(cwd, "openlens.json")
-
-      let raw: string
-      let config: any
-      try {
-        raw = await fs.readFile(configPath, "utf-8")
-        config = JSON.parse(raw)
-      } catch {
-        fatal("openlens.json not found. Run: openlens init")
-      }
-
-      if (!config.agent?.[name]) {
-        fatal(`Agent '${name}' not found in config`)
-      }
-
-      config.agent[name].disable = true
-
-      await fs.writeFile(configPath, JSON.stringify(config, null, 2) + "\n")
-      console.log(`  ${D}○${R} ${B}${name}${R} disabled`)
-    }
-  )
 
   .command(
     "serve",
@@ -832,6 +841,44 @@ If no issues found, return \`[]\`
           )
         }
       }
+    }
+  )
+
+  .command(
+    "models",
+    "List available models from OpenCode",
+    (y) =>
+      y.positional("provider", {
+        type: "string",
+        describe: "Filter by provider (e.g. anthropic, openai)",
+      }),
+    async () => {
+      const { resolveOpencodeBin } = await import("./env.js")
+      const bin = resolveOpencodeBin(process.cwd())
+
+      const proc = spawnSync(bin, ["models"], {
+        encoding: "utf-8",
+        timeout: 15_000,
+      })
+
+      if (proc.status !== 0) {
+        if (proc.error && (proc.error as NodeJS.ErrnoException).code === "ENOENT") {
+          fatal(
+            "opencode binary not found. Install with: npm install opencode-ai"
+          )
+        }
+        fatal(`Failed to list models: ${proc.stderr || "unknown error"}`)
+      }
+
+      // Show current config model
+      try {
+        const config = await loadConfig(process.cwd())
+        console.log(`\n  ${B}Current model:${R} ${config.model}\n`)
+      } catch {
+        // No config — skip
+      }
+
+      console.log(proc.stdout)
     }
   )
 
