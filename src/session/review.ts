@@ -1,6 +1,5 @@
 import {
   createOpencodeClient,
-  createOpencode,
   type OpencodeClient,
 } from "@opencode-ai/sdk"
 import type { Config } from "../config/schema.js"
@@ -11,6 +10,8 @@ import { getDiff, getAutoDetectedDiff, getDiffStats } from "../tool/diff.js"
 import { loadInstructions } from "../config/config.js"
 import { loadSuppressRules, shouldSuppress } from "../suppress.js"
 import { bus } from "../bus/index.js"
+import { resolveOpencodeBin, detectCI } from "../env.js"
+import { spawn } from "child_process"
 import fs from "fs/promises"
 import path from "path"
 
@@ -520,9 +521,93 @@ async function connectMcpServers(
   }
 }
 
+// Start the bundled OpenCode server process
+async function spawnOpencodeServer(
+  config: Config,
+  cwd?: string
+): Promise<{ url: string; close: () => void }> {
+  const bin = resolveOpencodeBin(cwd)
+  const hostname = config.server.hostname
+  const port = config.server.port
+  const args = ["serve", `--hostname=${hostname}`, `--port=${port}`]
+
+  const ci = detectCI()
+  const serverTimeout = ci.isCI ? 15_000 : 5_000
+
+  const proc = spawn(bin, args, {
+    env: {
+      ...process.env,
+      OPENCODE_CONFIG_CONTENT: JSON.stringify({}),
+    },
+    stdio: ["ignore", "pipe", "pipe"],
+  })
+
+  const url = await new Promise<string>((resolve, reject) => {
+    const id = setTimeout(() => {
+      proc.kill()
+      reject(
+        new Error(
+          `OpenCode server did not start within ${serverTimeout}ms. ` +
+            `Binary: ${bin}. Is opencode-ai installed?`
+        )
+      )
+    }, serverTimeout)
+
+    let output = ""
+
+    proc.stdout?.on("data", (chunk: Buffer) => {
+      output += chunk.toString()
+      const lines = output.split("\n")
+      for (const line of lines) {
+        if (line.startsWith("opencode server listening")) {
+          const match = line.match(/on\s+(https?:\/\/[^\s]+)/)
+          if (match) {
+            clearTimeout(id)
+            resolve(match[1])
+            return
+          }
+        }
+      }
+    })
+
+    proc.stderr?.on("data", (chunk: Buffer) => {
+      output += chunk.toString()
+    })
+
+    proc.on("exit", (code) => {
+      clearTimeout(id)
+      let msg = `OpenCode server exited with code ${code}`
+      if (output.trim()) msg += `\nOutput: ${output.slice(0, 500)}`
+      reject(new Error(msg))
+    })
+
+    proc.on("error", (error) => {
+      clearTimeout(id)
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+        reject(
+          new Error(
+            `opencode binary not found at '${bin}'. ` +
+              `Install it with: npm install opencode-ai`
+          )
+        )
+      } else {
+        reject(error)
+      }
+    })
+  })
+
+  return {
+    url,
+    close() {
+      proc.kill()
+    },
+  }
+}
+
 // Try to connect to an existing OpenCode server, or start one
 async function getClient(
-  config: Config
+  config: Config,
+  cwd?: string
 ): Promise<{ client: OpencodeClient; cleanup?: () => void }> {
   const baseUrl = `http://${config.server.hostname}:${config.server.port}`
 
@@ -541,11 +626,10 @@ async function getClient(
     // No server running — start one
   }
 
+  // Start bundled server
   try {
-    const { client, server } = await createOpencode({
-      hostname: config.server.hostname,
-      port: config.server.port,
-    })
+    const server = await spawnOpencodeServer(config, cwd)
+    const client = createOpencodeClient({ baseUrl: server.url })
 
     // Connect MCP servers to new instance
     if (Object.keys(config.mcp).length > 0) {
@@ -553,9 +637,9 @@ async function getClient(
     }
 
     return { client, cleanup: () => server.close() }
-  } catch {
-    // Fall back to client-only (maybe server starts later)
-    return { client: existingClient }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    throw new Error(`Failed to start OpenCode server: ${msg}`)
   }
 }
 
@@ -596,7 +680,7 @@ export async function runSingleAgentReview(
   }
 
   const instructions = focus.question
-  const { client, cleanup } = await getClient(config)
+  const { client, cleanup } = await getClient(config, cwd)
 
   try {
     const start = performance.now()
@@ -700,7 +784,7 @@ export async function runReview(
   }
 
   // Connect to OpenCode server or start one
-  const { client, cleanup } = await getClient(config)
+  const { client, cleanup } = await getClient(config, cwd)
 
   try {
     // Discover available tools from the server

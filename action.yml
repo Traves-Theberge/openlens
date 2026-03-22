@@ -35,6 +35,15 @@ inputs:
     description: "Fail the workflow if critical issues are found"
     required: false
     default: "true"
+  model:
+    description: "Override model (e.g. anthropic/claude-sonnet-4-20250514)"
+    required: false
+  anthropic-api-key:
+    description: "Anthropic API key (or set ANTHROPIC_API_KEY env var)"
+    required: false
+  openai-api-key:
+    description: "OpenAI API key (or set OPENAI_API_KEY env var)"
+    required: false
 
 outputs:
   issues:
@@ -61,16 +70,35 @@ runs:
         cd ${{ github.action_path }}
         bun install --frozen-lockfile
 
+    - name: Verify OpenCode binary
+      shell: bash
+      run: |
+        OPENCODE_BIN="${{ github.action_path }}/node_modules/.bin/opencode"
+        if [ ! -f "$OPENCODE_BIN" ]; then
+          echo "::error::OpenCode binary not found. Installation may have failed."
+          exit 1
+        fi
+        echo "OpenCode version: $($OPENCODE_BIN --version)"
+
     - name: Run OpenLens
       id: review
       shell: bash
       env:
+        # CI detection
+        CI: "true"
+        # API keys — prefer explicit inputs, fall back to env vars
+        ANTHROPIC_API_KEY: ${{ inputs.anthropic-api-key || env.ANTHROPIC_API_KEY }}
+        OPENAI_API_KEY: ${{ inputs.openai-api-key || env.OPENAI_API_KEY }}
+        # OpenLens config overrides
         OPENLENS_MODE: ${{ inputs.mode }}
         OPENLENS_AGENTS: ${{ inputs.agents }}
         OPENLENS_FORMAT: ${{ inputs.format }}
         OPENLENS_BASE_BRANCH: ${{ inputs.base-branch }}
         OPENLENS_VERIFY: ${{ inputs.verify }}
         OPENLENS_CONFIG: ${{ inputs.config }}
+        OPENLENS_MODEL: ${{ inputs.model }}
+        # Use bundled binary
+        OPENCODE_BIN: ${{ github.action_path }}/node_modules/.bin/opencode
       run: |
         FLAGS="--${OPENLENS_MODE:-branch}"
         FLAGS="$FLAGS --format ${OPENLENS_FORMAT:-sarif}"
@@ -108,7 +136,7 @@ runs:
         echo "critical=$CRITICAL" >> "$GITHUB_OUTPUT"
         echo "sarif-file=$SARIF_FILE" >> "$GITHUB_OUTPUT"
 
-        # Show summary in text mode too
+        # Show summary
         if [ "$OPENLENS_FORMAT" = "sarif" ]; then
           echo "### OpenLens Results" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"

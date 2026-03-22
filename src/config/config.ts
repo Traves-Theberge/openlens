@@ -1,4 +1,5 @@
 import { ConfigSchema, type Config, type AgentConfig } from "./schema.js"
+import { detectCI, inferBaseBranch } from "../env.js"
 import path from "path"
 import os from "os"
 import fs from "fs/promises"
@@ -114,6 +115,21 @@ export async function loadConfig(cwd: string): Promise<Config> {
   if (process.env.OPENLENS_PORT) {
     merged.server = merged.server || {}
     merged.server.port = parseInt(process.env.OPENLENS_PORT, 10)
+  }
+
+  // Layer 4: CI environment defaults
+  const ci = detectCI()
+  if (ci.isCI) {
+    merged.review = merged.review || {}
+    // CI defaults: branch mode, no interactive verify prompt issues
+    if (!merged.review.defaultMode && !process.env.OPENLENS_MODE) {
+      merged.review.defaultMode = "branch"
+    }
+    // Auto-detect base branch from CI environment
+    const inferredBase = inferBaseBranch()
+    if (inferredBase && !process.env.OPENLENS_BASE_BRANCH) {
+      merged.review.baseBranch = inferredBase
+    }
   }
 
   // Resolve {env:VAR} substitutions
