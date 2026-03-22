@@ -1,41 +1,31 @@
 import { Hono } from "hono"
 import type { Config } from "../config/schema.js"
 import { runReview } from "../session/review.js"
-import { loadAgents } from "../agent/agent.js"
-import { loadConfig } from "../config/config.js"
+import { loadAgents, filterAgents } from "../agent/agent.js"
 import { getDiffStats, getDiff } from "../tool/diff.js"
 
 export function createServer(config: Config) {
   const app = new Hono()
 
   app.get("/", (c) => {
-    return c.json({
-      name: "openreview",
-      version: "0.1.0",
-    })
+    return c.json({ name: "openreview", version: "0.1.0" })
   })
 
   app.post("/review", async (c) => {
     const body = await c.req.json().catch(() => ({}))
-    const mode = body.mode || config.review.defaultMode
     const cwd = process.cwd()
 
-    // Override agents if specified
-    const reviewConfig = { ...config }
-    if (body.agents && Array.isArray(body.agents)) {
-      const requested = new Set(body.agents)
-      reviewConfig.agent = { ...config.agent }
-      for (const name of Object.keys(reviewConfig.agent)) {
-        if (!requested.has(name)) {
-          reviewConfig.agent[name] = {
-            ...reviewConfig.agent[name],
-            enabled: false,
-          }
-        }
-      }
-    }
+    let reviewConfig = filterAgents(config, body.agents?.join(","))
 
-    const result = await runReview(reviewConfig, mode, cwd)
+    if (body.branch) reviewConfig.review.baseBranch = body.branch
+    if (body.verify === false) reviewConfig.review.verify = false
+    if (body.fullFileContext === false) reviewConfig.review.fullFileContext = false
+
+    const result = await runReview(
+      reviewConfig,
+      body.mode || config.review.defaultMode,
+      cwd
+    )
     return c.json(result)
   })
 
@@ -46,12 +36,16 @@ export function createServer(config: Config) {
         name: a.name,
         description: a.description,
         model: a.model,
+        tools: a.tools,
+        maxTurns: a.maxTurns,
       }))
     )
   })
 
   app.get("/config", (c) => {
-    return c.json(config)
+    // Strip sensitive data
+    const safe = { ...config }
+    return c.json(safe)
   })
 
   app.get("/diff", async (c) => {
@@ -61,7 +55,7 @@ export function createServer(config: Config) {
       | "branch"
     const diff = await getDiff(mode, config.review.baseBranch)
     const stats = getDiffStats(diff)
-    return c.json({ mode, stats, diff })
+    return c.json({ mode, stats })
   })
 
   app.get("/health", (c) => {

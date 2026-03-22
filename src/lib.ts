@@ -1,9 +1,10 @@
 // Public library API
 export { runReview } from "./session/review.js"
 export { loadConfig, loadInstructions } from "./config/config.js"
-export { loadAgents } from "./agent/agent.js"
+export { loadAgents, filterAgents } from "./agent/agent.js"
 export { getDiff, getAutoDetectedDiff, getDiffStats } from "./tool/diff.js"
-export { formatText, formatJson } from "./output/format.js"
+export { formatText, formatJson, formatSarif } from "./output/format.js"
+export { loadSuppressRules, shouldSuppress } from "./suppress.js"
 export { createBus, bus } from "./bus/index.js"
 export { createServer } from "./server/server.js"
 
@@ -11,3 +12,4 @@ export type { Issue, ReviewResult } from "./types.js"
 export type { Config, AgentConfig } from "./config/schema.js"
 export type { Agent } from "./agent/agent.js"
 export type { ReviewEvents } from "./bus/index.js"
+export type { SuppressRule } from "./suppress.js"

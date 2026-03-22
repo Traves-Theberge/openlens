@@ -2,19 +2,24 @@
 import yargs from "yargs"
 import { hideBin } from "yargs/helpers"
 import { loadConfig } from "./config/config.js"
-import { loadAgents } from "./agent/agent.js"
+import { loadAgents, filterAgents } from "./agent/agent.js"
 import { runReview } from "./session/review.js"
-import { formatText, formatJson } from "./output/format.js"
+import { formatText, formatJson, formatSarif } from "./output/format.js"
 import { bus } from "./bus/index.js"
-import { getDiffStats } from "./tool/diff.js"
-import { getDiff, getAutoDetectedDiff } from "./tool/diff.js"
 import fs from "fs/promises"
 import path from "path"
 
-const BOLD = "\x1b[1m"
-const RESET = "\x1b[0m"
-const DIM = "\x1b[2m"
-const GREEN = "\x1b[32m"
+const NO_COLOR = !!process.env.NO_COLOR
+const B = NO_COLOR ? "" : "\x1b[1m"
+const R = NO_COLOR ? "" : "\x1b[0m"
+const D = NO_COLOR ? "" : "\x1b[2m"
+const G = NO_COLOR ? "" : "\x1b[32m"
+const RD = NO_COLOR ? "" : "\x1b[31m"
+
+function fatal(msg: string): never {
+  console.error(`\n  ${RD}error${R}  ${msg}\n`)
+  process.exit(2)
+}
 
 yargs(hideBin(process.argv))
   .scriptName("openreview")
@@ -42,31 +47,42 @@ yargs(hideBin(process.argv))
           describe: "Comma-separated agent list",
         })
         .option("format", {
-          choices: ["text", "json"] as const,
+          choices: ["text", "json", "sarif"] as const,
           default: "text" as const,
           describe: "Output format",
         })
-        .option("config", {
-          type: "string",
-          describe: "Config file path",
+        .option("no-verify", {
+          type: "boolean",
+          describe: "Skip verification pass",
+        })
+        .option("no-context", {
+          type: "boolean",
+          describe: "Skip full file context (diff only)",
         }),
     async (argv) => {
       const cwd = process.cwd()
-      const config = await loadConfig(cwd)
 
-      // Filter agents if specified
-      if (argv.agents) {
-        const requested = new Set(
-          argv.agents.split(",").map((s) => s.trim())
-        )
-        for (const name of Object.keys(config.agent)) {
-          if (!requested.has(name)) {
-            config.agent[name] = { ...config.agent[name], enabled: false }
-          }
-        }
+      // Validate git repo
+      const gitCheck = Bun.spawnSync(["git", "rev-parse", "--git-dir"], {
+        cwd,
+      })
+      if (gitCheck.exitCode !== 0) {
+        fatal("Not a git repository. Run this from a git project root.")
       }
 
-      // Determine mode
+      let config
+      try {
+        config = await loadConfig(cwd)
+      } catch (err: any) {
+        fatal(`Config error: ${err.message}`)
+      }
+
+      // Apply CLI overrides
+      config = filterAgents(config, argv.agents)
+
+      if (argv.noVerify) config.review.verify = false
+      if (argv.noContext) config.review.fullFileContext = false
+
       let mode: string
       if (argv.unstaged) {
         mode = "unstaged"
@@ -79,40 +95,47 @@ yargs(hideBin(process.argv))
         mode = config.review.defaultMode
       }
 
-      // Subscribe to events for progress output
+      // Progress output for text mode
       if (argv.format === "text") {
         bus.subscribe("review.started", (evt) => {
           console.log(
-            `\n  ${BOLD}OpenReview${RESET}  Reviewing ${mode} changes...\n`
+            `\n  ${B}OpenReview${R}  Reviewing ${mode} changes (${evt.agents.length} agents)...\n`
           )
         })
         bus.subscribe("agent.started", (evt) => {
-          process.stdout.write(
-            `  ${DIM}●${RESET} ${evt.name}  reviewing...\r`
-          )
+          process.stdout.write(`  ${D}●${R} ${evt.name}  reviewing...\n`)
         })
         bus.subscribe("agent.completed", (evt) => {
           console.log(
-            `  ${GREEN}✓${RESET} ${evt.name}  ${evt.issueCount} issues (${(evt.time / 1000).toFixed(1)}s)`
+            `  ${G}✓${R} ${evt.name}  ${evt.issueCount} issues (${(evt.time / 1000).toFixed(1)}s)`
           )
         })
         bus.subscribe("agent.failed", (evt) => {
-          console.log(`  \x1b[31m✗\x1b[0m ${evt.name}  ${evt.error}`)
+          console.log(`  ${RD}✗${R} ${evt.name}  ${evt.error}`)
         })
       }
 
-      const result = await runReview(config, mode, cwd)
+      try {
+        const result = await runReview(config, mode, cwd)
 
-      if (argv.format === "json") {
-        console.log(formatJson(result))
-      } else {
-        console.log(formatText(result))
+        switch (argv.format) {
+          case "json":
+            console.log(formatJson(result))
+            break
+          case "sarif":
+            console.log(formatSarif(result))
+            break
+          default:
+            console.log(formatText(result))
+        }
+
+        const hasCritical = result.issues.some(
+          (i) => i.severity === "critical"
+        )
+        process.exit(hasCritical ? 1 : 0)
+      } catch (err: any) {
+        fatal(err.message)
       }
-
-      const hasCritical = result.issues.some(
-        (i) => i.severity === "critical"
-      )
-      process.exit(hasCritical ? 1 : 0)
     }
   )
 
@@ -121,15 +144,30 @@ yargs(hideBin(process.argv))
     "List configured review agents",
     (y) => y,
     async () => {
-      const config = await loadConfig(process.cwd())
+      let config
+      try {
+        config = await loadConfig(process.cwd())
+      } catch (err: any) {
+        fatal(`Config error: ${err.message}`)
+      }
+
       const agents = await loadAgents(config, process.cwd())
 
-      console.log(`\n  ${BOLD}OpenReview Agents${RESET}\n`)
+      console.log(`\n  ${B}OpenReview Agents${R}\n`)
       for (const agent of agents) {
+        const toolList = agent.tools
+          ? Object.entries(agent.tools)
+              .filter(([_, v]) => v)
+              .map(([k]) => k)
+              .join(", ")
+          : "none"
+
         console.log(
-          `  ${BOLD}${agent.name}${RESET}  ${DIM}${agent.description || ""}${RESET}`
+          `  ${B}${agent.name}${R}  ${D}${agent.description || ""}${R}`
         )
         console.log(`    model: ${agent.model}`)
+        console.log(`    tools: ${D}${toolList}${R}`)
+        if (agent.maxTurns) console.log(`    max turns: ${agent.maxTurns}`)
         console.log("")
       }
 
@@ -146,36 +184,40 @@ yargs(hideBin(process.argv))
     async () => {
       const cwd = process.cwd()
 
-      // Create agents directory
       const agentsDir = path.join(cwd, "agents")
       await fs.mkdir(agentsDir, { recursive: true })
 
-      // Copy default agent prompts
       const srcAgentsDir = path.join(import.meta.dir, "../agents")
-      const defaultAgents = ["security", "bugs", "performance", "style"]
+      const defaultAgents = [
+        "security",
+        "bugs",
+        "performance",
+        "style",
+      ]
 
       for (const name of defaultAgents) {
         const src = path.join(srcAgentsDir, `${name}.md`)
         const dst = path.join(agentsDir, `${name}.md`)
         try {
           await fs.access(dst)
-          console.log(`  ${DIM}exists${RESET} agents/${name}.md`)
+          console.log(`  ${D}exists${R} agents/${name}.md`)
         } catch {
           try {
             const content = await fs.readFile(src, "utf-8")
             await fs.writeFile(dst, content)
-            console.log(`  ${GREEN}created${RESET} agents/${name}.md`)
+            console.log(`  ${G}created${R} agents/${name}.md`)
           } catch {
-            console.log(`  ${DIM}skipped${RESET} agents/${name}.md (no template)`)
+            console.log(
+              `  ${D}skipped${R} agents/${name}.md (no template)`
+            )
           }
         }
       }
 
-      // Create openreview.json
       const configPath = path.join(cwd, "openreview.json")
       try {
         await fs.access(configPath)
-        console.log(`  ${DIM}exists${RESET} openreview.json`)
+        console.log(`  ${D}exists${R} openreview.json`)
       } catch {
         const defaultConfig = {
           $schema: "https://openreview.dev/config.json",
@@ -201,16 +243,20 @@ yargs(hideBin(process.argv))
           review: {
             defaultMode: "staged",
             instructions: ["REVIEW.md"],
+            fullFileContext: true,
+            verify: true,
           },
         }
         await fs.writeFile(
           configPath,
           JSON.stringify(defaultConfig, null, 2) + "\n"
         )
-        console.log(`  ${GREEN}created${RESET} openreview.json`)
+        console.log(`  ${G}created${R} openreview.json`)
       }
 
-      console.log(`\n  ${BOLD}Done.${RESET} Run ${BOLD}openreview run${RESET} to start reviewing.\n`)
+      console.log(
+        `\n  ${B}Done.${R} Run ${B}openreview run${R} to start reviewing.\n`
+      )
     }
   )
 
@@ -231,20 +277,22 @@ yargs(hideBin(process.argv))
         }),
     async (argv) => {
       const { createServer } = await import("./server/server.js")
-      const config = await loadConfig(process.cwd())
+      let config
+      try {
+        config = await loadConfig(process.cwd())
+      } catch (err: any) {
+        fatal(`Config error: ${err.message}`)
+      }
       const server = createServer(config)
 
-      const port = argv.port
-      const hostname = argv.hostname
-
       console.log(
-        `\n  ${BOLD}OpenReview Server${RESET} listening on http://${hostname}:${port}\n`
+        `\n  ${B}OpenReview Server${R} listening on http://${argv.hostname}:${argv.port}\n`
       )
 
       Bun.serve({
         fetch: server.fetch,
-        port,
-        hostname,
+        port: argv.port,
+        hostname: argv.hostname,
       })
     }
   )

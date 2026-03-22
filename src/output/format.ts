@@ -1,14 +1,17 @@
 import type { Issue, ReviewResult } from "../types.js"
 
-// ANSI color codes
-const RESET = "\x1b[0m"
-const BOLD = "\x1b[1m"
-const DIM = "\x1b[2m"
-const RED = "\x1b[31m"
-const YELLOW = "\x1b[33m"
-const BLUE = "\x1b[34m"
-const CYAN = "\x1b[36m"
-const WHITE = "\x1b[37m"
+const NO_COLOR = !!process.env.NO_COLOR
+
+const c = (code: string) => (NO_COLOR ? "" : code)
+const RESET = c("\x1b[0m")
+const BOLD = c("\x1b[1m")
+const DIM = c("\x1b[2m")
+const RED = c("\x1b[31m")
+const GREEN = c("\x1b[32m")
+const YELLOW = c("\x1b[33m")
+const BLUE = c("\x1b[34m")
+const CYAN = c("\x1b[36m")
+const WHITE = c("\x1b[37m")
 
 const SEVERITY_COLORS: Record<string, string> = {
   critical: RED,
@@ -24,7 +27,8 @@ const SEVERITY_LABELS: Record<string, string> = {
 
 function formatIssue(issue: Issue): string {
   const color = SEVERITY_COLORS[issue.severity] || WHITE
-  const label = SEVERITY_LABELS[issue.severity] || issue.severity.toUpperCase()
+  const label =
+    SEVERITY_LABELS[issue.severity] || issue.severity.toUpperCase()
   const location = issue.endLine
     ? `${issue.file}:${issue.line}-${issue.endLine}`
     : `${issue.file}:${issue.line}`
@@ -41,6 +45,17 @@ function formatIssue(issue: Issue): string {
   if (issue.fix) {
     lines.push(`  ${CYAN}→ ${issue.fix}${RESET}`)
   }
+  if (issue.patch) {
+    lines.push(`  ${DIM}patch:${RESET}`)
+    for (const line of issue.patch.split("\n")) {
+      const prefix = line.startsWith("+")
+        ? GREEN
+        : line.startsWith("-")
+          ? RED
+          : DIM
+      lines.push(`    ${prefix}${line}${RESET}`)
+    }
+  }
 
   return lines.join("\n")
 }
@@ -53,7 +68,11 @@ function formatTiming(timing: Record<string, number>): string {
 
 export function formatText(result: ReviewResult): string {
   if (result.issues.length === 0) {
-    return `\n  ${BOLD}OpenReview${RESET}  No issues found.\n`
+    const meta = result.meta
+    const extra = meta
+      ? ` (${meta.filesChanged} files, ${meta.agentsRun} agents${meta.verified ? ", verified" : ""})`
+      : ""
+    return `\n  ${BOLD}OpenReview${RESET}  No issues found.${DIM}${extra}${RESET}\n`
   }
 
   const lines: string[] = []
@@ -70,7 +89,6 @@ export function formatText(result: ReviewResult): string {
     lines.push("")
   }
 
-  // Summary
   const criticalCount = result.issues.filter(
     (i) => i.severity === "critical"
   ).length
@@ -83,13 +101,25 @@ export function formatText(result: ReviewResult): string {
 
   const parts: string[] = []
   if (criticalCount > 0) parts.push(`${RED}${criticalCount} critical${RESET}`)
-  if (warningCount > 0) parts.push(`${YELLOW}${warningCount} warning${RESET}`)
+  if (warningCount > 0)
+    parts.push(`${YELLOW}${warningCount} warning${RESET}`)
   if (infoCount > 0) parts.push(`${BLUE}${infoCount} info${RESET}`)
 
   lines.push(`  ${parts.join(", ")}`)
 
   if (Object.keys(result.timing).length > 0) {
     lines.push(`  ${DIM}${formatTiming(result.timing)}${RESET}`)
+  }
+
+  if (result.meta) {
+    const m = result.meta
+    const metaParts: string[] = []
+    if (m.suppressed > 0) metaParts.push(`${m.suppressed} suppressed`)
+    if (m.agentsFailed > 0) metaParts.push(`${m.agentsFailed} agents failed`)
+    if (m.verified) metaParts.push("verified")
+    if (metaParts.length > 0) {
+      lines.push(`  ${DIM}${metaParts.join(", ")}${RESET}`)
+    }
   }
 
   lines.push("")
@@ -99,4 +129,78 @@ export function formatText(result: ReviewResult): string {
 
 export function formatJson(result: ReviewResult): string {
   return JSON.stringify(result, null, 2)
+}
+
+// SARIF format for CI/CD integration (GitHub Actions, GitLab CI, etc.)
+export function formatSarif(result: ReviewResult): string {
+  const sarif = {
+    version: "2.1.0",
+    $schema:
+      "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/main/sarif-2.1/schema/sarif-schema-2.1.0.json",
+    runs: [
+      {
+        tool: {
+          driver: {
+            name: "openreview",
+            version: "0.1.0",
+            informationUri: "https://github.com/Traves-Theberge/OpenReview",
+            rules: [...new Set(result.issues.map((i) => i.agent))].map(
+              (agent) => ({
+                id: `openreview/${agent}`,
+                shortDescription: { text: `OpenReview ${agent} agent` },
+              })
+            ),
+          },
+        },
+        results: result.issues.map((issue) => ({
+          ruleId: `openreview/${issue.agent}`,
+          level:
+            issue.severity === "critical"
+              ? "error"
+              : issue.severity === "warning"
+                ? "warning"
+                : "note",
+          message: {
+            text: `${issue.title}\n\n${issue.message}${issue.fix ? `\n\nFix: ${issue.fix}` : ""}`,
+          },
+          locations: [
+            {
+              physicalLocation: {
+                artifactLocation: { uri: issue.file },
+                region: {
+                  startLine: issue.line,
+                  ...(issue.endLine ? { endLine: issue.endLine } : {}),
+                },
+              },
+            },
+          ],
+          ...(issue.patch
+            ? {
+                fixes: [
+                  {
+                    description: { text: issue.fix || "Suggested fix" },
+                    artifactChanges: [
+                      {
+                        artifactLocation: { uri: issue.file },
+                        replacements: [
+                          {
+                            deletedRegion: {
+                              startLine: issue.line,
+                              endLine: issue.endLine || issue.line,
+                            },
+                            insertedContent: { text: issue.patch },
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                ],
+              }
+            : {}),
+        })),
+      },
+    ],
+  }
+
+  return JSON.stringify(sarif, null, 2)
 }

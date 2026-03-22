@@ -1,17 +1,18 @@
 import { type Plugin, tool } from "@opencode-ai/plugin"
 import { runReview } from "./session/review.js"
 import { loadConfig } from "./config/config.js"
+import { filterAgents } from "./agent/agent.js"
 import { formatText } from "./output/format.js"
 
-const plugin: Plugin = async (ctx) => {
+const plugin: Plugin = async () => {
   return {
     tool: {
       openreview: tool({
         description:
-          "Run local code review on current changes with specialized agents",
+          "Run local code review on current changes with specialized agents that can read, grep, and explore the codebase",
         args: {
           mode: tool.schema
-            .enum(["staged", "unstaged", "branch"])
+            .enum(["staged", "unstaged", "branch", "auto"])
             .optional()
             .describe("What to review (default: staged)"),
           agents: tool.schema
@@ -22,29 +23,19 @@ const plugin: Plugin = async (ctx) => {
             .string()
             .optional()
             .describe("Base branch for branch mode (default: main)"),
+          verify: tool.schema
+            .boolean()
+            .optional()
+            .describe("Run verification pass (default: true)"),
         },
         async execute(args) {
           const cwd = process.cwd()
-          const config = await loadConfig(cwd)
+          let config = await loadConfig(cwd)
 
-          // Filter agents if specified
-          if (args.agents) {
-            const requested = new Set(
-              args.agents.split(",").map((s: string) => s.trim())
-            )
-            for (const name of Object.keys(config.agent)) {
-              if (!requested.has(name)) {
-                config.agent[name] = {
-                  ...config.agent[name],
-                  enabled: false,
-                }
-              }
-            }
-          }
+          config = filterAgents(config, args.agents)
 
-          if (args.branch) {
-            config.review.baseBranch = args.branch
-          }
+          if (args.branch) config.review.baseBranch = args.branch
+          if (args.verify === false) config.review.verify = false
 
           const result = await runReview(
             config,

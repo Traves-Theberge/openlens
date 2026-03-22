@@ -9,16 +9,10 @@ export const IssueSchema = z.object({
   title: z.string(),
   message: z.string(),
   fix: z.string().optional(),
+  patch: z.string().optional(),
 })
 
 export type Issue = z.infer<typeof IssueSchema>
-
-export const ReviewResultSchema = z.object({
-  issues: z.array(IssueSchema),
-  timing: z.record(z.string(), z.number()),
-})
-
-export type ReviewResult = z.infer<typeof ReviewResultSchema>
 
 export const IssueArraySchema = z.array(
   z.object({
@@ -29,5 +23,23 @@ export const IssueArraySchema = z.array(
     title: z.string(),
     message: z.string(),
     fix: z.string().optional(),
+    patch: z.string().optional(),
   })
 )
+
+export const ReviewResultSchema = z.object({
+  issues: z.array(IssueSchema),
+  timing: z.record(z.string(), z.number()),
+  meta: z
+    .object({
+      mode: z.string(),
+      filesChanged: z.number(),
+      agentsRun: z.number(),
+      agentsFailed: z.number(),
+      suppressed: z.number(),
+      verified: z.boolean(),
+    })
+    .optional(),
+})
+
+export type ReviewResult = z.infer<typeof ReviewResultSchema>
