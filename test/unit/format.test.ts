@@ -72,7 +72,7 @@ describe("formatSarif", () => {
     expect(sarif.runs).toHaveLength(1)
 
     const run = sarif.runs[0]
-    expect(run.tool.driver.name).toBe("openreview")
+    expect(run.tool.driver.name).toBe("openlens")
   })
 
   test("maps severity to SARIF levels", () => {
@@ -106,8 +106,8 @@ describe("formatSarif", () => {
     const rules = sarif.runs[0].tool.driver.rules
 
     expect(rules).toHaveLength(2)
-    expect(rules.map((r: any) => r.id)).toContain("openreview/security")
-    expect(rules.map((r: any) => r.id)).toContain("openreview/bugs")
+    expect(rules.map((r: any) => r.id)).toContain("openlens/security")
+    expect(rules.map((r: any) => r.id)).toContain("openlens/bugs")
   })
 
   test("handles empty results", () => {

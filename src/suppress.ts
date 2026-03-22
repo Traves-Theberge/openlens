@@ -22,8 +22,8 @@ export async function loadSuppressRules(
     rules.push({ type: "pattern", value: pattern })
   }
 
-  // From .openreviewignore
-  const ignorePath = path.join(cwd, ".openreviewignore")
+  // From .openlensignore
+  const ignorePath = path.join(cwd, ".openlensignore")
   try {
     const content = await fs.readFile(ignorePath, "utf-8")
     for (const line of content.split("\n")) {

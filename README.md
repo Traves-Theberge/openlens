@@ -2,11 +2,11 @@
 
 > **⚠️ Early Development Notice:** This project is in early development and is not yet ready for production use. Features may change, break, or be incomplete. Use at your own risk.
 
-AI-powered code review for your terminal. OpenReview runs specialized agents in parallel to catch security vulnerabilities, bugs, performance issues, and style violations before they land.
+AI-powered code review for your terminal. OpenLens runs specialized agents in parallel to catch security vulnerabilities, bugs, performance issues, and style violations before they land.
 
 ## Overview
 
-OpenReview is a TypeScript-based CLI tool that orchestrates multiple AI review agents against your git diffs. Each agent has read-only access to your full codebase, enabling deep analysis that goes beyond surface-level pattern matching. Built on the [OpenCode SDK](https://github.com/opencode-ai/opencode), it supports any model provider OpenCode supports.
+OpenLens is a TypeScript-based CLI tool that orchestrates multiple AI review agents against your git diffs. Each agent has read-only access to your full codebase, enabling deep analysis that goes beyond surface-level pattern matching. Built on the [OpenCode SDK](https://github.com/opencode-ai/opencode), it supports any model provider OpenCode supports.
 
 ## Features
 
@@ -15,7 +15,7 @@ OpenReview is a TypeScript-based CLI tool that orchestrates multiple AI review a
 - **Multiple AI Providers**: Any model supported by OpenCode (Anthropic, OpenAI, Google, AWS Bedrock, Groq, and more)
 - **SARIF Output**: First-class CI/CD integration with GitHub Actions, GitLab CI, and other tools
 - **Verification Pass**: Built-in false positive filter that re-examines flagged issues
-- **Suppression Rules**: Glob patterns and `.openreviewignore` to silence known noise
+- **Suppression Rules**: Glob patterns and `.openlensignore` to silence known noise
 - **Customizable Agents**: Write your own review agents with markdown prompts and YAML frontmatter
 - **Library & Plugin API**: Use as a CLI, HTTP server, library import, or OpenCode plugin
 - **Event Bus**: Subscribe to review lifecycle events for custom integrations
@@ -26,8 +26,8 @@ OpenReview is a TypeScript-based CLI tool that orchestrates multiple AI review a
 
 ```bash
 # Clone and install
-git clone https://github.com/Traves-Theberge/OpenReview.git
-cd OpenReview
+git clone https://github.com/Traves-Theberge/OpenLens.git
+cd OpenLens
 bun install
 ```
 
@@ -39,40 +39,40 @@ bun run src/index.ts run
 
 # Or link globally
 bun link
-openreview run
+openlens run
 ```
 
 ## Quick Start
 
 ```bash
-# Initialize OpenReview in your project
-openreview init
+# Initialize OpenLens in your project
+openlens init
 
 # Review staged changes
-openreview run --staged
+openlens run --staged
 
 # Review against main branch
-openreview run --branch main
+openlens run --branch main
 
 # Run only security and bug agents
-openreview run --agents security,bugs
+openlens run --agents security,bugs
 
 # Output SARIF for CI
-openreview run --format sarif > results.sarif
+openlens run --format sarif > results.sarif
 ```
 
 ## Configuration
 
-OpenReview looks for configuration in the following locations:
+OpenLens looks for configuration in the following locations:
 
-- `./openreview.json` or `./openreview.jsonc` (project root)
-- `~/.config/openreview/openreview.json` (global)
+- `./openlens.json` or `./openlens.jsonc` (project root)
+- `~/.config/openlens/openlens.json` (global)
 
 ### Configuration File Structure
 
 ```json
 {
-  "$schema": "https://openreview.dev/config.json",
+  "$schema": "https://openlens.dev/config.json",
 
   "model": "anthropic/claude-sonnet-4-20250514",
 
@@ -220,7 +220,7 @@ Suppress known noise with glob patterns and text matching:
 }
 ```
 
-Or use a `.openreviewignore` file (one pattern per line, `#` for comments):
+Or use a `.openlensignore` file (one pattern per line, `#` for comments):
 
 ```
 generated/**
@@ -231,7 +231,7 @@ test/fixtures/**
 
 ## Agents
 
-OpenReview ships with four built-in agents. Each is a markdown file with YAML frontmatter in the `agents/` directory.
+OpenLens ships with four built-in agents. Each is a markdown file with YAML frontmatter in the `agents/` directory.
 
 ### Built-in Agents
 
@@ -325,13 +325,13 @@ Then reference it in your config:
 ### Commands
 
 ```bash
-openreview run        # Run code review
-openreview agents     # List configured agents
-openreview init       # Initialize in current project
-openreview serve      # Start HTTP server
+openlens run        # Run code review
+openlens agents     # List configured agents
+openlens init       # Initialize in current project
+openlens serve      # Start HTTP server
 ```
 
-### `openreview run`
+### `openlens run`
 
 | Flag            | Description                                      |
 | --------------- | ------------------------------------------------ |
@@ -343,7 +343,7 @@ openreview serve      # Start HTTP server
 | `--no-verify`   | Skip the verification pass                       |
 | `--no-context`  | Skip full file context (diff only)               |
 
-### `openreview serve`
+### `openlens serve`
 
 | Flag            | Description                                      |
 | --------------- | ------------------------------------------------ |
@@ -359,7 +359,7 @@ openreview serve      # Start HTTP server
 
 ## HTTP API
 
-Start the server with `openreview serve`, then:
+Start the server with `openlens serve`, then:
 
 | Method | Endpoint    | Description                     |
 | ------ | ----------- | ------------------------------- |
@@ -429,7 +429,7 @@ Full structured output including issues, timing, and metadata. Suitable for prog
 
 ```bash
 # GitHub Actions example
-openreview run --format sarif > results.sarif
+openlens run --format sarif > results.sarif
 gh api repos/{owner}/{repo}/code-scanning/sarifs \
   --method POST \
   --field sarif=@results.sarif
@@ -437,7 +437,7 @@ gh api repos/{owner}/{repo}/code-scanning/sarifs \
 
 ## Library API
 
-Use OpenReview programmatically:
+Use OpenLens programmatically:
 
 ```typescript
 import {
@@ -446,7 +446,7 @@ import {
   loadAgents,
   getDiff,
   formatSarif,
-} from "openreview"
+} from "openlens"
 
 const config = await loadConfig()
 const agents = await loadAgents(config)
@@ -490,22 +490,22 @@ console.log(formatSarif(result))
 
 ## OpenCode Plugin
 
-OpenReview can run as an OpenCode plugin, making it available as a tool inside OpenCode sessions:
+OpenLens can run as an OpenCode plugin, making it available as a tool inside OpenCode sessions:
 
 ```json
 {
-  "plugin": ["openreview"]
+  "plugin": ["openlens"]
 }
 ```
 
-Once loaded, the AI assistant can invoke `openreview` as a tool with arguments for `mode`, `agents`, `branch`, and `verify`.
+Once loaded, the AI assistant can invoke `openlens` as a tool with arguments for `mode`, `agents`, `branch`, and `verify`.
 
 ## Event Bus
 
 Subscribe to review lifecycle events for custom integrations:
 
 ```typescript
-import { createBus } from "openreview"
+import { createBus } from "openlens"
 
 const bus = createBus()
 
@@ -534,7 +534,7 @@ bus.subscribe("review.completed", ({ issueCount, time }) => {
 
 ## MCP (Model Context Protocol)
 
-OpenReview supports MCP servers for extending agent capabilities:
+OpenLens supports MCP servers for extending agent capabilities:
 
 ```json
 {
@@ -595,8 +595,8 @@ agents/                   # Built-in agent prompts
 
 ```bash
 # Clone the repository
-git clone https://github.com/Traves-Theberge/OpenReview.git
-cd OpenReview
+git clone https://github.com/Traves-Theberge/OpenLens.git
+cd OpenLens
 
 # Install dependencies
 bun install

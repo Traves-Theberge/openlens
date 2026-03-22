@@ -1,5 +1,5 @@
 {
-  "$schema": "https://openreview.dev/config.json",
+  "$schema": "https://openlens.dev/config.json",
 
   "model": "anthropic/claude-sonnet-4-20250514",
 

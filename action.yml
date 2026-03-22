@@ -1,4 +1,4 @@
-name: "OpenReview"
+name: "OpenLens"
 description: "AI-powered code review using specialized agents"
 branding:
   icon: "eye"
@@ -25,7 +25,7 @@ inputs:
     required: false
     default: "true"
   config:
-    description: "Path to openreview.json config file"
+    description: "Path to openlens.json config file"
     required: false
   upload-sarif:
     description: "Upload SARIF to GitHub Code Scanning"
@@ -55,39 +55,39 @@ runs:
       with:
         bun-version: latest
 
-    - name: Install OpenReview
+    - name: Install OpenLens
       shell: bash
       run: |
         cd ${{ github.action_path }}
         bun install --frozen-lockfile
 
-    - name: Run OpenReview
+    - name: Run OpenLens
       id: review
       shell: bash
       env:
-        OPENREVIEW_MODE: ${{ inputs.mode }}
-        OPENREVIEW_AGENTS: ${{ inputs.agents }}
-        OPENREVIEW_FORMAT: ${{ inputs.format }}
-        OPENREVIEW_BASE_BRANCH: ${{ inputs.base-branch }}
-        OPENREVIEW_VERIFY: ${{ inputs.verify }}
-        OPENREVIEW_CONFIG: ${{ inputs.config }}
+        OPENLENS_MODE: ${{ inputs.mode }}
+        OPENLENS_AGENTS: ${{ inputs.agents }}
+        OPENLENS_FORMAT: ${{ inputs.format }}
+        OPENLENS_BASE_BRANCH: ${{ inputs.base-branch }}
+        OPENLENS_VERIFY: ${{ inputs.verify }}
+        OPENLENS_CONFIG: ${{ inputs.config }}
       run: |
-        FLAGS="--${OPENREVIEW_MODE:-branch}"
-        FLAGS="$FLAGS --format ${OPENREVIEW_FORMAT:-sarif}"
+        FLAGS="--${OPENLENS_MODE:-branch}"
+        FLAGS="$FLAGS --format ${OPENLENS_FORMAT:-sarif}"
 
-        if [ -n "$OPENREVIEW_AGENTS" ]; then
-          FLAGS="$FLAGS --agents $OPENREVIEW_AGENTS"
+        if [ -n "$OPENLENS_AGENTS" ]; then
+          FLAGS="$FLAGS --agents $OPENLENS_AGENTS"
         fi
 
-        if [ -n "$OPENREVIEW_BASE_BRANCH" ]; then
-          FLAGS="$FLAGS --branch $OPENREVIEW_BASE_BRANCH"
+        if [ -n "$OPENLENS_BASE_BRANCH" ]; then
+          FLAGS="$FLAGS --branch $OPENLENS_BASE_BRANCH"
         fi
 
-        if [ "$OPENREVIEW_VERIFY" = "false" ]; then
+        if [ "$OPENLENS_VERIFY" = "false" ]; then
           FLAGS="$FLAGS --no-verify"
         fi
 
-        SARIF_FILE="${{ runner.temp }}/openreview-results.sarif"
+        SARIF_FILE="${{ runner.temp }}/openlens-results.sarif"
 
         # Run review
         set +e
@@ -109,17 +109,17 @@ runs:
         echo "sarif-file=$SARIF_FILE" >> "$GITHUB_OUTPUT"
 
         # Show summary in text mode too
-        if [ "$OPENREVIEW_FORMAT" = "sarif" ]; then
-          echo "### OpenReview Results" >> "$GITHUB_STEP_SUMMARY"
+        if [ "$OPENLENS_FORMAT" = "sarif" ]; then
+          echo "### OpenLens Results" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "- **Issues found:** $TOTAL" >> "$GITHUB_STEP_SUMMARY"
           echo "- **Critical:** $CRITICAL" >> "$GITHUB_STEP_SUMMARY"
-          echo "- **Mode:** $OPENREVIEW_MODE" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Mode:** $OPENLENS_MODE" >> "$GITHUB_STEP_SUMMARY"
         fi
 
         # Fail if critical issues and configured to do so
         if [ "${{ inputs.fail-on-critical }}" = "true" ] && [ "$EXIT_CODE" = "1" ]; then
-          echo "::error::OpenReview found $CRITICAL critical issue(s)"
+          echo "::error::OpenLens found $CRITICAL critical issue(s)"
           exit 1
         fi
 
@@ -128,5 +128,5 @@ runs:
       uses: github/codeql-action/upload-sarif@v3
       with:
         sarif_file: ${{ steps.review.outputs.sarif-file }}
-        category: openreview
+        category: openlens
       continue-on-error: true

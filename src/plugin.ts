@@ -8,9 +8,9 @@ const plugin: Plugin = async (ctx) => {
   const directory = ctx.directory
 
   return {
-    // Register the openreview tool
+    // Register the openlens tool
     tool: {
-      openreview: tool({
+      openlens: tool({
         description:
           "Run local code review on current changes with specialized agents that can read, grep, and explore the codebase",
         args: {
@@ -45,11 +45,11 @@ const plugin: Plugin = async (ctx) => {
       }),
     },
 
-    // Auto-approve read-only tools for openreview sessions
+    // Auto-approve read-only tools for openlens sessions
     "permission.ask": async (input, output) => {
       const meta = input as any
       const title = meta?.metadata?.title || meta?.title || ""
-      if (typeof title !== "string" || !title.startsWith("openreview-")) return
+      if (typeof title !== "string" || !title.startsWith("openlens-")) return
 
       const readOnlyTools = new Set([
         "read", "grep", "glob", "list", "view", "find", "diagnostics",
@@ -66,7 +66,7 @@ const plugin: Plugin = async (ctx) => {
       const sessionTitle = String(
         (input.message as any)?.summary?.title || ""
       )
-      if (!sessionTitle.startsWith("openreview-")) return
+      if (!sessionTitle.startsWith("openlens-")) return
 
       if (output.temperature === undefined || output.temperature > 0.2) {
         output.temperature = 0

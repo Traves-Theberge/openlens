@@ -1,9 +1,9 @@
 {
-  "name": "openreview",
+  "name": "openlens",
   "version": "0.1.0",
   "type": "module",
   "bin": {
-    "openreview": "./src/index.ts"
+    "openlens": "./src/index.ts"
   },
   "main": "./src/lib.ts",
   "exports": {

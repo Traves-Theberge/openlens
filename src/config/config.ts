@@ -92,14 +92,14 @@ export async function loadConfig(cwd: string): Promise<Config> {
   }
 
   // Layer 1: Global config
-  const globalDir = path.join(os.homedir(), ".config", "openreview")
-  const globalConfig = await readJsonc(path.join(globalDir, "openreview.json"))
+  const globalDir = path.join(os.homedir(), ".config", "openlens")
+  const globalConfig = await readJsonc(path.join(globalDir, "openlens.json"))
   if (globalConfig) {
     merged = deepMerge(merged, globalConfig)
   }
 
   // Layer 2: Project config
-  for (const name of ["openreview.json", "openreview.jsonc"]) {
+  for (const name of ["openlens.json", "openlens.jsonc"]) {
     const projectConfig = await readJsonc(path.join(cwd, name))
     if (projectConfig) {
       merged = deepMerge(merged, projectConfig)
@@ -108,12 +108,12 @@ export async function loadConfig(cwd: string): Promise<Config> {
   }
 
   // Layer 3: Environment overrides
-  if (process.env.OPENREVIEW_MODEL) {
-    merged.model = process.env.OPENREVIEW_MODEL
+  if (process.env.OPENLENS_MODEL) {
+    merged.model = process.env.OPENLENS_MODEL
   }
-  if (process.env.OPENREVIEW_PORT) {
+  if (process.env.OPENLENS_PORT) {
     merged.server = merged.server || {}
-    merged.server.port = parseInt(process.env.OPENREVIEW_PORT, 10)
+    merged.server.port = parseInt(process.env.OPENLENS_PORT, 10)
   }
 
   // Resolve {env:VAR} substitutions

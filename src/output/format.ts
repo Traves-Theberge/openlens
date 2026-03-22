@@ -72,14 +72,14 @@ export function formatText(result: ReviewResult): string {
     const extra = meta
       ? ` (${meta.filesChanged} files, ${meta.agentsRun} agents${meta.verified ? ", verified" : ""})`
       : ""
-    return `\n  ${BOLD}OpenReview${RESET}  No issues found.${DIM}${extra}${RESET}\n`
+    return `\n  ${BOLD}OpenLens${RESET}  No issues found.${DIM}${extra}${RESET}\n`
   }
 
   const lines: string[] = []
 
   lines.push("")
   lines.push(
-    `  ${BOLD}OpenReview${RESET}  ${result.issues.length} issue${result.issues.length === 1 ? "" : "s"} found`
+    `  ${BOLD}OpenLens${RESET}  ${result.issues.length} issue${result.issues.length === 1 ? "" : "s"} found`
   )
   lines.push(`  ${"─".repeat(50)}`)
   lines.push("")
@@ -141,19 +141,19 @@ export function formatSarif(result: ReviewResult): string {
       {
         tool: {
           driver: {
-            name: "openreview",
+            name: "openlens",
             version: "0.1.0",
-            informationUri: "https://github.com/Traves-Theberge/OpenReview",
+            informationUri: "https://github.com/Traves-Theberge/OpenLens",
             rules: [...new Set(result.issues.map((i) => i.agent))].map(
               (agent) => ({
-                id: `openreview/${agent}`,
-                shortDescription: { text: `OpenReview ${agent} agent` },
+                id: `openlens/${agent}`,
+                shortDescription: { text: `OpenLens ${agent} agent` },
               })
             ),
           },
         },
         results: result.issues.map((issue) => ({
-          ruleId: `openreview/${issue.agent}`,
+          ruleId: `openlens/${issue.agent}`,
           level:
             issue.severity === "critical"
               ? "error"

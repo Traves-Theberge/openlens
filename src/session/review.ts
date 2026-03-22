@@ -269,7 +269,7 @@ async function runSingleAgent(
   timeoutMs: number
 ): Promise<Issue[]> {
   const sessionRes = await client.session.create({
-    body: { title: `openreview-${agent.name}` },
+    body: { title: `openlens-${agent.name}` },
   })
   const session = await sessionRes.data
   if (!session?.id) {
@@ -338,7 +338,7 @@ async function verifyIssues(
   const start = performance.now()
 
   const sessionRes = await client.session.create({
-    body: { title: "openreview-verifier" },
+    body: { title: "openlens-verifier" },
   })
   const session = await sessionRes.data
   if (!session?.id) return issues
@@ -442,7 +442,7 @@ function bySeverity(a: Issue, b: Issue): number {
   return severityRank(a.severity) - severityRank(b.severity)
 }
 
-// Connect MCP servers configured in openreview.json
+// Connect MCP servers configured in openlens.json
 async function connectMcpServers(
   client: OpencodeClient,
   config: Config

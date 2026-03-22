@@ -22,7 +22,7 @@ function fatal(msg: string): never {
 }
 
 yargs(hideBin(process.argv))
-  .scriptName("openreview")
+  .scriptName("openlens")
   .usage("$0 <command> [options]")
 
   .command(
@@ -99,7 +99,7 @@ yargs(hideBin(process.argv))
       if (argv.format === "text") {
         bus.subscribe("review.started", (evt) => {
           console.log(
-            `\n  ${B}OpenReview${R}  Reviewing ${mode} changes (${evt.agents.length} agents)...\n`
+            `\n  ${B}OpenLens${R}  Reviewing ${mode} changes (${evt.agents.length} agents)...\n`
           )
         })
         bus.subscribe("agent.started", (evt) => {
@@ -153,7 +153,7 @@ yargs(hideBin(process.argv))
 
       const agents = await loadAgents(config, process.cwd())
 
-      console.log(`\n  ${B}OpenReview Agents${R}\n`)
+      console.log(`\n  ${B}OpenLens Agents${R}\n`)
       for (const agent of agents) {
         const allowed = Object.entries(agent.permission)
           .filter(([_, v]) => v === "allow")
@@ -178,7 +178,7 @@ yargs(hideBin(process.argv))
 
   .command(
     "init",
-    "Initialize OpenReview in current project",
+    "Initialize OpenLens in current project",
     (y) => y,
     async () => {
       const cwd = process.cwd()
@@ -213,13 +213,13 @@ yargs(hideBin(process.argv))
         }
       }
 
-      const configPath = path.join(cwd, "openreview.json")
+      const configPath = path.join(cwd, "openlens.json")
       try {
         await fs.access(configPath)
-        console.log(`  ${D}exists${R} openreview.json`)
+        console.log(`  ${D}exists${R} openlens.json`)
       } catch {
         const defaultConfig = {
-          $schema: "https://openreview.dev/config.json",
+          $schema: "https://openlens.dev/config.json",
           model: "anthropic/claude-sonnet-4-20250514",
           agent: {
             security: {
@@ -250,11 +250,11 @@ yargs(hideBin(process.argv))
           configPath,
           JSON.stringify(defaultConfig, null, 2) + "\n"
         )
-        console.log(`  ${G}created${R} openreview.json`)
+        console.log(`  ${G}created${R} openlens.json`)
       }
 
       console.log(
-        `\n  ${B}Done.${R} Run ${B}openreview run${R} to start reviewing.\n`
+        `\n  ${B}Done.${R} Run ${B}openlens run${R} to start reviewing.\n`
       )
     }
   )
@@ -285,7 +285,7 @@ yargs(hideBin(process.argv))
       const server = createServer(config)
 
       console.log(
-        `\n  ${B}OpenReview Server${R} listening on http://${argv.hostname}:${argv.port}\n`
+        `\n  ${B}OpenLens Server${R} listening on http://${argv.hostname}:${argv.port}\n`
       )
 
       Bun.serve({
