@@ -13,6 +13,8 @@ export interface Agent {
   top_p?: number
   steps: number
   color?: string
+  // Per-agent override: include full file source in prompt (undefined = inherit global)
+  fullFileContext?: boolean
   // Permission map: tool name → "allow" | "deny" | "ask" (or granular patterns)
   permission: Record<string, any>
 }
@@ -104,6 +106,8 @@ export async function loadAgents(
       top_p: agentConfig.top_p ?? frontmatter.top_p,
       steps: agentConfig.steps ?? frontmatter.steps ?? 5,
       color: agentConfig.color || frontmatter.color,
+      fullFileContext:
+        agentConfig.fullFileContext ?? frontmatter.fullFileContext,
       permission,
     })
   }

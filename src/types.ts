@@ -20,6 +20,7 @@ export const IssueArraySchema = z.array(
     line: z.number(),
     endLine: z.number().optional(),
     severity: z.enum(["critical", "warning", "info"]),
+    agent: z.string().optional(),
     title: z.string(),
     message: z.string(),
     fix: z.string().optional(),

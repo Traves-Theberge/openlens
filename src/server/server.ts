@@ -37,8 +37,9 @@ export function createServer(config: Config) {
         description: a.description,
         model: a.model,
         mode: a.mode,
-        permission: a.permission,
         steps: a.steps,
+        fullFileContext: a.fullFileContext,
+        permission: a.permission,
       }))
     )
   })

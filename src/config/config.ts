@@ -1,28 +1,25 @@
-import { ConfigSchema, type Config } from "./schema.js"
+import { ConfigSchema, type Config, type AgentConfig } from "./schema.js"
 import path from "path"
 import os from "os"
 import fs from "fs/promises"
 
-const DEFAULT_AGENTS: Config["agent"] = {
+// Partial agent config — Zod fills in defaults (mode, disable, hidden)
+const DEFAULT_AGENTS: Record<string, Partial<AgentConfig>> = {
   security: {
     description: "Security vulnerability scanner",
     prompt: "{file:agents/security.md}",
-    enabled: true,
   },
   bugs: {
     description: "Bug and logic error detector",
     prompt: "{file:agents/bugs.md}",
-    enabled: true,
   },
   performance: {
     description: "Performance issue finder",
     prompt: "{file:agents/performance.md}",
-    enabled: true,
   },
   style: {
     description: "Style and convention checker",
     prompt: "{file:agents/style.md}",
-    enabled: true,
   },
 }
 

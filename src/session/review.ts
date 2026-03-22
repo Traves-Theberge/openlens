@@ -1,4 +1,8 @@
-import { createOpencodeClient, type OpencodeClient } from "@opencode-ai/sdk"
+import {
+  createOpencodeClient,
+  createOpencode,
+  type OpencodeClient,
+} from "@opencode-ai/sdk"
 import type { Config } from "../config/schema.js"
 import type { Issue, ReviewResult } from "../types.js"
 import { IssueArraySchema } from "../types.js"
@@ -31,16 +35,13 @@ async function readChangedFiles(
     const filePath = path.resolve(cwd, file)
     try {
       const content = await fs.readFile(filePath, "utf-8")
-      // Truncate very large files to avoid blowing context windows
       const lines = content.split("\n")
       const truncated =
         lines.length > 500
           ? lines.slice(0, 500).join("\n") +
             `\n\n... (truncated, ${lines.length} total lines)`
           : content
-      sections.push(
-        `### ${file}\n\`\`\`\n${truncated}\n\`\`\``
-      )
+      sections.push(`### ${file}\n\`\`\`\n${truncated}\n\`\`\``)
     } catch {
       // File might be deleted — skip
     }
@@ -50,15 +51,14 @@ async function readChangedFiles(
   return "## Full source of changed files\n\n" + sections.join("\n\n")
 }
 
-function buildPrompt(
-  agentPrompt: string,
+// Build user message content — system prompt is sent separately
+function buildUserMessage(
   instructions: string,
   diff: string,
-  fileContext: string
+  fileContext: string,
+  availableTools: string[]
 ): string {
   const parts: string[] = []
-
-  parts.push(agentPrompt.trim())
 
   if (instructions.trim()) {
     parts.push("## Project-specific instructions\n\n" + instructions)
@@ -70,10 +70,13 @@ function buildPrompt(
 
   parts.push("## Diff to review\n\n```diff\n" + diff + "\n```")
 
+  const toolList = availableTools.length > 0
+    ? availableTools.map((t) => `\`${t}\``).join(", ")
+    : "none"
+
   parts.push(
     "## Important\n\n" +
-      "You have access to tools: `read` (read files), `grep` (search code), " +
-      "`glob` (find files), `list` (list directories). " +
+      `You have access to tools: ${toolList}. ` +
       "Use them to explore the codebase for context when needed — " +
       "check imports, read related files, understand call sites. " +
       "Do NOT just guess. Investigate.\n\n" +
@@ -105,49 +108,64 @@ function extractJsonArray(text: string): any[] {
   return []
 }
 
-// Use SSE event streaming to wait for session completion instead of polling
+// Convert agent permission map to OpenCode tools map { toolName: boolean }
+function permissionToTools(permission: Record<string, any>): Record<string, boolean> {
+  const tools: Record<string, boolean> = {}
+  for (const [name, value] of Object.entries(permission)) {
+    if (typeof value === "string") {
+      tools[name] = value === "allow"
+    }
+  }
+  return tools
+}
+
+// Get list of allowed tool names from permission map
+function getAllowedToolNames(permission: Record<string, any>): string[] {
+  return Object.entries(permission)
+    .filter(([_, v]) => v === "allow")
+    .map(([k]) => k)
+}
+
+// Wait for session to become idle using session.status() instead of polling messages
 async function waitForSession(
   client: OpencodeClient,
   sessionId: string,
   timeoutMs: number
 ): Promise<void> {
   const start = Date.now()
-  // Use event streaming if available, fall back to polling with backoff
-  let delay = 500
-  const maxDelay = 5000
+  let delay = 300
+  const maxDelay = 3000
 
   while (Date.now() - start < timeoutMs) {
     await new Promise((resolve) => setTimeout(resolve, delay))
     delay = Math.min(delay * 1.5, maxDelay)
 
     try {
-      const messages = await client.session.messages({
-        path: { id: sessionId },
-      })
-      const data = await messages.data
-      if (!data || !Array.isArray(data)) continue
+      const statusRes = await client.session.status()
+      const statuses = await statusRes.data
+      if (!statuses) continue
 
-      // Look for a completed assistant message (one that has text parts and no pending tool calls)
-      const assistantMsgs = data.filter((m: any) => m.role === "assistant")
-      if (assistantMsgs.length === 0) continue
+      const sessionStatus = statuses[sessionId]
+      if (!sessionStatus) continue
 
-      const lastAssistant = assistantMsgs[assistantMsgs.length - 1]
-      if (!lastAssistant.parts) continue
+      // Session is done when status is "idle"
+      if (sessionStatus.type === "idle") return
 
-      const hasText = lastAssistant.parts.some(
-        (p: any) => p.type === "text" && (p.text || p.content)
-      )
-      const hasPendingTool = lastAssistant.parts.some(
-        (p: any) => p.type === "tool_use" || p.type === "tool-use"
-      )
+      // If retrying, keep waiting
+      if (sessionStatus.type === "retry") continue
 
-      // Session is done when there's a text response and no pending tools,
-      // OR when the last message in the full list is from the assistant (loop ended)
-      if (hasText && !hasPendingTool) return
-      if (data[data.length - 1]?.role === "assistant" && hasText) return
+      // If busy, keep waiting
+      if (sessionStatus.type === "busy") continue
     } catch {
       // Network error — retry
     }
+  }
+
+  // Timeout — abort the session before throwing
+  try {
+    await client.session.abort({ path: { id: sessionId } })
+  } catch {
+    // Best effort cleanup
   }
 
   throw new Error(`Session ${sessionId} timed out after ${timeoutMs}ms`)
@@ -160,14 +178,18 @@ async function getSessionResponse(
   const messages = await client.session.messages({
     path: { id: sessionId },
   })
-  const data = await messages.data
+  const data = (await messages.data) as any[]
   if (!data || !Array.isArray(data)) return ""
 
   // Walk backwards to find the last assistant text
+  // SDK returns { info: Message, parts: Part[] }[] or { role, parts }[]
   for (let i = data.length - 1; i >= 0; i--) {
-    const msg = data[i]
-    if (msg.role === "assistant" && msg.parts) {
-      const textParts = msg.parts
+    const entry = data[i]
+    const msg = entry.info || entry
+    const parts = entry.parts || msg.parts
+
+    if (msg.role === "assistant" && parts) {
+      const textParts = parts
         .filter((p: any) => p.type === "text")
         .map((p: any) => p.text || p.content || "")
       if (textParts.length > 0) return textParts.join("\n")
@@ -193,50 +215,52 @@ async function runSingleAgent(
     throw new Error(`Failed to create session for agent ${agent.name}`)
   }
 
-  const fullPrompt = buildPrompt(agent.prompt, instructions, diff, fileContext)
-  const model = parseModel(agent.model)
+  try {
+    const tools = permissionToTools(agent.permission)
+    const allowedTools = getAllowedToolNames(agent.permission)
+    const userMessage = buildUserMessage(instructions, diff, fileContext, allowedTools)
+    const model = parseModel(agent.model)
 
-  // Convert permission map to tools map for OpenCode session
-  // OpenCode session.prompt accepts tools: { toolName: boolean }
-  const tools: Record<string, boolean> = {}
-  if (agent.permission) {
-    for (const [tool, value] of Object.entries(agent.permission)) {
-      if (typeof value === "string") {
-        tools[tool] = value === "allow"
-      }
+    // Use promptAsync to fire-and-forget, then poll status
+    await client.session.promptAsync({
+      path: { id: session.id },
+      body: {
+        // System prompt goes in the system field — not baked into user message
+        system: agent.prompt,
+        parts: [{ type: "text" as const, text: userMessage }],
+        model,
+        tools,
+      },
+    })
+
+    await waitForSession(client, session.id, timeoutMs)
+
+    const responseText = await getSessionResponse(client, session.id)
+    const rawIssues = extractJsonArray(responseText)
+    const validated = IssueArraySchema.safeParse(rawIssues)
+
+    const issues = validated.success
+      ? validated.data
+      : rawIssues.map((issue: any) => ({
+          file: issue.file || "unknown",
+          line: issue.line || 0,
+          endLine: issue.endLine || issue.end_line,
+          severity: issue.severity || "info",
+          title: issue.title || "Untitled issue",
+          message: issue.message || "",
+          fix: issue.fix,
+          patch: issue.patch,
+        }))
+
+    return issues.map((issue) => ({ ...issue, agent: agent.name }))
+  } finally {
+    // Clean up session — don't pollute the OpenCode session list
+    try {
+      await client.session.delete({ path: { id: session.id } })
+    } catch {
+      // Best effort cleanup
     }
   }
-
-  // Send prompt with full OpenCode agent capabilities
-  await client.session.prompt({
-    path: { id: session.id },
-    body: {
-      parts: [{ type: "text" as const, text: fullPrompt }],
-      model,
-      tools,
-    },
-  })
-
-  await waitForSession(client, session.id, timeoutMs)
-
-  const responseText = await getSessionResponse(client, session.id)
-  const rawIssues = extractJsonArray(responseText)
-  const validated = IssueArraySchema.safeParse(rawIssues)
-
-  const issues = validated.success
-    ? validated.data
-    : rawIssues.map((issue: any) => ({
-        file: issue.file || "unknown",
-        line: issue.line || 0,
-        endLine: issue.endLine || issue.end_line,
-        severity: issue.severity || "info",
-        title: issue.title || "Untitled issue",
-        message: issue.message || "",
-        fix: issue.fix,
-        patch: issue.patch,
-      }))
-
-  return issues.map((issue) => ({ ...issue, agent: agent.name }))
 }
 
 // Verification agent — reviews all found issues and filters false positives
@@ -252,23 +276,27 @@ async function verifyIssues(
   bus.publish("agent.started", { name: "verifier" })
   const start = performance.now()
 
+  const sessionRes = await client.session.create({
+    body: { title: "openreview-verifier" },
+  })
+  const session = await sessionRes.data
+  if (!session?.id) return issues
+
   try {
-    const sessionRes = await client.session.create({
-      body: { title: "openreview-verifier" },
-    })
-    const session = await sessionRes.data
-    if (!session?.id) return issues
+    const systemPrompt = `You are a code review verifier. Your job is to filter out false positives.
 
-    const prompt = `You are a code review verifier. Your job is to filter out false positives.
-
-Below are issues found by automated review agents. For each issue, determine if it is:
+For each issue, determine if it is:
 - A REAL issue that should be reported
 - A FALSE POSITIVE that should be removed
 
-You have access to tools (read, grep, glob, list) to investigate the codebase.
+You have access to tools to investigate the codebase.
 Use them to verify each issue — check the actual code, read imports, understand context.
 
-## Issues to verify
+Return ONLY a JSON array of issues that are REAL (not false positives).
+Keep the exact same format. Remove any issue you determine is a false positive.
+If all issues are real, return them all. If all are false positives, return \`[]\`.`
+
+    const userMessage = `## Issues to verify
 
 \`\`\`json
 ${JSON.stringify(issues, null, 2)}
@@ -280,20 +308,15 @@ ${JSON.stringify(issues, null, 2)}
 ${diff}
 \`\`\`
 
-${fileContext}
-
-## Output
-
-Return ONLY a JSON array of issues that are REAL (not false positives).
-Keep the exact same format. Remove any issue you determine is a false positive.
-If all issues are real, return them all. If all are false positives, return \`[]\`.`
+${fileContext}`
 
     const model = parseModel(config.model)
 
-    await client.session.prompt({
+    await client.session.promptAsync({
       path: { id: session.id },
       body: {
-        parts: [{ type: "text" as const, text: prompt }],
+        system: systemPrompt,
+        parts: [{ type: "text" as const, text: userMessage }],
         model,
         tools: { read: true, grep: true, glob: true, list: true },
       },
@@ -320,17 +343,24 @@ If all issues are real, return them all. If all are false positives, return \`[]
     const errMsg = error instanceof Error ? error.message : String(error)
     bus.publish("agent.failed", { name: "verifier", error: errMsg })
     return issues // On failure, return unfiltered
+  } finally {
+    try {
+      await client.session.delete({ path: { id: session.id } })
+    } catch {
+      // Best effort cleanup
+    }
   }
 }
 
 function dedup(issues: Issue[]): Issue[] {
   const seen = new Map<string, Issue>()
   for (const issue of issues) {
-    // Normalize key: file + line range + title prefix
-    const key = `${issue.file}:${issue.line}:${(issue.endLine || issue.line)}:${issue.title.toLowerCase().slice(0, 60)}`
+    const key = `${issue.file}:${issue.line}:${issue.endLine || issue.line}:${issue.title.toLowerCase().slice(0, 60)}`
     const existing = seen.get(key)
-    // Keep higher severity
-    if (!existing || severityRank(issue.severity) < severityRank(existing.severity)) {
+    if (
+      !existing ||
+      severityRank(issue.severity) < severityRank(existing.severity)
+    ) {
       seen.set(key, issue)
     }
   }
@@ -349,6 +379,35 @@ function severityRank(s: string): number {
 
 function bySeverity(a: Issue, b: Issue): number {
   return severityRank(a.severity) - severityRank(b.severity)
+}
+
+// Try to connect to an existing OpenCode server, or start one
+async function getClient(
+  config: Config
+): Promise<{ client: OpencodeClient; cleanup?: () => void }> {
+  const baseUrl = `http://${config.server.hostname}:${config.server.port}`
+
+  // Try connecting to an existing server first
+  const existingClient = createOpencodeClient({ baseUrl })
+  try {
+    const res = await existingClient.app.agents()
+    if (res.data) {
+      return { client: existingClient }
+    }
+  } catch {
+    // No server running — start one
+  }
+
+  try {
+    const { client, server } = await createOpencode({
+      hostname: config.server.hostname,
+      port: config.server.port,
+    })
+    return { client, cleanup: () => server.close() }
+  } catch {
+    // Fall back to client-only (maybe server starts later)
+    return { client: existingClient }
+  }
 }
 
 export async function runReview(
@@ -373,135 +432,181 @@ export async function runReview(
   }
 
   if (!diff.trim()) {
-    return { issues: [], timing: {}, meta: { mode: detectedMode, filesChanged: 0, agentsRun: 0, agentsFailed: 0, suppressed: 0, verified: false } }
+    return {
+      issues: [],
+      timing: {},
+      meta: {
+        mode: detectedMode,
+        filesChanged: 0,
+        agentsRun: 0,
+        agentsFailed: 0,
+        suppressed: 0,
+        verified: false,
+      },
+    }
   }
 
   const stats = getDiffStats(diff)
 
-  // Load full file context if enabled
+  // Load full file context if enabled globally
   let fileContext = ""
   if (config.review.fullFileContext) {
     fileContext = await readChangedFiles(diff, cwd)
   }
 
   const instructions = await loadInstructions(config.review.instructions, cwd)
-  const agents = await loadAgents(config, cwd)
+  const allAgents = await loadAgents(config, cwd)
   const suppressRules = await loadSuppressRules(config, cwd)
 
+  // Filter agents by mode: "subagent" and "all" run in review
+  const agents = allAgents.filter(
+    (a) => a.mode === "subagent" || a.mode === "all"
+  )
+
   if (agents.length === 0) {
-    return { issues: [], timing: {}, meta: { mode: detectedMode, filesChanged: stats.filesChanged, agentsRun: 0, agentsFailed: 0, suppressed: 0, verified: false } }
-  }
-
-  const client = createOpencodeClient({
-    baseUrl: `http://${config.server.hostname}:${config.server.port}`,
-  })
-
-  bus.publish("review.started", { agents: agents.map((a) => a.name) })
-
-  // Fan out with concurrency limit
-  const concurrency = config.review.maxConcurrency
-  const results: Array<
-    PromiseSettledResult<{ name: string; issues: Issue[]; time: number }>
-  > = []
-
-  for (let i = 0; i < agents.length; i += concurrency) {
-    const batch = agents.slice(i, i + concurrency)
-    const batchResults = await Promise.allSettled(
-      batch.map(async (agent) => {
-        bus.publish("agent.started", { name: agent.name })
-        const start = performance.now()
-
-        try {
-          const issues = await runSingleAgent(
-            client,
-            agent,
-            diff,
-            instructions,
-            fileContext,
-            config.review.timeoutMs
-          )
-          const time = performance.now() - start
-
-          bus.publish("agent.completed", {
-            name: agent.name,
-            issueCount: issues.length,
-            time,
-          })
-
-          return { name: agent.name, issues, time }
-        } catch (error) {
-          const errMsg =
-            error instanceof Error ? error.message : String(error)
-          bus.publish("agent.failed", { name: agent.name, error: errMsg })
-          throw error
-        }
-      })
-    )
-    results.push(...batchResults)
-  }
-
-  // Collect results
-  const allIssues: Issue[] = []
-  const timing: Record<string, number> = {}
-  let agentsFailed = 0
-
-  for (const result of results) {
-    if (result.status === "fulfilled") {
-      allIssues.push(...result.value.issues)
-      timing[result.value.name] = Math.round(result.value.time)
-    } else {
-      agentsFailed++
+    return {
+      issues: [],
+      timing: {},
+      meta: {
+        mode: detectedMode,
+        filesChanged: stats.filesChanged,
+        agentsRun: 0,
+        agentsFailed: 0,
+        suppressed: 0,
+        verified: false,
+      },
     }
   }
 
-  // Dedup
-  let processedIssues = dedup(allIssues)
+  // Connect to OpenCode server or start one
+  const { client, cleanup } = await getClient(config)
 
-  // Apply suppression rules
-  let suppressed = 0
-  if (suppressRules.length > 0) {
-    const before = processedIssues.length
-    processedIssues = processedIssues.filter(
-      (issue) => !shouldSuppress(issue, suppressRules)
+  try {
+    // Discover available tools from the server
+    let serverToolIds: Set<string> | null = null
+    try {
+      const toolRes = await client.tool.ids()
+      const ids = await toolRes.data
+      if (ids && Array.isArray(ids)) {
+        serverToolIds = new Set(ids)
+      }
+    } catch {
+      // Tool discovery not available — proceed with configured tools
+    }
+
+    bus.publish("review.started", { agents: agents.map((a) => a.name) })
+
+    // Fan out with concurrency limit
+    const concurrency = config.review.maxConcurrency
+    const results: Array<
+      PromiseSettledResult<{ name: string; issues: Issue[]; time: number }>
+    > = []
+
+    for (let i = 0; i < agents.length; i += concurrency) {
+      const batch = agents.slice(i, i + concurrency)
+      const batchResults = await Promise.allSettled(
+        batch.map(async (agent) => {
+          bus.publish("agent.started", { name: agent.name })
+          const start = performance.now()
+
+          try {
+            // Per-agent file context: skip if agent has fullFileContext: false
+            const agentFileContext =
+              agent.fullFileContext === false ? "" : fileContext
+
+            const issues = await runSingleAgent(
+              client,
+              agent,
+              diff,
+              instructions,
+              agentFileContext,
+              config.review.timeoutMs
+            )
+            const time = performance.now() - start
+
+            bus.publish("agent.completed", {
+              name: agent.name,
+              issueCount: issues.length,
+              time,
+            })
+
+            return { name: agent.name, issues, time }
+          } catch (error) {
+            const errMsg =
+              error instanceof Error ? error.message : String(error)
+            bus.publish("agent.failed", { name: agent.name, error: errMsg })
+            throw error
+          }
+        })
+      )
+      results.push(...batchResults)
+    }
+
+    // Collect results
+    const allIssues: Issue[] = []
+    const timing: Record<string, number> = {}
+    let agentsFailed = 0
+
+    for (const result of results) {
+      if (result.status === "fulfilled") {
+        allIssues.push(...result.value.issues)
+        timing[result.value.name] = Math.round(result.value.time)
+      } else {
+        agentsFailed++
+      }
+    }
+
+    // Dedup
+    let processedIssues = dedup(allIssues)
+
+    // Apply suppression rules
+    let suppressed = 0
+    if (suppressRules.length > 0) {
+      const before = processedIssues.length
+      processedIssues = processedIssues.filter(
+        (issue) => !shouldSuppress(issue, suppressRules)
+      )
+      suppressed = before - processedIssues.length
+    }
+
+    // Verification pass
+    let verified = false
+    if (config.review.verify && processedIssues.length > 0) {
+      processedIssues = await verifyIssues(
+        client,
+        processedIssues,
+        diff,
+        fileContext,
+        config
+      )
+      verified = true
+    }
+
+    processedIssues.sort(bySeverity)
+
+    const totalTime = Object.values(timing).reduce(
+      (max, t) => Math.max(max, t),
+      0
     )
-    suppressed = before - processedIssues.length
-  }
 
-  // Verification pass
-  let verified = false
-  if (config.review.verify && processedIssues.length > 0) {
-    processedIssues = await verifyIssues(
-      client,
-      processedIssues,
-      diff,
-      fileContext,
-      config
-    )
-    verified = true
-  }
+    bus.publish("review.completed", {
+      issueCount: processedIssues.length,
+      time: totalTime,
+    })
 
-  processedIssues.sort(bySeverity)
-
-  const totalTime = Object.values(timing).reduce(
-    (max, t) => Math.max(max, t),
-    0
-  )
-
-  bus.publish("review.completed", {
-    issueCount: processedIssues.length,
-    time: totalTime,
-  })
-
-  return {
-    issues: processedIssues,
-    timing,
-    meta: {
-      mode: detectedMode,
-      filesChanged: stats.filesChanged,
-      agentsRun: agents.length,
-      agentsFailed,
-      suppressed,
-      verified,
-    },
+    return {
+      issues: processedIssues,
+      timing,
+      meta: {
+        mode: detectedMode,
+        filesChanged: stats.filesChanged,
+        agentsRun: agents.length,
+        agentsFailed,
+        suppressed,
+        verified,
+      },
+    }
+  } finally {
+    if (cleanup) cleanup()
   }
 }
