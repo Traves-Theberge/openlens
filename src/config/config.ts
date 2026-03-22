@@ -141,9 +141,28 @@ export async function loadConfig(cwd: string): Promise<Config> {
 
 export async function loadInstructions(
   files: string[],
-  cwd: string = process.cwd()
+  cwd: string = process.cwd(),
+  rulesConfig?: {
+    enabled?: boolean
+    extraFiles?: string[]
+    include?: string[]
+    exclude?: string[]
+    maxDepth?: number
+  }
 ): Promise<string> {
   const parts: string[] = []
+
+  // Phase 1: Auto-discover rules files (AGENTS.md, CLAUDE.md, globs)
+  if (rulesConfig?.enabled !== false) {
+    const { discoverRules, formatDiscoveredRules } = await import("./rules.js")
+    const discovered = await discoverRules(cwd, rulesConfig)
+    const rulesText = formatDiscoveredRules(discovered)
+    if (rulesText.trim()) {
+      parts.push(rulesText)
+    }
+  }
+
+  // Phase 2: Load explicitly configured instruction files
   for (const file of files) {
     const filePath = path.resolve(cwd, file)
     try {
@@ -153,5 +172,6 @@ export async function loadInstructions(
       // File doesn't exist — skip silently
     }
   }
+
   return parts.join("\n\n---\n\n")
 }

@@ -226,7 +226,14 @@ Both `.json` and `.jsonc` (JSON with comments) are supported.
     "fullFileContext": true,
     "verify": true,
     "timeoutMs": 180000,
-    "maxConcurrency": 4
+    "maxConcurrency": 4,
+    "rules": {
+      "enabled": true,
+      "extraFiles": [],
+      "include": [],
+      "exclude": [],
+      "maxDepth": 20
+    }
   },
 
   "suppress": {
@@ -256,6 +263,7 @@ Both `.json` and `.jsonc` (JSON with comments) are supported.
 | `verify`          | boolean  | `true`           | Run verification pass to filter false positives |
 | `timeoutMs`       | number   | `180000`         | Timeout per agent in milliseconds               |
 | `maxConcurrency`  | number   | `4`              | Max agents running in parallel                  |
+| `rules`           | object   | `{enabled:true}` | Rules discovery config (see [Rules Discovery](#review-instructions--rules-discovery)) |
 
 ### Template Substitution
 
@@ -1130,6 +1138,8 @@ console.log(formatSarif(result))  // SARIF v2.1.0
 | `runSingleAgentReview`  | Run review with a single agent       |
 | `loadConfig`            | Load and merge configuration         |
 | `loadInstructions`      | Load project instruction files       |
+| `discoverRules`         | Discover rules files (AGENTS.md, CLAUDE.md, globs) |
+| `formatDiscoveredRules` | Format discovered rules as markdown  |
 | `loadAgents`            | Load and resolve agent configs       |
 | `filterAgents`          | Whitelist agents by name             |
 | `excludeAgents`         | Exclude agents by name               |
@@ -1159,6 +1169,8 @@ console.log(formatSarif(result))  // SARIF v2.1.0
 | `Agent`        | Resolved agent type      |
 | `ReviewEvents` | Event bus event types    |
 | `SuppressRule` | Suppression rule type    |
+| `RulesDiscoveryConfig` | Rules discovery options |
+| `DiscoveredRule` | Discovered rules file metadata |
 
 ### Custom Review Pipeline
 
@@ -1329,9 +1341,43 @@ Extend agent capabilities by connecting MCP servers. These provide additional to
 - Validate connectivity with `openlens agent validate` or `openlens doctor`
 - Use `enabled: false` to temporarily disable an MCP server without removing its config
 
-### Review Instructions
+### Review Instructions & Rules Discovery
 
-Create a `REVIEW.md` file in your project root with project-specific review guidance. OpenLens includes this content in every agent's context.
+OpenLens has two ways to provide project-specific guidance to review agents:
+
+1. **Automatic rules discovery** — walks your directory tree for well-known files
+2. **Explicit instruction files** — configured in `openlens.json`
+
+Both are combined and injected into every agent's context. Discovered rules are loaded first, then explicit instruction files, so explicit files take highest priority.
+
+#### Automatic Rules Discovery
+
+OpenLens automatically discovers rules files by walking from your working directory up to the repository root. This follows the same convention used by OpenCode and Claude Code (`AGENTS.md`, `CLAUDE.md`).
+
+**Well-known files** (discovered automatically):
+
+| File | Purpose |
+| ---- | ------- |
+| `AGENTS.md` | OpenCode-style agent instructions — conventions, architecture notes, review focus areas |
+| `CLAUDE.md` | Claude Code-style project rules — coding standards, patterns to follow/avoid |
+| `.openlens/rules.md` | OpenLens-specific rules |
+
+**How directory walking works:**
+
+Files are discovered from the repo root down to your working directory. Deeper files are appended last, giving them higher priority (they can override or refine root-level rules).
+
+```
+my-project/              ← repo root
+├── AGENTS.md            ← loaded first (project-wide rules)
+├── CLAUDE.md            ← loaded second
+├── packages/
+│   └── api/
+│       ├── AGENTS.md    ← loaded later (package-specific overrides)
+│       └── src/
+│           └── ...      ← if cwd is here, all above files are discovered
+```
+
+**Example `AGENTS.md`:**
 
 ```markdown
 # Review Instructions
@@ -1349,7 +1395,46 @@ This is a Next.js application with a PostgreSQL backend.
 - `console.log` statements in `scripts/` are intentional
 ```
 
-Configure which files to load in `openlens.json`:
+#### Configuring Rules Discovery
+
+Customize discovery behavior in `openlens.json`:
+
+```json
+{
+  "review": {
+    "rules": {
+      "enabled": true,
+      "extraFiles": ["REVIEW_RULES.md", ".github/review.md"],
+      "include": [".openlens/rules/*.md", "docs/review-rules/**/*.md"],
+      "exclude": ["**/drafts/**"],
+      "maxDepth": 20
+    }
+  }
+}
+```
+
+| Option | Type | Default | Description |
+| ------ | ---- | ------- | ----------- |
+| `enabled` | boolean | `true` | Enable automatic directory-walking discovery |
+| `extraFiles` | string[] | `[]` | Additional file names to discover (walked like well-known files) |
+| `include` | string[] | `[]` | Glob patterns for rules files (resolved from repo root) |
+| `exclude` | string[] | `[]` | Glob patterns to exclude from discovery |
+| `maxDepth` | number | `20` | Maximum directories to walk up from cwd |
+
+To disable automatic discovery entirely and only use explicit instruction files:
+
+```json
+{
+  "review": {
+    "rules": { "enabled": false },
+    "instructions": ["REVIEW.md"]
+  }
+}
+```
+
+#### Explicit Instruction Files
+
+In addition to (or instead of) auto-discovery, you can list specific files in the `instructions` array:
 
 ```json
 {
@@ -1358,6 +1443,8 @@ Configure which files to load in `openlens.json`:
   }
 }
 ```
+
+These are loaded after discovered rules, so they have the highest priority.
 
 ### Full File Context
 
@@ -1458,7 +1545,7 @@ If agents are timing out, try:
 **Too many false positives**
 
 - Ensure `verify: true` is set (verification pass filters false positives)
-- Add project-specific guidance in `REVIEW.md`
+- Add project-specific guidance in `AGENTS.md`, `CLAUDE.md`, or `REVIEW.md`
 - Tune agent prompts in the `agents/` directory
 - Use suppression rules for known noise
 
@@ -1485,7 +1572,8 @@ src/
 │   └── index.ts          # Event bus
 ├── config/
 │   ├── schema.ts         # Zod config schema
-│   └── config.ts         # Config resolution (layered)
+│   ├── config.ts         # Config resolution (layered)
+│   └── rules.ts          # Rules discovery (AGENTS.md, CLAUDE.md, globs)
 ├── session/
 │   └── review.ts         # Review orchestration & verification
 ├── server/

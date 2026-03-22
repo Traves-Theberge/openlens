@@ -60,6 +60,15 @@ export const ConfigSchema = z.object({
       verify: z.boolean().default(true),
       timeoutMs: z.number().default(180_000),
       maxConcurrency: z.number().int().min(1).default(4),
+      rules: z
+        .object({
+          enabled: z.boolean().default(true),
+          extraFiles: z.array(z.string()).default([]),
+          include: z.array(z.string()).default([]),
+          exclude: z.array(z.string()).default([]),
+          maxDepth: z.number().int().min(1).default(20),
+        })
+        .default({}),
     })
     .default({}),
   suppress: z

@@ -758,7 +758,7 @@ export async function runReview(
     fileContext = await readChangedFiles(diff, cwd)
   }
 
-  const instructions = await loadInstructions(config.review.instructions, cwd)
+  const instructions = await loadInstructions(config.review.instructions, cwd, config.review.rules)
   const allAgents = await loadAgents(config, cwd)
   const suppressRules = await loadSuppressRules(config, cwd)
 

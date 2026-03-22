@@ -92,18 +92,19 @@ const plugin: Plugin = async (ctx) => {
       // Conventions tool — retrieves project review instructions
       "openlens-conventions": tool({
         description:
-          "Get this project's review conventions and instructions (from REVIEW.md and config). " +
+          "Get this project's review conventions and instructions (from AGENTS.md, CLAUDE.md, REVIEW.md, and config). " +
           "Use this to understand project-specific rules before reviewing.",
         args: {},
         async execute() {
           const config = await loadConfig(directory)
           const instructions = await loadInstructions(
             config.review.instructions,
-            directory
+            directory,
+            config.review.rules
           )
 
           if (!instructions.trim()) {
-            return "No project review instructions found. Check for a REVIEW.md file or configure review.instructions in openlens.json."
+            return "No project review instructions found. Check for AGENTS.md, CLAUDE.md, or REVIEW.md files, or configure review.instructions in openlens.json."
           }
 
           return instructions
