@@ -62,7 +62,9 @@
     "instructions": ["REVIEW.md"],
     "baseBranch": "main",
     "fullFileContext": true,
-    "verify": true
+    "verify": true,
+    "timeoutMs": 180000,
+    "maxConcurrency": 4
   },
 
   "suppress": {

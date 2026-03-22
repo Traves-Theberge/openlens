@@ -685,13 +685,11 @@ If no issues found, return \`[]\`
       y
         .option("port", {
           type: "number",
-          default: 3000,
-          describe: "Port to listen on",
+          describe: "Port to listen on (default: from config, or 4096)",
         })
         .option("hostname", {
           type: "string",
-          default: "localhost",
-          describe: "Hostname to bind to",
+          describe: "Hostname to bind to (default: from config, or localhost)",
         }),
     async (argv) => {
       const { createServer } = await import("./server/server.js")
@@ -703,14 +701,18 @@ If no issues found, return \`[]\`
       }
       const server = createServer(config)
 
+      // CLI flags override config, config provides defaults
+      const port = argv.port ?? config.server.port
+      const hostname = argv.hostname ?? config.server.hostname
+
       console.log(
-        `\n  ${B}OpenLens Server${R} listening on http://${argv.hostname}:${argv.port}\n`
+        `\n  ${B}OpenLens Server${R} listening on http://${hostname}:${port}\n`
       )
 
       Bun.serve({
         fetch: server.fetch,
-        port: argv.port,
-        hostname: argv.hostname,
+        port,
+        hostname,
       })
     }
   )

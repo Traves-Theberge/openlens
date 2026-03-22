@@ -347,7 +347,7 @@ openlens serve      # Start HTTP server
 
 | Flag            | Description                                      |
 | --------------- | ------------------------------------------------ |
-| `--port`        | Server port (default: 3000)                      |
+| `--port`        | Server port (default: from config, or 4096)      |
 | `--hostname`    | Server hostname (default: localhost)              |
 
 ### Exit Codes
