@@ -1,12 +1,10 @@
 # OpenLens
 
-> **⚠️ Early Development Notice:** This project is in early development and is not yet ready for production use. Features may change, break, or be incomplete. Use at your own risk.
-
 AI-powered code review for your terminal. OpenLens runs specialized agents in parallel to catch security vulnerabilities, bugs, performance issues, and style violations before they land.
 
 ## Overview
 
-OpenLens is a TypeScript-based CLI tool that orchestrates multiple AI review agents against your git diffs. Each agent has read-only access to your full codebase, enabling deep analysis that goes beyond surface-level pattern matching. Built on the [OpenCode SDK](https://github.com/opencode-ai/opencode), it supports any model provider OpenCode supports.
+OpenLens is a TypeScript CLI tool that orchestrates multiple AI review agents against your git diffs. Each agent has read-only access to your full codebase, enabling deep analysis that goes beyond surface-level pattern matching. Built on the [OpenCode SDK](https://github.com/opencode-ai/opencode), it supports any model provider OpenCode supports.
 
 ## Features
 
@@ -22,8 +20,6 @@ OpenLens is a TypeScript-based CLI tool that orchestrates multiple AI review age
 
 ## Installation
 
-### Using Bun
-
 ```bash
 # Clone and install
 git clone https://github.com/Traves-Theberge/OpenLens.git
@@ -34,10 +30,11 @@ bun install
 ### Running
 
 ```bash
-# CLI
+# Direct
 bun run src/index.ts run
 
-# Or link globally
+# Or build and link globally
+bun run build
 bun link
 openlens run
 ```
@@ -57,16 +54,22 @@ openlens run --branch main
 # Run only security and bug agents
 openlens run --agents security,bugs
 
+# Preview what would run
+openlens run --dry-run
+
 # Output SARIF for CI
 openlens run --format sarif > results.sarif
 ```
 
 ## Configuration
 
-OpenLens looks for configuration in the following locations:
+OpenLens looks for configuration in these locations (last wins):
 
-- `./openlens.json` or `./openlens.jsonc` (project root)
-- `~/.config/openlens/openlens.json` (global)
+1. Built-in defaults
+2. `~/.config/openlens/openlens.json` (global)
+3. `./openlens.json` or `./openlens.jsonc` (project root)
+4. Environment variables (`OPENLENS_MODEL`, `OPENLENS_PORT`)
+5. CI environment defaults (auto-detected)
 
 ### Configuration File Structure
 
@@ -101,14 +104,12 @@ OpenLens looks for configuration in the following locations:
     "performance": {
       "description": "Performance issue finder",
       "mode": "subagent",
-      "model": "openai/gpt-4o",
       "prompt": "{file:./agents/performance.md}",
       "steps": 5
     },
     "style": {
       "description": "Style and convention checker",
       "mode": "subagent",
-      "model": "anthropic/claude-haiku-4-5-20251001",
       "prompt": "{file:./agents/style.md}",
       "steps": 3
     }
@@ -143,7 +144,9 @@ OpenLens looks for configuration in the following locations:
     "hostname": "localhost"
   },
 
-  "mcp": {}
+  "mcp": {},
+
+  "disabled_agents": []
 }
 ```
 
@@ -304,6 +307,12 @@ Then reference it in your config:
 }
 ```
 
+Or use `openlens agent create`:
+
+```bash
+openlens agent create a11y --description "Accessibility checker"
+```
+
 ### Agent Configuration Fields
 
 | Field          | Type                                   | Default       | Description                          |
@@ -324,24 +333,53 @@ Then reference it in your config:
 
 ### Commands
 
-```bash
-openlens run        # Run code review
-openlens agents     # List configured agents
-openlens init       # Initialize in current project
-openlens serve      # Start HTTP server
+```
+openlens run                    Run code review
+openlens init                   Initialize in current project
+openlens agent list             List configured agents
+openlens agent create <name>    Create a new review agent
+openlens agent test <name>      Test a single agent on current changes
+openlens agent validate         Validate all agent configurations
+openlens agent enable <name>    Re-enable a disabled agent
+openlens agent disable <name>   Disable an agent
+openlens serve                  Start HTTP server
+openlens models                 List available models from OpenCode
+openlens doctor                 Check environment and configuration
 ```
 
 ### `openlens run`
 
-| Flag            | Description                                      |
-| --------------- | ------------------------------------------------ |
-| `--staged`      | Review staged changes                            |
-| `--unstaged`    | Review unstaged changes                          |
-| `--branch`      | Review diff against a branch (default: main)     |
-| `--agents`      | Comma-separated agent list                       |
-| `--format`      | Output format: `text`, `json`, `sarif`           |
-| `--no-verify`   | Skip the verification pass                       |
-| `--no-context`  | Skip full file context (diff only)               |
+| Flag               | Short | Description                                      |
+| ------------------ | ----- | ------------------------------------------------ |
+| `--staged`         |       | Review staged changes                            |
+| `--unstaged`       |       | Review unstaged changes                          |
+| `--branch <name>`  |       | Review diff against a branch (default: main)     |
+| `--agents <list>`  |       | Comma-separated agent whitelist                  |
+| `--exclude-agents` |       | Comma-separated agents to skip                   |
+| `--model <id>`     | `-m`  | Override model for all agents                    |
+| `--format <fmt>`   | `-f`  | Output format: `text`, `json`, `sarif`           |
+| `--no-verify`      |       | Skip the verification pass                       |
+| `--no-context`     |       | Skip full file context (diff only)               |
+| `--dry-run`        |       | Show what would run without making API calls      |
+
+### `openlens agent create`
+
+| Flag               | Description                                      |
+| ------------------ | ------------------------------------------------ |
+| `--description`    | Agent description                                |
+| `--model`          | Model to use (e.g. `anthropic/claude-sonnet-4-20250514`) |
+| `--steps`          | Max agentic loop iterations (default: 5)         |
+
+### `openlens agent test`
+
+| Flag               | Short | Description                                      |
+| ------------------ | ----- | ------------------------------------------------ |
+| `--staged`         |       | Review staged changes                            |
+| `--unstaged`       |       | Review unstaged changes                          |
+| `--branch <name>`  |       | Review diff against branch                       |
+| `--model <id>`     | `-m`  | Override model                                   |
+| `--format <fmt>`   |       | Output format: `text`, `json`                    |
+| `--verbose`        |       | Show timing and metadata (default: true)         |
 
 ### `openlens serve`
 
@@ -350,12 +388,17 @@ openlens serve      # Start HTTP server
 | `--port`        | Server port (default: from config, or 4096)      |
 | `--hostname`    | Server hostname (default: localhost)              |
 
+### `openlens doctor`
+
+Validates your environment: git, OpenCode binary, API keys, config file, agent configurations, and CI detection. No flags needed.
+
 ### Exit Codes
 
 | Code | Meaning                    |
 | ---- | -------------------------- |
 | `0`  | No critical issues found   |
 | `1`  | Critical issues detected   |
+| `2`  | Runtime error              |
 
 ## HTTP API
 
@@ -440,23 +483,10 @@ gh api repos/{owner}/{repo}/code-scanning/sarifs \
 Use OpenLens programmatically:
 
 ```typescript
-import {
-  runReview,
-  loadConfig,
-  loadAgents,
-  getDiff,
-  formatSarif,
-} from "openlens"
+import { runReview, loadConfig, getDiff, formatSarif } from "openlens"
 
 const config = await loadConfig()
-const agents = await loadAgents(config)
-const diff = await getDiff("staged")
-
-const result = await runReview({
-  config,
-  agents,
-  diff,
-})
+const result = await runReview(config, "staged")
 
 console.log(formatSarif(result))
 ```
@@ -466,10 +496,12 @@ console.log(formatSarif(result))
 | Export                | Type       | Description                          |
 | --------------------- | ---------- | ------------------------------------ |
 | `runReview`           | function   | Run a full review                    |
+| `runSingleAgentReview`| function   | Run a single agent review (delegation) |
 | `loadConfig`          | function   | Load and validate config             |
 | `loadInstructions`    | function   | Load project instruction files       |
 | `loadAgents`          | function   | Load and resolve agent configs       |
-| `filterAgents`        | function   | Filter agents by name                |
+| `filterAgents`        | function   | Whitelist agents by name             |
+| `excludeAgents`       | function   | Exclude agents by name               |
 | `getDiff`             | function   | Get diff from git                    |
 | `getAutoDetectedDiff` | function   | Auto-detect diff mode                |
 | `getDiffStats`        | function   | Parse diff statistics                |
@@ -479,18 +511,22 @@ console.log(formatSarif(result))
 | `loadSuppressRules`   | function   | Load suppression rules               |
 | `shouldSuppress`      | function   | Check if an issue should be suppressed|
 | `createBus`           | function   | Create an event bus                  |
+| `bus`                 | instance   | Default event bus                    |
 | `createServer`        | function   | Create the HTTP server               |
-| `Issue`               | type       | Issue type definition                |
-| `ReviewResult`        | type       | Review result type definition        |
-| `Config`              | type       | Config type definition               |
-| `AgentConfig`         | type       | Agent config type definition         |
-| `Agent`               | type       | Resolved agent type definition       |
+| `detectCI`            | function   | Detect CI environment                |
+| `resolveOpencodeBin`  | function   | Resolve OpenCode binary path         |
+| `inferBaseBranch`     | function   | Infer base branch from CI env        |
+| `Issue`               | type       | Issue schema                         |
+| `ReviewResult`        | type       | Review result schema                 |
+| `Config`              | type       | Configuration schema                 |
+| `AgentConfig`         | type       | Agent config schema                  |
+| `Agent`               | type       | Resolved agent type                  |
 | `ReviewEvents`        | type       | Event bus event types                |
 | `SuppressRule`        | type       | Suppression rule type                |
 
 ## OpenCode Plugin
 
-OpenLens can run as an OpenCode plugin, making it available as a tool inside OpenCode sessions:
+OpenLens can run as an [OpenCode](https://opencode.ai/) plugin, making it available as a tool inside OpenCode sessions:
 
 ```json
 {
@@ -498,7 +534,14 @@ OpenLens can run as an OpenCode plugin, making it available as a tool inside Ope
 }
 ```
 
-Once loaded, the AI assistant can invoke `openlens` as a tool with arguments for `mode`, `agents`, `branch`, and `verify`.
+This registers four tools:
+
+| Tool                    | Description                          |
+| ----------------------- | ------------------------------------ |
+| `openlens`              | Run a full review                    |
+| `openlens-delegate`     | Delegate to a specialist agent       |
+| `openlens-conventions`  | Get project review instructions      |
+| `openlens-agents`       | List available agents                |
 
 ## Event Bus
 
@@ -556,10 +599,11 @@ OpenLens supports MCP servers for extending agent capabilities:
 
 ```
 src/
-├── index.ts              # CLI entry point
-├── lib.ts                # Library exports
-├── plugin.ts             # OpenCode plugin
+├── index.ts              # CLI entry point (yargs)
+├── lib.ts                # Public library exports
+├── plugin.ts             # OpenCode plugin integration
 ├── types.ts              # Zod schemas & types
+├── env.ts                # CI detection & binary resolution
 ├── suppress.ts           # Suppression rules
 ├── agent/
 │   └── agent.ts          # Agent loading & config merging
@@ -567,7 +611,7 @@ src/
 │   └── index.ts          # Event bus
 ├── config/
 │   ├── schema.ts         # Zod config schema
-│   └── config.ts         # Config resolution
+│   └── config.ts         # Config resolution (layered)
 ├── session/
 │   └── review.ts         # Review orchestration & verification
 ├── server/
@@ -588,38 +632,38 @@ agents/                   # Built-in agent prompts
 
 ### Prerequisites
 
-- [Bun](https://bun.sh/) 1.0 or higher
+- [Bun](https://bun.sh/) 1.0+
 - TypeScript 5.8+
+- Node.js 18+ (if not using Bun)
 
-### Building from Source
+### Building
 
 ```bash
-# Clone the repository
 git clone https://github.com/Traves-Theberge/OpenLens.git
 cd OpenLens
-
-# Install dependencies
 bun install
 
-# Run
+# Development
 bun run src/index.ts run --staged
 
-# Run the server
-bun run src/index.ts serve
+# Build
+bun run build
+
+# Type check
+bun run typecheck
+
+# Test
+bun test
 ```
 
 ## License
 
-OpenLens is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+MIT — see [LICENSE](LICENSE).
 
 ## Contributing
-
-Contributions are welcome! Here's how you can contribute:
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
 3. Commit your changes (`git commit -m 'Add some amazing feature'`)
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
-
-Please make sure to update tests as appropriate and follow the existing code style.

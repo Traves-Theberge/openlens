@@ -847,11 +847,7 @@ If no issues found, return \`[]\`
   .command(
     "models",
     "List available models from OpenCode",
-    (y) =>
-      y.positional("provider", {
-        type: "string",
-        describe: "Filter by provider (e.g. anthropic, openai)",
-      }),
+    (y) => y,
     async () => {
       const { resolveOpencodeBin } = await import("./env.js")
       const bin = resolveOpencodeBin(process.cwd())
