@@ -13,7 +13,7 @@ inputs:
     description: "Comma-separated agent names (default: all)"
     required: false
   format:
-    description: "Output format: text, json, sarif"
+    description: "Output format: text, json, sarif, markdown"
     required: false
     default: "sarif"
   base-branch:
@@ -44,6 +44,10 @@ inputs:
   openai-api-key:
     description: "OpenAI API key (or set OPENAI_API_KEY env var)"
     required: false
+  comment-on-pr:
+    description: "Post review results as a PR comment (pull_request events only)"
+    required: false
+    default: "false"
 
 outputs:
   issues:
@@ -157,4 +161,110 @@ runs:
       with:
         sarif_file: ${{ steps.review.outputs.sarif-file }}
         category: openlens
+      continue-on-error: true
+
+    - name: Post PR Comment
+      if: inputs.comment-on-pr == 'true' && github.event_name == 'pull_request' && always()
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const sarifPath = '${{ steps.review.outputs.sarif-file }}';
+
+          let results = [];
+          try {
+            const sarif = JSON.parse(fs.readFileSync(sarifPath, 'utf-8'));
+            results = sarif.runs?.[0]?.results || [];
+          } catch {
+            // SARIF file missing or invalid — post a fallback comment
+          }
+
+          const issueCount = results.length;
+          const criticalCount = results.filter(r => r.level === 'error').length;
+          const warningCount = results.filter(r => r.level === 'warning').length;
+          const infoCount = results.filter(r => r.level === 'note').length;
+
+          const marker = '<!-- openlens-review -->';
+          let body = marker + '\n';
+          body += '## :mag: OpenLens Review\n\n';
+
+          if (issueCount === 0) {
+            body += ':white_check_mark: **No issues found.**\n';
+          } else {
+            body += `**${issueCount} issue${issueCount === 1 ? '' : 's'}** found`;
+            if (criticalCount > 0) body += ` (:red_circle: ${criticalCount} critical)`;
+            body += '\n\n';
+
+            body += '| Severity | Count |\n|----------|-------|\n';
+            if (criticalCount > 0) body += `| :red_circle: Critical | ${criticalCount} |\n`;
+            if (warningCount > 0) body += `| :yellow_circle: Warning | ${warningCount} |\n`;
+            if (infoCount > 0) body += `| :blue_circle: Info | ${infoCount} |\n`;
+            body += '\n---\n\n';
+
+            // Group by file
+            const byFile = {};
+            for (const r of results) {
+              const file = r.locations?.[0]?.physicalLocation?.artifactLocation?.uri || 'unknown';
+              if (!byFile[file]) byFile[file] = [];
+              byFile[file].push(r);
+            }
+
+            const sha = context.sha;
+            const repo = `${context.repo.owner}/${context.repo.repo}`;
+
+            for (const [file, issues] of Object.entries(byFile)) {
+              body += `<details>\n<summary><b>${file}</b> (${issues.length} issue${issues.length === 1 ? '' : 's'})</summary>\n\n`;
+              for (const issue of issues) {
+                const line = issue.locations?.[0]?.physicalLocation?.region?.startLine || 1;
+                const endLine = issue.locations?.[0]?.physicalLocation?.region?.endLine;
+                const range = endLine ? `L${line}-L${endLine}` : `L${line}`;
+                const link = `https://github.com/${repo}/blob/${sha}/${file}#${range}`;
+                const emoji = issue.level === 'error' ? ':red_circle:' : issue.level === 'warning' ? ':yellow_circle:' : ':blue_circle:';
+                const ruleId = issue.ruleId || '';
+                const msgLines = (issue.message?.text || '').split('\n').filter(l => l.trim());
+
+                body += `${emoji} **${msgLines[0] || 'Issue'}**\n`;
+                body += `[${file}:${line}](${link}) | \`${ruleId}\`\n\n`;
+
+                if (msgLines.length > 1) {
+                  body += msgLines.slice(1).join('\n') + '\n\n';
+                }
+
+                if (issue.fixes?.[0]) {
+                  const patch = issue.fixes[0].artifactChanges?.[0]?.replacements?.[0]?.insertedContent?.text;
+                  if (patch) {
+                    body += '```diff\n' + patch + '\n```\n\n';
+                  }
+                }
+              }
+              body += '</details>\n\n';
+            }
+          }
+
+          // Truncate if too long
+          if (body.length > 60000) {
+            body = body.slice(0, 59800) + '\n\n---\n\n> :warning: Output truncated. Run `openlens run` locally for full results.\n';
+          }
+
+          // Find and update existing comment, or create new
+          const { data: comments } = await github.rest.issues.listComments({
+            ...context.repo,
+            issue_number: context.issue.number,
+          });
+
+          const existing = comments.find(c => c.body?.includes(marker));
+
+          if (existing) {
+            await github.rest.issues.updateComment({
+              ...context.repo,
+              comment_id: existing.id,
+              body,
+            });
+          } else {
+            await github.rest.issues.createComment({
+              ...context.repo,
+              issue_number: context.issue.number,
+              body,
+            });
+          }
       continue-on-error: true
