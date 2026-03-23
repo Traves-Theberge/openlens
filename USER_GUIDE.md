@@ -835,7 +835,7 @@ Run a comprehensive environment check: git, OpenCode binary, API keys, config fi
 
 ## 7. Output Formats & SARIF
 
-OpenLens supports three output formats, selected with `--format` or `-f`.
+OpenLens supports four output formats, selected with `--format` or `-f`.
 
 ### Text (default)
 
@@ -906,6 +906,34 @@ openlens run --format sarif > results.sarif
 - Rule IDs follow `openlens/<agent-name>` pattern (e.g. `openlens/security`)
 - Results include file locations with line/endLine regions
 - Fix suggestions included as `artifactChanges` when patches are available
+
+### Markdown
+
+GitHub-flavored Markdown output designed for PR comments and issue descriptions. Issues are grouped by file in collapsible `<details>` sections with severity badges, file links, suggested fixes, and diff patches.
+
+```bash
+openlens run --format markdown
+```
+
+When running in GitHub Actions (with `GITHUB_REPOSITORY` and `GITHUB_SHA` set), file references become clickable permalinks to the exact lines on GitHub.
+
+**Features:**
+
+- `<!-- openlens-review -->` marker for automated comment updates (avoids duplicate comments)
+- Severity summary table with issue counts
+- Collapsible file sections with per-issue detail
+- GitHub permalink generation when repo/SHA context is available
+- Suggested fixes in blockquotes and patches as `diff` code blocks
+- Automatic truncation for large reviews (GitHub's 65K character limit)
+
+**Options (library API):**
+
+```typescript
+formatMarkdown(result, {
+  repo: "owner/repo",   // for GitHub permalink generation
+  sha: "abc123",        // commit SHA for permalinks
+})
+```
 
 ---
 
@@ -1028,6 +1056,80 @@ In CI, OpenLens infers the base branch from environment variables:
 
 ### GitHub Actions
 
+#### Using the Composite Action (Recommended)
+
+OpenLens ships with a ready-to-use GitHub Action (`action.yml`) that handles setup, review, SARIF upload, and optional PR commenting:
+
+```yaml
+name: OpenLens Code Review
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+  security-events: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: Traves-Theberge/OpenLens@main
+        with:
+          mode: branch
+          base-branch: ${{ github.base_ref }}
+          comment-on-pr: "true"
+          upload-sarif: "true"
+          fail-on-critical: "true"
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+```
+
+**Action inputs:**
+
+| Input              | Default    | Description                                    |
+|--------------------|------------|------------------------------------------------|
+| `mode`             | `branch`   | Review mode: `staged`, `unstaged`, `branch`, `auto` |
+| `agents`           | all        | Comma-separated agent names                    |
+| `format`           | `sarif`    | Output format: `text`, `json`, `sarif`, `markdown` |
+| `base-branch`      | `main`     | Base branch for branch mode diff               |
+| `verify`           | `true`     | Run verification pass                          |
+| `config`           |            | Path to `openlens.json` config file            |
+| `upload-sarif`     | `true`     | Upload SARIF to GitHub Code Scanning           |
+| `fail-on-critical` | `true`     | Fail workflow on critical issues               |
+| `comment-on-pr`    | `false`    | Post review results as a PR comment            |
+| `model`            |            | Override model (e.g. `anthropic/claude-sonnet-4-20250514`) |
+| `anthropic-api-key`|            | Anthropic API key (or set env var)             |
+| `openai-api-key`   |            | OpenAI API key (or set env var)                |
+
+**Action outputs:**
+
+| Output       | Description                        |
+|--------------|------------------------------------|
+| `issues`     | Number of issues found             |
+| `critical`   | Number of critical issues found    |
+| `sarif-file` | Path to SARIF output file          |
+
+**PR Comments:**
+
+When `comment-on-pr: "true"` is set, OpenLens posts a formatted review comment on the pull request. On subsequent pushes, the existing comment is **updated** instead of creating a new one (using a hidden `<!-- openlens-review -->` marker). The comment includes:
+
+- Severity summary table
+- Issues grouped by file in collapsible sections
+- Clickable permalinks to the exact lines on GitHub
+- Suggested fixes and diff patches
+
+> **Note:** PR commenting requires `pull-requests: write` permission and only works on `pull_request` events.
+
+#### Manual Setup
+
+If you prefer not to use the composite action:
+
 ```yaml
 name: OpenLens Code Review
 on: [pull_request]
@@ -1038,7 +1140,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # full history for branch diffs
+          fetch-depth: 0
 
       - uses: oven-sh/setup-bun@v2
 
@@ -1051,18 +1153,6 @@ jobs:
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: openlens run --branch ${{ github.base_ref }} --format text
-
-      - name: Upload SARIF (optional)
-        run: |
-          openlens run --branch ${{ github.base_ref }} --format sarif > results.sarif
-        env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-
-      - name: Upload to GitHub Code Scanning
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: results.sarif
-        if: always()
 ```
 
 ### GitLab CI
@@ -1116,6 +1206,7 @@ import {
   formatSarif,
   formatJson,
   formatText,
+  formatMarkdown,
 } from "openlens"
 
 // Load config and run a review
@@ -1123,9 +1214,10 @@ const config = await loadConfig()
 const result = await runReview(config, "staged")
 
 // Format output
-console.log(formatText(result))   // colorized text
-console.log(formatJson(result))   // structured JSON
-console.log(formatSarif(result))  // SARIF v2.1.0
+console.log(formatText(result))       // colorized text
+console.log(formatJson(result))       // structured JSON
+console.log(formatSarif(result))      // SARIF v2.1.0
+console.log(formatMarkdown(result))   // GitHub Markdown
 ```
 
 ### Library Exports
@@ -1149,6 +1241,7 @@ console.log(formatSarif(result))  // SARIF v2.1.0
 | `formatText`            | Format results as colored text       |
 | `formatJson`            | Format results as JSON               |
 | `formatSarif`           | Format results as SARIF              |
+| `formatMarkdown`        | Format results as GitHub Markdown    |
 | `loadSuppressRules`     | Load suppression rules from config   |
 | `shouldSuppress`        | Check if an issue should be suppressed |
 | `createBus`             | Create a new event bus instance      |
@@ -1169,6 +1262,7 @@ console.log(formatSarif(result))  // SARIF v2.1.0
 | `Agent`        | Resolved agent type      |
 | `ReviewEvents` | Event bus event types    |
 | `SuppressRule` | Suppression rule type    |
+| `MarkdownOptions` | Markdown formatter options |
 | `RulesDiscoveryConfig` | Rules discovery options |
 | `DiscoveredRule` | Discovered rules file metadata |
 
