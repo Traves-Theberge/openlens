@@ -50,7 +50,7 @@ describe("openlens doctor", () => {
   test("validates config file", TIMEOUT, () => {
     tmpDir = createTempGitRepo()
     writeConfig(tmpDir, {
-      model: "opencode/mimo-v2-pro-free",
+      model: "opencode/big-pickle",
       agent: {
         security: { description: "Scanner" },
       },
@@ -59,7 +59,7 @@ describe("openlens doctor", () => {
     const result = run(["doctor"], tmpDir)
 
     expect(result.stdout).toContain("config")
-    expect(result.stdout).toContain("opencode/mimo-v2-pro-free")
+    expect(result.stdout).toContain("opencode/big-pickle")
   })
 
   test("reports loaded agents", TIMEOUT, () => {

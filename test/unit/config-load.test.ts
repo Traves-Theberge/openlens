@@ -10,6 +10,9 @@ describe("loadConfig", () => {
 
   beforeEach(async () => {
     tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "openlens-cfg-"))
+    // Ensure CI detection doesn't override defaults during tests
+    delete process.env.CI
+    delete process.env.GITHUB_ACTIONS
   })
 
   afterEach(async () => {
@@ -22,7 +25,7 @@ describe("loadConfig", () => {
 
   test("returns valid config with defaults when no config file exists", async () => {
     const config = await loadConfig(tmpDir)
-    expect(config.model).toBe("opencode/mimo-v2-pro-free")
+    expect(config.model).toBe("opencode/big-pickle")
     expect(config.server.port).toBe(4096)
     expect(config.review.defaultMode).toBe("staged")
   })

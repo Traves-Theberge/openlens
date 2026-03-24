@@ -55,7 +55,7 @@ describe("createServer", () => {
     const app = createServer(baseConfig())
     const res = await app.request("/config")
     const body = await res.json()
-    expect(body.model).toBe("opencode/mimo-v2-pro-free")
+    expect(body.model).toBe("opencode/big-pickle")
     expect(body.review.defaultMode).toBe("staged")
   })
 

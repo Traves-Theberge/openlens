@@ -213,13 +213,13 @@ Both `.json` and `.jsonc` (JSON with comments) are supported.
 {
   "$schema": "https://openlens.dev/config.json",
 
-  "model": "opencode/mimo-v2-pro-free",
+  "model": "opencode/big-pickle",
 
   "agent": {
     "security": {
       "description": "Security vulnerability scanner",
       "mode": "subagent",
-      "model": "opencode/mimo-v2-pro-free",
+      "model": "opencode/big-pickle",
       "prompt": "{file:./agents/security.md}",
       "steps": 5,
       "disable": false,
@@ -455,7 +455,7 @@ Here's a complete custom agent example following this pattern:
 ---
 description: Accessibility checker
 mode: subagent
-model: opencode/mimo-v2-pro-free
+model: opencode/big-pickle
 steps: 5
 permission:
   read: allow
@@ -815,7 +815,7 @@ Generate a new agent scaffold.
 | Flag              | Description                                          |
 | ----------------- | ---------------------------------------------------- |
 | `--description`   | Agent description                                    |
-| `--model`         | Model override (e.g. `opencode/mimo-v2-pro-free`) |
+| `--model`         | Model override (e.g. `opencode/big-pickle`) |
 | `--steps`         | Max agentic loop iterations (default: 5)             |
 
 ```bash
@@ -1149,7 +1149,7 @@ jobs:
 | `upload-sarif`     | `true`     | Upload SARIF to GitHub Code Scanning           |
 | `fail-on-critical` | `true`     | Fail workflow on critical issues               |
 | `comment-on-pr`    | `false`    | Post review results as a PR comment            |
-| `model`            |            | Override model (e.g. `opencode/mimo-v2-pro-free`) |
+| `model`            |            | Override model (e.g. `opencode/big-pickle`) |
 | `anthropic-api-key`|            | Anthropic API key (optional — or set env var)  |
 | `openai-api-key`   |            | OpenAI API key (optional — or set env var)     |
 

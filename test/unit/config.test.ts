@@ -4,7 +4,7 @@ import { ConfigSchema, AgentConfigSchema } from "../../src/config/schema.js"
 describe("ConfigSchema", () => {
   test("parses minimal config with defaults", () => {
     const config = ConfigSchema.parse({})
-    expect(config.model).toBe("opencode/mimo-v2-pro-free")
+    expect(config.model).toBe("opencode/big-pickle")
     expect(config.server.port).toBe(4096)
     expect(config.server.hostname).toBe("localhost")
     expect(config.review.defaultMode).toBe("staged")

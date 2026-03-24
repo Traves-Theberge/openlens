@@ -39,7 +39,7 @@ export const AgentConfigSchema = z.object({
 
 export const ConfigSchema = z.object({
   $schema: z.string().optional(),
-  model: z.string().default("opencode/mimo-v2-pro-free"),
+  model: z.string().default("opencode/big-pickle"),
   agent: z.record(z.string(), AgentConfigSchema).default({}),
   // Global permissions (agents inherit these, can override)
   permission: z.record(z.string(), PermissionValueSchema).optional(),
