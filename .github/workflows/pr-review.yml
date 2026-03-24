@@ -19,9 +19,9 @@ jobs:
         with:
           fetch-depth: 0
 
-      # Provider credentials: set any OpenCode-supported provider key as a secret.
-      # See https://github.com/opencode-ai/opencode for the full provider list.
-      # Alternatively, commit a .opencode.json config to your repo.
+      # Provider credentials: set any OpenCode-supported provider key as a
+      # repository secret. The action passes them through automatically.
+      # See https://github.com/anomalyco/opencode for the full provider list.
       - uses: ./
         with:
           mode: branch
@@ -30,4 +30,5 @@ jobs:
           upload-sarif: "true"
           fail-on-critical: "true"
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}  # optional — use any supported provider
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY || '' }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || '' }}

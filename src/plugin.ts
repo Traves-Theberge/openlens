@@ -141,7 +141,7 @@ const plugin: Plugin = async (ctx) => {
       if (typeof title !== "string" || !title.startsWith("openlens-")) return
 
       const readOnlyTools = new Set([
-        "read", "grep", "glob", "list", "view", "find", "diagnostics",
+        "read", "grep", "glob", "list", "lsp", "skill", "view", "find", "diagnostics",
       ])
 
       const toolName = String(meta?.metadata?.tool || meta?.tool || "")

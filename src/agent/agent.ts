@@ -60,6 +60,7 @@ async function resolvePrompt(
 }
 
 // Default permissions for review agents — read-only codebase access
+// Matches OpenCode's built-in tool set (https://github.com/anomalyco/opencode)
 const DEFAULT_PERMISSIONS: Record<string, string> = {
   read: "allow",
   grep: "allow",
@@ -67,7 +68,10 @@ const DEFAULT_PERMISSIONS: Record<string, string> = {
   list: "allow",
   edit: "deny",
   write: "deny",
+  patch: "deny",
   bash: "deny",
+  lsp: "allow",
+  skill: "allow",
   webfetch: "deny",
   websearch: "deny",
   task: "deny",

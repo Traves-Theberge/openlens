@@ -15,7 +15,9 @@
         "grep": "allow",
         "glob": "allow",
         "list": "allow",
+        "lsp": "allow",
         "edit": "deny",
+        "write": "deny",
         "bash": "deny"
       }
     },
@@ -46,10 +48,14 @@
     "grep": "allow",
     "glob": "allow",
     "list": "allow",
+    "lsp": "allow",
+    "skill": "allow",
     "edit": "deny",
     "write": "deny",
+    "patch": "deny",
     "bash": "deny",
-    "webfetch": "deny"
+    "webfetch": "deny",
+    "websearch": "deny"
   },
 
   "server": {

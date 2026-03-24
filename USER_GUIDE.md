@@ -4,7 +4,7 @@
 
 OpenLens orchestrates specialized AI agents that review your git diffs in parallel — catching security vulnerabilities, bugs, performance issues, and style violations before they land. Each agent has read-only access to your full codebase, enabling deep analysis that goes beyond surface-level pattern matching.
 
-Built on the [OpenCode SDK](https://github.com/opencode-ai/opencode), OpenLens supports any model provider OpenCode supports: Anthropic, OpenAI, Google, AWS Bedrock, Groq, and more.
+Built on the [OpenCode](https://github.com/anomalyco/opencode), OpenLens supports any model provider OpenCode supports: Anthropic, OpenAI, Google, AWS Bedrock, Groq, and more.
 
 ---
 
@@ -31,7 +31,7 @@ Built on the [OpenCode SDK](https://github.com/opencode-ai/opencode), OpenLens s
 
 - [Bun](https://bun.sh/) 1.0+ (recommended) or Node.js 18+
 - Git
-- A model provider configured via [OpenCode](https://github.com/opencode-ai/opencode) (see [Environment Setup](#environment-setup))
+- A model provider configured via [OpenCode](https://github.com/anomalyco/opencode) (see [Environment Setup](#environment-setup))
 
 ### Install from Source
 
@@ -59,7 +59,7 @@ After linking, the `openlens` command is available system-wide.
 
 ### Environment Setup
 
-OpenLens uses the [OpenCode SDK](https://github.com/opencode-ai/opencode) for model provider access. OpenCode supports multiple configuration methods:
+OpenLens uses the [OpenCode](https://github.com/anomalyco/opencode) for model provider access. OpenCode supports multiple configuration methods:
 
 **Option 1: Environment variables** (simplest)
 
@@ -74,19 +74,27 @@ export GITHUB_TOKEN="..."               # GitHub Copilot
 
 **Option 2: OpenCode config file** (recommended for persistent setup)
 
-Create `~/.opencode.json` or `.opencode.json` in your project:
+Create `opencode.json` in your project root:
 
 ```json
 {
-  "providers": {
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
     "anthropic": {
-      "apiKey": "sk-ant-..."
+      "npm": "@ai-sdk/anthropic",
+      "models": {
+        "claude-sonnet-4-20250514": {
+          "name": "Claude Sonnet 4"
+        }
+      }
     }
   }
 }
 ```
 
-OpenCode discovers providers automatically — see the [OpenCode documentation](https://github.com/opencode-ai/opencode) for the full list of supported providers (Anthropic, OpenAI, Google, AWS Bedrock, Azure OpenAI, Groq, GitHub Copilot, and more).
+API keys are managed via `opencode /connect` (stored in `~/.local/share/opencode/auth.json`) or set as environment variables.
+
+OpenCode discovers providers automatically — see the [OpenCode documentation](https://github.com/anomalyco/opencode) for the full list of 75+ supported providers (Anthropic, OpenAI, Google, AWS Bedrock, Azure OpenAI, Groq, GitHub Copilot, and more).
 
 ---
 
@@ -361,18 +369,22 @@ For fine-grained shell command control, use pattern matching:
 
 ### Available Tools
 
-| Tool         | Description                     |
-| ------------ | ------------------------------- |
-| `read`       | Read file contents              |
-| `edit`       | Modify files                    |
-| `glob`       | Find files by pattern           |
-| `grep`       | Search file contents            |
-| `list`       | List directory contents         |
-| `bash`       | Execute shell commands          |
-| `webfetch`   | Fetch data from URLs            |
-| `websearch`  | Search the web                  |
-| `task`       | Run sub-tasks with an agent     |
-| `codesearch` | Search code across repositories |
+| Tool         | Description                          |
+| ------------ | ------------------------------------ |
+| `read`       | Read file contents                   |
+| `edit`       | Modify files (exact string replace)  |
+| `write`      | Create or overwrite files            |
+| `glob`       | Find files by pattern                |
+| `grep`       | Search file contents (regex)         |
+| `list`       | List directory contents              |
+| `bash`       | Execute shell commands               |
+| `patch`      | Apply patch files to codebase        |
+| `lsp`        | LSP code intelligence (experimental) |
+| `webfetch`   | Fetch data from URLs                 |
+| `websearch`  | Search the web                       |
+| `task`       | Run sub-tasks with a subagent        |
+| `skill`      | Load reusable skill instructions     |
+| `codesearch` | Search code across repositories      |
 
 ### Suppression Rules
 
@@ -625,7 +637,7 @@ openlens run --no-verify
 
 ## 5. Skills
 
-OpenLens is built on the [OpenCode SDK](https://opencode.ai/docs/skills/), which includes a **skills** system. Skills are reusable instruction sets that agents can discover and load on-demand, keeping context efficient through lazy-loading.
+OpenLens is built on [OpenCode](https://github.com/anomalyco/opencode), which includes a **skills** system. Skills are reusable instruction sets that agents can discover and load on-demand, keeping context efficient through lazy-loading.
 
 While OpenLens focuses on its agent-based review system, skills from the underlying OpenCode platform are available and can extend agent capabilities.
 
@@ -846,7 +858,7 @@ Start the HTTP server for programmatic access.
 
 ### `openlens models`
 
-List all models available through the OpenCode SDK, along with the currently configured default model.
+List all models available through the OpenCode, along with the currently configured default model.
 
 ### `openlens doctor`
 
@@ -1117,10 +1129,10 @@ jobs:
           fail-on-critical: "true"
 ```
 
-> **Provider setup:** OpenLens uses [OpenCode](https://github.com/opencode-ai/opencode) for model access. Configure your provider by either:
+> **Provider setup:** OpenLens uses [OpenCode](https://github.com/anomalyco/opencode) for model access. Configure your provider by either:
 > - Setting a secret as an env var (e.g. `ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}`)
 > - Passing it via the `anthropic-api-key` or `openai-api-key` inputs
-> - Committing a `.opencode.json` config file to your repo (see [OpenCode docs](https://github.com/opencode-ai/opencode))
+> - Committing an `opencode.json` config file to your repo (see [OpenCode docs](https://github.com/anomalyco/opencode))
 >
 > Any provider OpenCode supports works — Anthropic, OpenAI, Google, Groq, AWS Bedrock, Azure OpenAI, GitHub Copilot, and more.
 
@@ -1336,7 +1348,7 @@ console.log(`${filtered.length} issues after suppression`)
 
 ### OpenCode Plugin
 
-OpenLens can run as a plugin inside [OpenCode](https://opencode.ai/) sessions, making review tools available to the AI assistant.
+OpenLens can run as a plugin inside [OpenCode](https://github.com/anomalyco/opencode) sessions, making review tools available to the AI assistant.
 
 **Enable in your OpenCode config:**
 
@@ -1649,7 +1661,7 @@ git diff main...HEAD --stat       # branch
 
 **"OpenCode binary not found"**
 
-OpenLens requires the OpenCode SDK binary. Either:
+OpenLens requires the OpenCode binary. Either:
 - Install OpenCode globally
 - Set `OPENCODE_BIN` to the explicit path
 
@@ -1664,8 +1676,8 @@ export OPENAI_API_KEY="sk-..."           # OpenAI
 export GEMINI_API_KEY="..."              # Google Gemini
 export GROQ_API_KEY="..."               # Groq
 
-# Option 2: OpenCode config file (~/.opencode.json or .opencode.json)
-# See https://github.com/opencode-ai/opencode for full provider list
+# Option 2: OpenCode config file (opencode.json) or use `opencode /connect`
+# See https://github.com/anomalyco/opencode for full provider list
 ```
 
 **Agent timeout**
