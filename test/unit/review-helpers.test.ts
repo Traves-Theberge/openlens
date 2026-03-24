@@ -44,7 +44,7 @@ function getAllowedToolNames(permission: Record<string, any>): string[] {
 // --- parseModel ---
 function parseModel(model: string): { providerID: string; modelID: string } {
   const slash = model.indexOf("/")
-  if (slash === -1) return { providerID: "anthropic", modelID: model }
+  if (slash === -1) return { providerID: "opencode", modelID: model }
   return {
     providerID: model.slice(0, slash),
     modelID: model.slice(slash + 1),
@@ -173,10 +173,10 @@ describe("parseModel", () => {
     })
   })
 
-  test("defaults to anthropic when no slash", () => {
-    expect(parseModel("claude-sonnet-4-20250514")).toEqual({
-      providerID: "anthropic",
-      modelID: "claude-sonnet-4-20250514",
+  test("defaults to opencode when no slash", () => {
+    expect(parseModel("mimo-v2-pro-free")).toEqual({
+      providerID: "opencode",
+      modelID: "mimo-v2-pro-free",
     })
   })
 

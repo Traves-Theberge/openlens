@@ -132,7 +132,7 @@ describe("openlens serve", () => {
   test("GET /config returns config", TIMEOUT, async () => {
     tmpDir = createTempGitRepo()
     writeConfig(tmpDir, {
-      model: "anthropic/claude-sonnet-4-20250514",
+      model: "opencode/mimo-v2-pro-free",
       server: { port: 14099, hostname: "localhost" },
     })
 
@@ -140,7 +140,7 @@ describe("openlens serve", () => {
     serverProc = proc
 
     const config = await fetchJson(`${url}/config`)
-    expect(config.model).toBe("anthropic/claude-sonnet-4-20250514")
+    expect(config.model).toBe("opencode/mimo-v2-pro-free")
     expect(config.server).toBeDefined()
     expect(config.review).toBeDefined()
   })

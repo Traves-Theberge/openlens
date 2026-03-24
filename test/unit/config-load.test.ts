@@ -22,7 +22,7 @@ describe("loadConfig", () => {
 
   test("returns valid config with defaults when no config file exists", async () => {
     const config = await loadConfig(tmpDir)
-    expect(config.model).toBe("anthropic/claude-sonnet-4-20250514")
+    expect(config.model).toBe("opencode/mimo-v2-pro-free")
     expect(config.server.port).toBe(4096)
     expect(config.review.defaultMode).toBe("staged")
   })

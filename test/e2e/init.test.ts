@@ -23,7 +23,7 @@ describe("openlens init", () => {
 
     const config = JSON.parse(fs.readFileSync(configPath, "utf-8"))
     expect(config.$schema).toBeDefined()
-    expect(config.model).toContain("anthropic/")
+    expect(config.model).toContain("opencode/")
     expect(config.agent).toBeDefined()
     expect(config.agent.security).toBeDefined()
     expect(config.agent.bugs).toBeDefined()

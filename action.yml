@@ -36,13 +36,13 @@ inputs:
     required: false
     default: "true"
   model:
-    description: "Override model (e.g. anthropic/claude-sonnet-4-20250514)"
+    description: "Override model (default: opencode/mimo-v2-pro-free). Use any OpenCode-supported model."
     required: false
   anthropic-api-key:
-    description: "Anthropic API key (or set ANTHROPIC_API_KEY env var)"
+    description: "Anthropic API key — only needed when using Anthropic models"
     required: false
   openai-api-key:
-    description: "OpenAI API key (or set OPENAI_API_KEY env var)"
+    description: "OpenAI API key — only needed when using OpenAI models"
     required: false
   comment-on-pr:
     description: "Post review results as a PR comment (pull_request events only)"
@@ -90,9 +90,9 @@ runs:
       env:
         # CI detection
         CI: "true"
-        # API keys — prefer explicit inputs, fall back to env vars
-        ANTHROPIC_API_KEY: ${{ inputs.anthropic-api-key || env.ANTHROPIC_API_KEY }}
-        OPENAI_API_KEY: ${{ inputs.openai-api-key || env.OPENAI_API_KEY }}
+        # API keys — only needed when using paid provider models
+        ANTHROPIC_API_KEY: ${{ inputs.anthropic-api-key || env.ANTHROPIC_API_KEY || '' }}
+        OPENAI_API_KEY: ${{ inputs.openai-api-key || env.OPENAI_API_KEY || '' }}
         # OpenLens config overrides
         OPENLENS_MODE: ${{ inputs.mode }}
         OPENLENS_AGENTS: ${{ inputs.agents }}

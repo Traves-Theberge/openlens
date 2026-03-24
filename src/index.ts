@@ -58,7 +58,7 @@ yargs(hideBin(process.argv))
         .option("model", {
           alias: "m",
           type: "string",
-          describe: "Override model for all agents (e.g. anthropic/claude-sonnet-4-20250514)",
+          describe: "Override model for all agents (e.g. opencode/mimo-v2-pro-free)",
         })
         .option("format", {
           alias: "f",
@@ -299,7 +299,7 @@ yargs(hideBin(process.argv))
             })
             .option("model", {
               type: "string",
-              describe: "Model to use (e.g. anthropic/claude-sonnet-4-20250514)",
+              describe: "Model to use (e.g. opencode/mimo-v2-pro-free)",
             })
             .option("steps", {
               type: "number",
@@ -319,7 +319,7 @@ yargs(hideBin(process.argv))
           const agentPath = path.join(agentsDir, `${name}.md`)
 
           const description = argv.description || `${name} code reviewer`
-          const model = argv.model || "anthropic/claude-sonnet-4-20250514"
+          const model = argv.model || "opencode/mimo-v2-pro-free"
           const steps = argv.steps || 5
 
           // Generate agent prompt file with frontmatter
@@ -447,7 +447,7 @@ If no issues found, return \`[]\`
             .option("model", {
               alias: "m",
               type: "string",
-              describe: "Override model (e.g. anthropic/claude-sonnet-4-20250514)",
+              describe: "Override model (e.g. opencode/mimo-v2-pro-free)",
             })
             .option("verbose", {
               type: "boolean",
@@ -765,7 +765,7 @@ If no issues found, return \`[]\`
       } catch {
         const defaultConfig = {
           $schema: "https://openlens.dev/config.json",
-          model: "anthropic/claude-sonnet-4-20250514",
+          model: "opencode/mimo-v2-pro-free",
           agent: {
             security: {
               description: "Security vulnerability scanner",
@@ -918,22 +918,17 @@ If no issues found, return \`[]\`
         hasErrors = true
       }
 
-      // 3. Check API keys
+      // 3. Check API keys (optional — free models work without them)
       const hasAnthropic = !!process.env.ANTHROPIC_API_KEY
       const hasOpenAI = !!process.env.OPENAI_API_KEY
       if (hasAnthropic) {
         console.log(`  ${G}✓${R} ANTHROPIC_API_KEY  ${D}set${R}`)
-      } else {
-        console.log(`  ${YELLOW}!${R} ANTHROPIC_API_KEY  ${D}not set${R}`)
       }
       if (hasOpenAI) {
         console.log(`  ${G}✓${R} OPENAI_API_KEY  ${D}set${R}`)
-      } else {
-        console.log(`  ${D}○${R} OPENAI_API_KEY  ${D}not set${R}`)
       }
       if (!hasAnthropic && !hasOpenAI) {
-        console.log(`    ${YELLOW}No API keys found. Set at least one provider key.${R}`)
-        hasErrors = true
+        console.log(`  ${D}○${R} API keys  ${D}not set (optional — free models available)${R}`)
       }
 
       // 4. Check config

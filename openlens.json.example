@@ -1,13 +1,13 @@
 {
   "$schema": "https://openlens.dev/config.json",
 
-  "model": "anthropic/claude-sonnet-4-20250514",
+  "model": "opencode/mimo-v2-pro-free",
 
   "agent": {
     "security": {
       "description": "Security vulnerability scanner",
       "mode": "subagent",
-      "model": "anthropic/claude-sonnet-4-20250514",
+      "model": "opencode/mimo-v2-pro-free",
       "prompt": "{file:./agents/security.md}",
       "steps": 5,
       "permission": {
@@ -30,14 +30,12 @@
     "performance": {
       "description": "Performance issue finder",
       "mode": "subagent",
-      "model": "openai/gpt-4o",
       "prompt": "{file:./agents/performance.md}",
       "steps": 5
     },
     "style": {
       "description": "Style and convention checker",
       "mode": "subagent",
-      "model": "anthropic/claude-haiku-4-5-20251001",
       "prompt": "{file:./agents/style.md}",
       "steps": 3
     }

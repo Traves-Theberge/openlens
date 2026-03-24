@@ -17,7 +17,7 @@ import path from "path"
 
 function parseModel(model: string): { providerID: string; modelID: string } {
   const slash = model.indexOf("/")
-  if (slash === -1) return { providerID: "anthropic", modelID: model }
+  if (slash === -1) return { providerID: "opencode", modelID: model }
   return {
     providerID: model.slice(0, slash),
     modelID: model.slice(slash + 1),
