@@ -19,6 +19,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      # Provider credentials: set any OpenCode-supported provider key as a secret.
+      # See https://github.com/opencode-ai/opencode for the full provider list.
+      # Alternatively, commit a .opencode.json config to your repo.
       - uses: ./
         with:
           mode: branch
@@ -27,4 +30,4 @@ jobs:
           upload-sarif: "true"
           fail-on-critical: "true"
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}  # optional — use any supported provider

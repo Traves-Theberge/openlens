@@ -31,7 +31,7 @@ Built on the [OpenCode SDK](https://github.com/opencode-ai/opencode), OpenLens s
 
 - [Bun](https://bun.sh/) 1.0+ (recommended) or Node.js 18+
 - Git
-- An API key for your chosen model provider (e.g. `ANTHROPIC_API_KEY`)
+- A model provider configured via [OpenCode](https://github.com/opencode-ai/opencode) (see [Environment Setup](#environment-setup))
 
 ### Install from Source
 
@@ -59,15 +59,34 @@ After linking, the `openlens` command is available system-wide.
 
 ### Environment Setup
 
-Set your model provider API key:
+OpenLens uses the [OpenCode SDK](https://github.com/opencode-ai/opencode) for model provider access. OpenCode supports multiple configuration methods:
+
+**Option 1: Environment variables** (simplest)
 
 ```bash
-# Anthropic (default provider)
-export ANTHROPIC_API_KEY="sk-ant-..."
-
-# Or OpenAI
-export OPENAI_API_KEY="sk-..."
+# Set one of the supported provider keys
+export ANTHROPIC_API_KEY="sk-ant-..."   # Anthropic (default)
+export OPENAI_API_KEY="sk-..."          # OpenAI
+export GEMINI_API_KEY="..."             # Google Gemini
+export GROQ_API_KEY="..."               # Groq
+export GITHUB_TOKEN="..."               # GitHub Copilot
 ```
+
+**Option 2: OpenCode config file** (recommended for persistent setup)
+
+Create `~/.opencode.json` or `.opencode.json` in your project:
+
+```json
+{
+  "providers": {
+    "anthropic": {
+      "apiKey": "sk-ant-..."
+    }
+  }
+}
+```
+
+OpenCode discovers providers automatically — see the [OpenCode documentation](https://github.com/opencode-ai/opencode) for the full list of supported providers (Anthropic, OpenAI, Google, AWS Bedrock, Azure OpenAI, Groq, GitHub Copilot, and more).
 
 ---
 
@@ -285,10 +304,20 @@ Config values support two template patterns:
 
 ### Environment Variables
 
+**Provider keys** (passed through to OpenCode — set any one, or use an OpenCode config file instead):
+
 | Variable              | Description                              |
 | --------------------- | ---------------------------------------- |
 | `ANTHROPIC_API_KEY`   | Anthropic API key                        |
 | `OPENAI_API_KEY`      | OpenAI API key                           |
+| `GEMINI_API_KEY`      | Google Gemini API key                    |
+| `GROQ_API_KEY`        | Groq API key                             |
+| `GITHUB_TOKEN`        | GitHub Copilot token                     |
+
+**OpenLens overrides:**
+
+| Variable              | Description                              |
+| --------------------- | ---------------------------------------- |
 | `OPENLENS_MODEL`      | Override global model                    |
 | `OPENLENS_PORT`       | Override server port                     |
 | `OPENLENS_MODE`       | Default review mode                      |
@@ -1086,9 +1115,14 @@ jobs:
           comment-on-pr: "true"
           upload-sarif: "true"
           fail-on-critical: "true"
-        env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 ```
+
+> **Provider setup:** OpenLens uses [OpenCode](https://github.com/opencode-ai/opencode) for model access. Configure your provider by either:
+> - Setting a secret as an env var (e.g. `ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}`)
+> - Passing it via the `anthropic-api-key` or `openai-api-key` inputs
+> - Committing a `.opencode.json` config file to your repo (see [OpenCode docs](https://github.com/opencode-ai/opencode))
+>
+> Any provider OpenCode supports works — Anthropic, OpenAI, Google, Groq, AWS Bedrock, Azure OpenAI, GitHub Copilot, and more.
 
 **Action inputs:**
 
@@ -1104,8 +1138,8 @@ jobs:
 | `fail-on-critical` | `true`     | Fail workflow on critical issues               |
 | `comment-on-pr`    | `false`    | Post review results as a PR comment            |
 | `model`            |            | Override model (e.g. `anthropic/claude-sonnet-4-20250514`) |
-| `anthropic-api-key`|            | Anthropic API key (or set env var)             |
-| `openai-api-key`   |            | OpenAI API key (or set env var)                |
+| `anthropic-api-key`|            | Anthropic API key (optional — or set env var)  |
+| `openai-api-key`   |            | OpenAI API key (optional — or set env var)     |
 
 **Action outputs:**
 
@@ -1150,9 +1184,9 @@ jobs:
           cd /tmp/openlens && bun install && bun run build && bun link
 
       - name: Run review
-        env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: openlens run --branch ${{ github.base_ref }} --format text
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}  # or any OpenCode-supported provider key
 ```
 
 ### GitLab CI
@@ -1167,7 +1201,7 @@ openlens-review:
     - cd $CI_PROJECT_DIR
     - openlens run --format text
   variables:
-    ANTHROPIC_API_KEY: $ANTHROPIC_API_KEY
+    ANTHROPIC_API_KEY: $ANTHROPIC_API_KEY  # or any OpenCode-supported provider key
   rules:
     - if: $CI_MERGE_REQUEST_ID
 ```
@@ -1591,7 +1625,7 @@ openlens doctor
 It checks:
 - Git is installed and the current directory is a repository
 - OpenCode binary is found and executable
-- API keys are set for the configured model provider
+- A model provider is configured (via env vars or OpenCode config)
 - `openlens.json` parses without errors
 - All agent prompt files exist and have valid frontmatter
 - MCP servers are reachable
@@ -1621,11 +1655,17 @@ OpenLens requires the OpenCode SDK binary. Either:
 
 **"API key not set"**
 
-Set the appropriate environment variable for your model provider:
+Configure a model provider via environment variable or OpenCode config file:
 
 ```bash
-export ANTHROPIC_API_KEY="sk-ant-..."    # for Anthropic models
-export OPENAI_API_KEY="sk-..."           # for OpenAI models
+# Option 1: Environment variable (any supported provider)
+export ANTHROPIC_API_KEY="sk-ant-..."    # Anthropic
+export OPENAI_API_KEY="sk-..."           # OpenAI
+export GEMINI_API_KEY="..."              # Google Gemini
+export GROQ_API_KEY="..."               # Groq
+
+# Option 2: OpenCode config file (~/.opencode.json or .opencode.json)
+# See https://github.com/opencode-ai/opencode for full provider list
 ```
 
 **Agent timeout**
