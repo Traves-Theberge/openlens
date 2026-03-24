@@ -1,13 +1,13 @@
 {
   "$schema": "https://openlens.dev/config.json",
 
-  "model": "opencode/mimo-v2-pro-free",
+  "model": "opencode/big-pickle",
 
   "agent": {
     "security": {
       "description": "Security vulnerability scanner",
       "mode": "subagent",
-      "model": "opencode/mimo-v2-pro-free",
+      "model": "opencode/big-pickle",
       "prompt": "{file:./agents/security.md}",
       "steps": 5,
       "permission": {

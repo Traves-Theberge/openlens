@@ -58,7 +58,7 @@ yargs(hideBin(process.argv))
         .option("model", {
           alias: "m",
           type: "string",
-          describe: "Override model for all agents (e.g. opencode/mimo-v2-pro-free)",
+          describe: "Override model for all agents (e.g. opencode/big-pickle)",
         })
         .option("format", {
           alias: "f",
@@ -299,7 +299,7 @@ yargs(hideBin(process.argv))
             })
             .option("model", {
               type: "string",
-              describe: "Model to use (e.g. opencode/mimo-v2-pro-free)",
+              describe: "Model to use (e.g. opencode/big-pickle)",
             })
             .option("steps", {
               type: "number",
@@ -319,7 +319,7 @@ yargs(hideBin(process.argv))
           const agentPath = path.join(agentsDir, `${name}.md`)
 
           const description = argv.description || `${name} code reviewer`
-          const model = argv.model || "opencode/mimo-v2-pro-free"
+          const model = argv.model || "opencode/big-pickle"
           const steps = argv.steps || 5
 
           // Generate agent prompt file with frontmatter
@@ -447,7 +447,7 @@ If no issues found, return \`[]\`
             .option("model", {
               alias: "m",
               type: "string",
-              describe: "Override model (e.g. opencode/mimo-v2-pro-free)",
+              describe: "Override model (e.g. opencode/big-pickle)",
             })
             .option("verbose", {
               type: "boolean",
@@ -765,7 +765,7 @@ If no issues found, return \`[]\`
       } catch {
         const defaultConfig = {
           $schema: "https://openlens.dev/config.json",
-          model: "opencode/mimo-v2-pro-free",
+          model: "opencode/big-pickle",
           agent: {
             security: {
               description: "Security vulnerability scanner",

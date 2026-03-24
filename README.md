@@ -77,13 +77,13 @@ OpenLens looks for configuration in these locations (last wins):
 {
   "$schema": "https://openlens.dev/config.json",
 
-  "model": "opencode/mimo-v2-pro-free",
+  "model": "opencode/big-pickle",
 
   "agent": {
     "security": {
       "description": "Security vulnerability scanner",
       "mode": "subagent",
-      "model": "opencode/mimo-v2-pro-free",
+      "model": "opencode/big-pickle",
       "prompt": "{file:./agents/security.md}",
       "steps": 5,
       "permission": {
@@ -250,10 +250,10 @@ OpenLens ships with four built-in agents. Each is a markdown file with YAML fron
 
 | Agent           | Focus                      | Default Model                          |
 | --------------- | -------------------------- | -------------------------------------- |
-| `security`      | Vulnerabilities & secrets  | `opencode/mimo-v2-pro-free`   |
-| `bugs`          | Logic errors & edge cases  | `opencode/mimo-v2-pro-free`   |
-| `performance`   | N+1 queries, bottlenecks   | `opencode/mimo-v2-pro-free`   |
-| `style`         | Conventions & dead code    | `opencode/mimo-v2-pro-free`   |
+| `security`      | Vulnerabilities & secrets  | `opencode/big-pickle`   |
+| `bugs`          | Logic errors & edge cases  | `opencode/big-pickle`   |
+| `performance`   | N+1 queries, bottlenecks   | `opencode/big-pickle`   |
+| `style`         | Conventions & dead code    | `opencode/big-pickle`   |
 
 ### Creating Custom Agents
 
@@ -263,7 +263,7 @@ Create a markdown file in `agents/` with YAML frontmatter:
 ---
 description: Accessibility checker
 mode: subagent
-model: opencode/mimo-v2-pro-free
+model: opencode/big-pickle
 steps: 5
 permission:
   read: allow
@@ -331,7 +331,7 @@ openlens agent create a11y --description "Accessibility checker"
 | -------------- | -------------------------------------- | ------------- | ------------------------------------ |
 | `description`  | string                                 | —             | Human-readable description           |
 | `mode`         | `"primary"` \| `"subagent"` \| `"all"` | `"subagent"` | When the agent can run               |
-| `model`        | string                                 | Global model  | Provider/model-id (e.g. `opencode/mimo-v2-pro-free`) |
+| `model`        | string                                 | Global model  | Provider/model-id (e.g. `opencode/big-pickle`) |
 | `prompt`       | string                                 | —             | Inline text or `{file:./path.md}`    |
 | `steps`        | number                                 | `5`           | Max agentic loop iterations          |
 | `temperature`  | number                                 | —             | Sampling temperature (0–1)           |
@@ -379,7 +379,7 @@ openlens doctor                 Check environment and configuration
 | Flag               | Description                                      |
 | ------------------ | ------------------------------------------------ |
 | `--description`    | Agent description                                |
-| `--model`          | Model to use (e.g. `opencode/mimo-v2-pro-free`) |
+| `--model`          | Model to use (e.g. `opencode/big-pickle`) |
 | `--steps`          | Max agentic loop iterations (default: 5)         |
 
 ### `openlens agent test`

@@ -36,7 +36,7 @@ inputs:
     required: false
     default: "true"
   model:
-    description: "Override model (default: opencode/mimo-v2-pro-free). Use any OpenCode-supported model."
+    description: "Override model (default: opencode/big-pickle). Use any OpenCode-supported model."
     required: false
   anthropic-api-key:
     description: "Anthropic API key — only needed when using Anthropic models"

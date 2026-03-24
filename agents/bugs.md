@@ -1,7 +1,7 @@
 ---
 description: Bug and logic error detector
 mode: subagent
-model: opencode/mimo-v2-pro-free
+model: opencode/big-pickle
 steps: 5
 permission:
   read: allow
