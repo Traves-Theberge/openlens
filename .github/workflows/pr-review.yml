@@ -20,7 +20,7 @@ jobs:
           fetch-depth: 0
 
       # Provider credentials: set any OpenCode-supported provider key as a secret.
-      # See https://github.com/opencode-ai/opencode for the full provider list.
+      # See https://github.com/anomalyco/opencode for the full provider list.
       # Alternatively, commit a .opencode.json config to your repo.
       - uses: ./
         with:

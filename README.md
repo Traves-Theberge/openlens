@@ -1,10 +1,10 @@
 # OpenLens
 
-Built on [OpenCode](https://github.com/opencode-ai/opencode). Parallel AI agents review your diffs, catching security holes, bugs, and performance issues before they merge.
+Built on [OpenCode](https://github.com/anomalyco/opencode). Parallel AI agents review your diffs, catching security holes, bugs, and performance issues before they merge.
 
 ## Overview
 
-OpenLens is a TypeScript CLI tool that orchestrates multiple AI review agents against your git diffs. Each agent has read-only access to your full codebase, enabling deep analysis that goes beyond surface-level pattern matching. Built on the [OpenCode SDK](https://github.com/opencode-ai/opencode), it supports any model provider OpenCode supports.
+OpenLens is a TypeScript CLI tool that orchestrates multiple AI review agents against your git diffs. Each agent has read-only access to your full codebase, enabling deep analysis that goes beyond surface-level pattern matching. Built on [OpenCode](https://github.com/anomalyco/opencode), the open source AI coding agent, it supports any model provider OpenCode supports (Anthropic, OpenAI, Google, and more).
 
 ## Features
 
@@ -526,7 +526,7 @@ console.log(formatSarif(result))
 
 ## OpenCode Plugin
 
-OpenLens can run as an [OpenCode](https://opencode.ai/) plugin, making it available as a tool inside OpenCode sessions:
+OpenLens can run as an [OpenCode](https://github.com/anomalyco/opencode) plugin, making it available as a tool inside OpenCode sessions:
 
 ```json
 {

@@ -4,7 +4,7 @@
 
 OpenLens orchestrates specialized AI agents that review your git diffs in parallel — catching security vulnerabilities, bugs, performance issues, and style violations before they land. Each agent has read-only access to your full codebase, enabling deep analysis that goes beyond surface-level pattern matching.
 
-Built on the [OpenCode SDK](https://github.com/opencode-ai/opencode), OpenLens supports any model provider OpenCode supports: Anthropic, OpenAI, Google, AWS Bedrock, Groq, and more.
+Built on the [OpenCode](https://github.com/anomalyco/opencode), OpenLens supports any model provider OpenCode supports: Anthropic, OpenAI, Google, AWS Bedrock, Groq, and more.
 
 ---
 
@@ -31,7 +31,7 @@ Built on the [OpenCode SDK](https://github.com/opencode-ai/opencode), OpenLens s
 
 - [Bun](https://bun.sh/) 1.0+ (recommended) or Node.js 18+
 - Git
-- A model provider configured via [OpenCode](https://github.com/opencode-ai/opencode) (see [Environment Setup](#environment-setup))
+- A model provider configured via [OpenCode](https://github.com/anomalyco/opencode) (see [Environment Setup](#environment-setup))
 
 ### Install from Source
 
@@ -59,7 +59,7 @@ After linking, the `openlens` command is available system-wide.
 
 ### Environment Setup
 
-OpenLens uses the [OpenCode SDK](https://github.com/opencode-ai/opencode) for model provider access. OpenCode supports multiple configuration methods:
+OpenLens uses the [OpenCode](https://github.com/anomalyco/opencode) for model provider access. OpenCode supports multiple configuration methods:
 
 **Option 1: Environment variables** (simplest)
 
@@ -86,7 +86,7 @@ Create `~/.opencode.json` or `.opencode.json` in your project:
 }
 ```
 
-OpenCode discovers providers automatically — see the [OpenCode documentation](https://github.com/opencode-ai/opencode) for the full list of supported providers (Anthropic, OpenAI, Google, AWS Bedrock, Azure OpenAI, Groq, GitHub Copilot, and more).
+OpenCode discovers providers automatically — see the [OpenCode documentation](https://github.com/anomalyco/opencode) for the full list of supported providers (Anthropic, OpenAI, Google, AWS Bedrock, Azure OpenAI, Groq, GitHub Copilot, and more).
 
 ---
 
@@ -625,7 +625,7 @@ openlens run --no-verify
 
 ## 5. Skills
 
-OpenLens is built on the [OpenCode SDK](https://opencode.ai/docs/skills/), which includes a **skills** system. Skills are reusable instruction sets that agents can discover and load on-demand, keeping context efficient through lazy-loading.
+OpenLens is built on [OpenCode](https://github.com/anomalyco/opencode), which includes a **skills** system. Skills are reusable instruction sets that agents can discover and load on-demand, keeping context efficient through lazy-loading.
 
 While OpenLens focuses on its agent-based review system, skills from the underlying OpenCode platform are available and can extend agent capabilities.
 
@@ -846,7 +846,7 @@ Start the HTTP server for programmatic access.
 
 ### `openlens models`
 
-List all models available through the OpenCode SDK, along with the currently configured default model.
+List all models available through the OpenCode, along with the currently configured default model.
 
 ### `openlens doctor`
 
@@ -1117,10 +1117,10 @@ jobs:
           fail-on-critical: "true"
 ```
 
-> **Provider setup:** OpenLens uses [OpenCode](https://github.com/opencode-ai/opencode) for model access. Configure your provider by either:
+> **Provider setup:** OpenLens uses [OpenCode](https://github.com/anomalyco/opencode) for model access. Configure your provider by either:
 > - Setting a secret as an env var (e.g. `ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}`)
 > - Passing it via the `anthropic-api-key` or `openai-api-key` inputs
-> - Committing a `.opencode.json` config file to your repo (see [OpenCode docs](https://github.com/opencode-ai/opencode))
+> - Committing a `.opencode.json` config file to your repo (see [OpenCode docs](https://github.com/anomalyco/opencode))
 >
 > Any provider OpenCode supports works — Anthropic, OpenAI, Google, Groq, AWS Bedrock, Azure OpenAI, GitHub Copilot, and more.
 
@@ -1336,7 +1336,7 @@ console.log(`${filtered.length} issues after suppression`)
 
 ### OpenCode Plugin
 
-OpenLens can run as a plugin inside [OpenCode](https://opencode.ai/) sessions, making review tools available to the AI assistant.
+OpenLens can run as a plugin inside [OpenCode](https://github.com/anomalyco/opencode) sessions, making review tools available to the AI assistant.
 
 **Enable in your OpenCode config:**
 
@@ -1649,7 +1649,7 @@ git diff main...HEAD --stat       # branch
 
 **"OpenCode binary not found"**
 
-OpenLens requires the OpenCode SDK binary. Either:
+OpenLens requires the OpenCode binary. Either:
 - Install OpenCode globally
 - Set `OPENCODE_BIN` to the explicit path
 
@@ -1665,7 +1665,7 @@ export GEMINI_API_KEY="..."              # Google Gemini
 export GROQ_API_KEY="..."               # Groq
 
 # Option 2: OpenCode config file (~/.opencode.json or .opencode.json)
-# See https://github.com/opencode-ai/opencode for full provider list
+# See https://github.com/anomalyco/opencode for full provider list
 ```
 
 **Agent timeout**
