@@ -10,6 +10,9 @@ describe("loadConfig", () => {
 
   beforeEach(async () => {
     tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "openlens-cfg-"))
+    // Ensure CI detection doesn't override defaults during tests
+    delete process.env.CI
+    delete process.env.GITHUB_ACTIONS
   })
 
   afterEach(async () => {
