@@ -1,7 +1,7 @@
 ---
 description: Security vulnerability scanner
 mode: subagent
-model: anthropic/claude-sonnet-4-20250514
+model: opencode/mimo-v2-pro-free
 steps: 5
 permission:
   read: allow

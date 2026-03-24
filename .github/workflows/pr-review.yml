@@ -19,9 +19,8 @@ jobs:
         with:
           fetch-depth: 0
 
-      # Provider credentials: set any OpenCode-supported provider key as a
-      # repository secret. The action passes them through automatically.
-      # See https://github.com/anomalyco/opencode for the full provider list.
+      # Uses OpenCode's free models by default — no API keys required.
+      # To use a paid provider, set its secret and pass the model input.
       - uses: ./
         with:
           mode: branch
@@ -29,6 +28,3 @@ jobs:
           comment-on-pr: "true"
           upload-sarif: "true"
           fail-on-critical: "true"
-        env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY || '' }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || '' }}
