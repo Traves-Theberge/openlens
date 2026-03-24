@@ -91,7 +91,9 @@ OpenLens looks for configuration in these locations (last wins):
         "grep": "allow",
         "glob": "allow",
         "list": "allow",
+        "lsp": "allow",
         "edit": "deny",
+        "write": "deny",
         "bash": "deny"
       }
     },
@@ -120,7 +122,11 @@ OpenLens looks for configuration in these locations (last wins):
     "grep": "allow",
     "glob": "allow",
     "list": "allow",
+    "lsp": "allow",
+    "skill": "allow",
     "edit": "deny",
+    "write": "deny",
+    "patch": "deny",
     "bash": "deny"
   },
 
@@ -188,14 +194,18 @@ For fine-grained control, use pattern matching on tools like `bash`:
 | Tool          | Description                          |
 | ------------- | ------------------------------------ |
 | `read`        | Read file contents                   |
-| `edit`        | Modify files                         |
+| `edit`        | Modify files (exact string replace)  |
+| `write`       | Create or overwrite files            |
 | `glob`        | Find files by pattern                |
-| `grep`        | Search file contents                 |
+| `grep`        | Search file contents (regex)         |
 | `list`        | List directory contents              |
 | `bash`        | Execute shell commands               |
+| `patch`       | Apply patch files to codebase        |
+| `lsp`         | LSP code intelligence (experimental) |
 | `webfetch`    | Fetch data from URLs                 |
 | `websearch`   | Search the web                       |
-| `task`        | Run sub-tasks with an agent          |
+| `task`        | Run sub-tasks with a subagent        |
+| `skill`       | Load reusable skill instructions     |
 | `codesearch`  | Search code across repositories      |
 
 ### Review Options
@@ -260,7 +270,9 @@ permission:
   grep: allow
   glob: allow
   list: allow
+  lsp: allow
   edit: deny
+  write: deny
   bash: deny
 ---
 

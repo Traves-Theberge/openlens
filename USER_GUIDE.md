@@ -74,19 +74,27 @@ export GITHUB_TOKEN="..."               # GitHub Copilot
 
 **Option 2: OpenCode config file** (recommended for persistent setup)
 
-Create `~/.opencode.json` or `.opencode.json` in your project:
+Create `opencode.json` in your project root:
 
 ```json
 {
-  "providers": {
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
     "anthropic": {
-      "apiKey": "sk-ant-..."
+      "npm": "@ai-sdk/anthropic",
+      "models": {
+        "claude-sonnet-4-20250514": {
+          "name": "Claude Sonnet 4"
+        }
+      }
     }
   }
 }
 ```
 
-OpenCode discovers providers automatically — see the [OpenCode documentation](https://github.com/anomalyco/opencode) for the full list of supported providers (Anthropic, OpenAI, Google, AWS Bedrock, Azure OpenAI, Groq, GitHub Copilot, and more).
+API keys are managed via `opencode /connect` (stored in `~/.local/share/opencode/auth.json`) or set as environment variables.
+
+OpenCode discovers providers automatically — see the [OpenCode documentation](https://github.com/anomalyco/opencode) for the full list of 75+ supported providers (Anthropic, OpenAI, Google, AWS Bedrock, Azure OpenAI, Groq, GitHub Copilot, and more).
 
 ---
 
@@ -361,18 +369,22 @@ For fine-grained shell command control, use pattern matching:
 
 ### Available Tools
 
-| Tool         | Description                     |
-| ------------ | ------------------------------- |
-| `read`       | Read file contents              |
-| `edit`       | Modify files                    |
-| `glob`       | Find files by pattern           |
-| `grep`       | Search file contents            |
-| `list`       | List directory contents         |
-| `bash`       | Execute shell commands          |
-| `webfetch`   | Fetch data from URLs            |
-| `websearch`  | Search the web                  |
-| `task`       | Run sub-tasks with an agent     |
-| `codesearch` | Search code across repositories |
+| Tool         | Description                          |
+| ------------ | ------------------------------------ |
+| `read`       | Read file contents                   |
+| `edit`       | Modify files (exact string replace)  |
+| `write`      | Create or overwrite files            |
+| `glob`       | Find files by pattern                |
+| `grep`       | Search file contents (regex)         |
+| `list`       | List directory contents              |
+| `bash`       | Execute shell commands               |
+| `patch`      | Apply patch files to codebase        |
+| `lsp`        | LSP code intelligence (experimental) |
+| `webfetch`   | Fetch data from URLs                 |
+| `websearch`  | Search the web                       |
+| `task`       | Run sub-tasks with a subagent        |
+| `skill`      | Load reusable skill instructions     |
+| `codesearch` | Search code across repositories      |
 
 ### Suppression Rules
 
@@ -1120,7 +1132,7 @@ jobs:
 > **Provider setup:** OpenLens uses [OpenCode](https://github.com/anomalyco/opencode) for model access. Configure your provider by either:
 > - Setting a secret as an env var (e.g. `ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}`)
 > - Passing it via the `anthropic-api-key` or `openai-api-key` inputs
-> - Committing a `.opencode.json` config file to your repo (see [OpenCode docs](https://github.com/anomalyco/opencode))
+> - Committing an `opencode.json` config file to your repo (see [OpenCode docs](https://github.com/anomalyco/opencode))
 >
 > Any provider OpenCode supports works — Anthropic, OpenAI, Google, Groq, AWS Bedrock, Azure OpenAI, GitHub Copilot, and more.
 
@@ -1664,7 +1676,7 @@ export OPENAI_API_KEY="sk-..."           # OpenAI
 export GEMINI_API_KEY="..."              # Google Gemini
 export GROQ_API_KEY="..."               # Groq
 
-# Option 2: OpenCode config file (~/.opencode.json or .opencode.json)
+# Option 2: OpenCode config file (opencode.json) or use `opencode /connect`
 # See https://github.com/anomalyco/opencode for full provider list
 ```
 
