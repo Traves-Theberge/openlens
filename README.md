@@ -1,6 +1,6 @@
 # OpenLens
 
-AI-powered code review, OpenLens runs specialized agents in parallel to catch security vulnerabilities, bugs, performance issues, and style violations before they land.
+Built on [OpenCode](https://github.com/opencode-ai/opencode). Parallel AI agents review your diffs, catching security holes, bugs, and performance issues before they merge.
 
 ## Overview
 
