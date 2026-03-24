@@ -204,3 +204,179 @@ export function formatSarif(result: ReviewResult): string {
 
   return JSON.stringify(sarif, null, 2)
 }
+
+// Markdown format for GitHub PR comments
+export interface MarkdownOptions {
+  repo?: string
+  sha?: string
+}
+
+const SEVERITY_EMOJI: Record<string, string> = {
+  critical: ":red_circle:",
+  warning: ":yellow_circle:",
+  info: ":blue_circle:",
+}
+
+const SEVERITY_BADGE: Record<string, string> = {
+  critical: "Critical",
+  warning: "Warning",
+  info: "Info",
+}
+
+const MAX_COMMENT_LENGTH = 60000
+
+function githubLink(
+  file: string,
+  line: number,
+  endLine: number | undefined,
+  repo?: string,
+  sha?: string
+): string {
+  const range = endLine ? `L${line}-L${endLine}` : `L${line}`
+  if (repo && sha) {
+    return `[${file}:${line}](https://github.com/${repo}/blob/${sha}/${file}#${range})`
+  }
+  return `\`${file}:${line}\``
+}
+
+function formatMarkdownIssue(issue: Issue, repo?: string, sha?: string): string {
+  const emoji = SEVERITY_EMOJI[issue.severity] || ":white_circle:"
+  const badge = SEVERITY_BADGE[issue.severity] || issue.severity
+  const link = githubLink(issue.file, issue.line, issue.endLine, repo, sha)
+
+  const lines: string[] = []
+
+  lines.push(`${emoji} **${badge}**: ${issue.title}`)
+  lines.push(`${link} | \`${issue.agent}\``)
+  lines.push("")
+
+  if (issue.message) {
+    lines.push(issue.message)
+    lines.push("")
+  }
+
+  if (issue.fix) {
+    lines.push(`> **Fix:** ${issue.fix}`)
+    lines.push("")
+  }
+
+  if (issue.patch) {
+    lines.push("```diff")
+    lines.push(issue.patch)
+    lines.push("```")
+    lines.push("")
+  }
+
+  return lines.join("\n")
+}
+
+export function formatMarkdown(
+  result: ReviewResult,
+  options?: MarkdownOptions
+): string {
+  const repo = options?.repo
+  const sha = options?.sha
+  const lines: string[] = []
+
+  // Marker for finding/updating existing comments
+  lines.push("<!-- openlens-review -->")
+
+  if (result.issues.length === 0) {
+    lines.push("## :mag: OpenLens Review")
+    lines.push("")
+    lines.push(":white_check_mark: **No issues found.**")
+    if (result.meta) {
+      const m = result.meta
+      lines.push("")
+      lines.push(
+        `> ${m.filesChanged} files changed, ${m.agentsRun} agents run${m.verified ? ", verified" : ""}`
+      )
+    }
+    lines.push("")
+    return lines.join("\n")
+  }
+
+  const criticalCount = result.issues.filter(
+    (i) => i.severity === "critical"
+  ).length
+  const warningCount = result.issues.filter(
+    (i) => i.severity === "warning"
+  ).length
+  const infoCount = result.issues.filter(
+    (i) => i.severity === "info"
+  ).length
+
+  lines.push(
+    `## :mag: OpenLens Review — ${result.issues.length} issue${result.issues.length === 1 ? "" : "s"} found`
+  )
+  lines.push("")
+
+  // Summary table
+  lines.push("| Severity | Count |")
+  lines.push("|----------|-------|")
+  if (criticalCount > 0)
+    lines.push(`| :red_circle: Critical | ${criticalCount} |`)
+  if (warningCount > 0)
+    lines.push(`| :yellow_circle: Warning | ${warningCount} |`)
+  if (infoCount > 0) lines.push(`| :blue_circle: Info | ${infoCount} |`)
+  lines.push("")
+
+  if (result.meta) {
+    const m = result.meta
+    const metaParts: string[] = []
+    metaParts.push(`${m.filesChanged} files changed`)
+    metaParts.push(`${m.agentsRun} agents`)
+    if (m.suppressed > 0) metaParts.push(`${m.suppressed} suppressed`)
+    if (m.verified) metaParts.push("verified")
+    lines.push(`> ${metaParts.join(" · ")}`)
+    lines.push("")
+  }
+
+  lines.push("---")
+  lines.push("")
+
+  // Group issues by file
+  const byFile = new Map<string, Issue[]>()
+  for (const issue of result.issues) {
+    const existing = byFile.get(issue.file) || []
+    existing.push(issue)
+    byFile.set(issue.file, existing)
+  }
+
+  for (const [file, issues] of byFile) {
+    lines.push(
+      `<details>\n<summary><b>${file}</b> (${issues.length} issue${issues.length === 1 ? "" : "s"})</summary>\n`
+    )
+    for (const issue of issues) {
+      lines.push(formatMarkdownIssue(issue, repo, sha))
+    }
+    lines.push("</details>")
+    lines.push("")
+  }
+
+  // Timing footer
+  if (Object.keys(result.timing).length > 0) {
+    lines.push(
+      `<details>\n<summary>Timing</summary>\n`
+    )
+    lines.push(
+      Object.entries(result.timing)
+        .map(([name, ms]) => `- **${name}**: ${(ms / 1000).toFixed(1)}s`)
+        .join("\n")
+    )
+    lines.push("\n</details>")
+    lines.push("")
+  }
+
+  let output = lines.join("\n")
+
+  // Truncate if too long for GitHub comment
+  if (output.length > MAX_COMMENT_LENGTH) {
+    const remaining = result.issues.length
+    output =
+      output.slice(0, MAX_COMMENT_LENGTH - 200) +
+      `\n\n---\n\n> :warning: Output truncated. ${remaining} total issues found. Run \`openlens run\` locally for full results.\n`
+  }
+
+  return output
+}

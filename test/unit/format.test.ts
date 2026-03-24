@@ -1,5 +1,5 @@
 import { describe, test, expect } from "bun:test"
-import { formatJson, formatSarif } from "../../src/output/format.js"
+import { formatJson, formatSarif, formatMarkdown } from "../../src/output/format.js"
 import type { ReviewResult } from "../../src/types.js"
 
 const EMPTY_RESULT: ReviewResult = {
@@ -113,5 +113,75 @@ describe("formatSarif", () => {
   test("handles empty results", () => {
     const sarif = JSON.parse(formatSarif(EMPTY_RESULT))
     expect(sarif.runs[0].results).toEqual([])
+  })
+})
+
+describe("formatMarkdown", () => {
+  test("starts with marker comment", () => {
+    const output = formatMarkdown(RESULT_WITH_ISSUES)
+    expect(output.startsWith("<!-- openlens-review -->")).toBe(true)
+  })
+
+  test("shows no-issues message for empty result", () => {
+    const output = formatMarkdown(EMPTY_RESULT)
+    expect(output).toContain(":white_check_mark:")
+    expect(output).toContain("No issues found")
+  })
+
+  test("includes severity summary table", () => {
+    const output = formatMarkdown(RESULT_WITH_ISSUES)
+    expect(output).toContain("| :red_circle: Critical | 1 |")
+    expect(output).toContain("| :yellow_circle: Warning | 1 |")
+  })
+
+  test("generates GitHub permalinks when repo and sha provided", () => {
+    const output = formatMarkdown(RESULT_WITH_ISSUES, {
+      repo: "owner/repo",
+      sha: "abc123",
+    })
+    expect(output).toContain(
+      "[src/auth.ts:42](https://github.com/owner/repo/blob/abc123/src/auth.ts#L42-L45)"
+    )
+  })
+
+  test("falls back to backtick file:line without repo/sha", () => {
+    const output = formatMarkdown(RESULT_WITH_ISSUES)
+    expect(output).toContain("`src/auth.ts:42`")
+  })
+
+  test("groups issues by file in collapsible sections", () => {
+    const output = formatMarkdown(RESULT_WITH_ISSUES)
+    expect(output).toContain("<details>")
+    expect(output).toContain("<summary><b>src/auth.ts</b> (1 issue)</summary>")
+    expect(output).toContain(
+      "<summary><b>src/utils.ts</b> (1 issue)</summary>"
+    )
+    expect(output).toContain("</details>")
+  })
+
+  test("renders patch as diff code block", () => {
+    const output = formatMarkdown(RESULT_WITH_ISSUES)
+    expect(output).toContain("```diff")
+    expect(output).toContain("-db.query(")
+    expect(output).toContain("+db.query(")
+  })
+
+  test("renders fix as blockquote", () => {
+    const output = formatMarkdown(RESULT_WITH_ISSUES)
+    expect(output).toContain("> **Fix:** Use parameterized query")
+  })
+
+  test("includes timing in collapsed footer", () => {
+    const output = formatMarkdown(RESULT_WITH_ISSUES)
+    expect(output).toContain("<summary>Timing</summary>")
+    expect(output).toContain("**security**: 4.2s")
+    expect(output).toContain("**bugs**: 3.1s")
+  })
+
+  test("includes meta information", () => {
+    const output = formatMarkdown(RESULT_WITH_ISSUES)
+    expect(output).toContain("2 files changed")
+    expect(output).toContain("verified")
+    expect(output).toContain("1 suppressed")
   })
 })

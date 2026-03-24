@@ -6,7 +6,7 @@ import { fileURLToPath } from "url"
 import { loadConfig } from "./config/config.js"
 import { loadAgents, filterAgents, excludeAgents } from "./agent/agent.js"
 import { runReview, runSingleAgentReview } from "./session/review.js"
-import { formatText, formatJson, formatSarif } from "./output/format.js"
+import { formatText, formatJson, formatSarif, formatMarkdown } from "./output/format.js"
 import { getDiff, getAutoDetectedDiff, getDiffStats } from "./tool/diff.js"
 import { bus } from "./bus/index.js"
 import matter from "gray-matter"
@@ -62,7 +62,7 @@ yargs(hideBin(process.argv))
         })
         .option("format", {
           alias: "f",
-          choices: ["text", "json", "sarif"] as const,
+          choices: ["text", "json", "sarif", "markdown"] as const,
           default: "text" as const,
           describe: "Output format",
         })
@@ -221,6 +221,14 @@ yargs(hideBin(process.argv))
             break
           case "sarif":
             console.log(formatSarif(result))
+            break
+          case "markdown":
+            console.log(
+              formatMarkdown(result, {
+                repo: process.env.GITHUB_REPOSITORY,
+                sha: process.env.GITHUB_SHA,
+              })
+            )
             break
           default:
             console.log(formatText(result))

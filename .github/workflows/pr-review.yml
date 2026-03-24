@@ -1,0 +1,30 @@
+name: OpenLens PR Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+  security-events: write
+
+jobs:
+  review:
+    name: Code Review
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: ./
+        with:
+          mode: branch
+          base-branch: ${{ github.base_ref }}
+          comment-on-pr: "true"
+          upload-sarif: "true"
+          fail-on-critical: "true"
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
