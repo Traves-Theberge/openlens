@@ -1,6 +1,6 @@
 # OpenLens
 
-AI-powered code review that runs anywhere — your terminal, your CI pipeline, or inside your AI coding agent.
+AI-powered code review that runs anywhere - your terminal, your CI pipeline, or inside your AI coding agent.
 
 ## Overview
 
