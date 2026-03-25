@@ -549,9 +549,47 @@ console.log(formatSarif(result))
 | `GitHubReview`        | type       | GitHub PR review payload type        |
 | `GitHubReviewComment` | type       | GitHub PR review comment type        |
 
-## OpenCode Plugin
+## Add OpenLens to Your Project
 
-OpenLens can run as an [OpenCode](https://github.com/anomalyco/opencode) plugin, making it available as a tool inside OpenCode sessions:
+OpenLens integrates with all major AI coding platforms. Pick your platform:
+
+### Claude Code
+
+```bash
+# Symlink from the repo (stays in sync)
+ln -s /path/to/OpenLens/plugins/claude-code ~/.claude/skills/openlens
+
+# Or copy from npm package
+cp -r node_modules/openlens/plugins/claude-code ~/.claude/skills/openlens
+```
+
+Then use `/openlens` in any Claude Code session.
+
+### Codex CLI
+
+```bash
+# Copy the skill
+cp -r /path/to/OpenLens/plugins/codex ~/.codex/skills/openlens
+```
+
+Then use `$openlens` in Codex. Requires `codex --full-auto` or approving network access.
+
+### Gemini CLI
+
+```bash
+# Add to your project
+mkdir -p .gemini/commands
+cp /path/to/OpenLens/plugins/gemini/openlens.toml .gemini/commands/
+
+# Or add globally
+cp /path/to/OpenLens/plugins/gemini/openlens.toml ~/.gemini/commands/
+```
+
+Then use `/openlens` in Gemini CLI.
+
+### OpenCode
+
+Add to your `opencode.json`:
 
 ```json
 {
