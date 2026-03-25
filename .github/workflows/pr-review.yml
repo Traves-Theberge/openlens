@@ -27,5 +27,6 @@ jobs:
           base-branch: ${{ github.base_ref }}
           comment-on-pr: "true"
           inline-comments: "true"
+          auto-resolve: "true"
           upload-sarif: "true"
           fail-on-critical: "true"

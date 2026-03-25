@@ -52,6 +52,10 @@ inputs:
     description: "Post inline review comments on specific lines (requires comment-on-pr)"
     required: false
     default: "true"
+  auto-resolve:
+    description: "Resolve previous comments that are now fixed on re-runs"
+    required: false
+    default: "true"
 
 outputs:
   issues:
@@ -254,6 +258,82 @@ runs:
               };
             }
 
+            // --- Read previous fingerprints from state comment ---
+            const autoResolve = '${{ inputs.auto-resolve }}' === 'true';
+            const stateMarker = '<!-- openlens-review-state: ';
+
+            const { data: allComments } = await github.rest.issues.listComments({
+              ...context.repo,
+              issue_number: prNumber,
+            });
+            const stateComment = allComments.find(c => c.body?.includes(stateMarker));
+
+            let previousFingerprints = {};
+            if (stateComment) {
+              const stateMatch = stateComment.body.match(/<!-- openlens-review-state: ([\w+/=]+) -->/);
+              if (stateMatch) {
+                try { previousFingerprints = JSON.parse(Buffer.from(stateMatch[1], 'base64').toString()); } catch {}
+              }
+            }
+
+            // Compute resolved vs new vs remaining
+            const resolvedFps = Object.keys(previousFingerprints).filter(fp => !fingerprints[fp]);
+            const newFps = Object.keys(fingerprints).filter(fp => !previousFingerprints[fp]);
+            const remainingFps = Object.keys(fingerprints).filter(fp => previousFingerprints[fp]);
+
+            // --- Auto-resolve: strikethrough old review comments for resolved issues ---
+            let cachedReviews = null;
+            if (autoResolve && resolvedFps.length > 0) {
+              try {
+                const { data: existingReviews } = await github.rest.pulls.listReviews({
+                  ...context.repo,
+                  pull_number: prNumber,
+                });
+                cachedReviews = existingReviews;
+
+                for (const rev of existingReviews) {
+                  if (!rev.body?.includes('OpenLens found')) continue;
+
+                  const { data: reviewComments } = await github.rest.pulls.listCommentsForReview({
+                    ...context.repo,
+                    pull_number: prNumber,
+                    review_id: rev.id,
+                  });
+
+                  for (const rc of reviewComments) {
+                    // Check if this comment matches a resolved fingerprint
+                    const matchesResolved = resolvedFps.some(fp => {
+                      const prev = previousFingerprints[fp];
+                      if (!prev) return false;
+                      return rc.path === prev.file && rc.body?.includes(prev.title);
+                    });
+
+                    if (matchesResolved) {
+                      try {
+                        const resolvedBody = `~${rc.body.replace(/\n/g, '~\n~')}~\n\n**Resolved in latest push.**`;
+                        await github.rest.pulls.updateReviewComment({
+                          ...context.repo,
+                          comment_id: rc.id,
+                          body: resolvedBody,
+                        });
+                      } catch {
+                        // May fail if comment is outdated — continue
+                      }
+                    }
+                  }
+                }
+              } catch (err) {
+                core.warning(`Auto-resolve failed: ${err.message}`);
+              }
+            }
+
+            // --- Progress summary ---
+            const progressParts = [];
+            if (resolvedFps.length > 0) progressParts.push(`${resolvedFps.length} resolved`);
+            if (newFps.length > 0) progressParts.push(`${newFps.length} new`);
+            if (remainingFps.length > 0) progressParts.push(`${remainingFps.length} remaining`);
+            const progress = progressParts.length > 0 ? ` (${progressParts.join(', ')})` : '';
+
             // Build review comments
             const comments = issues.map(issue => {
               const parts = [
@@ -280,18 +360,19 @@ runs:
             const event = hasCritical ? 'REQUEST_CHANGES' : hasIssues ? 'COMMENT' : 'APPROVE';
 
             const summary = hasIssues
-              ? `OpenLens found **${issues.length} issue(s)** across ${reviewData.meta?.filesChanged || '?'} files.`
-              : 'OpenLens found no issues.';
+              ? `OpenLens found **${issues.length} issue(s)** across ${reviewData.meta?.filesChanged || '?'} files.${progress}`
+              : `OpenLens found no issues.${progress}`;
 
             // Submit review
             try {
               // Dismiss previous OpenLens reviews to avoid stale REQUEST_CHANGES blocks
-              const { data: existingReviews } = await github.rest.pulls.listReviews({
+              // Re-use reviews list if already fetched during auto-resolve, otherwise fetch now
+              const allReviews = cachedReviews || (await github.rest.pulls.listReviews({
                 ...context.repo,
                 pull_number: prNumber,
-              });
+              })).data;
 
-              for (const rev of existingReviews) {
+              for (const rev of allReviews) {
                 if (rev.body?.includes('OpenLens found') && rev.state === 'CHANGES_REQUESTED') {
                   try {
                     await github.rest.pulls.dismissReview({
@@ -319,16 +400,10 @@ runs:
             }
 
             // --- Save fingerprint state as a comment ---
-            const stateMarker = '<!-- openlens-review-state: ';
             const statePayload = Buffer.from(JSON.stringify(fingerprints)).toString('base64');
             const stateBody = `${stateMarker}${statePayload} -->\n_OpenLens review fingerprints — do not edit._`;
 
-            const { data: allComments } = await github.rest.issues.listComments({
-              ...context.repo,
-              issue_number: prNumber,
-            });
-
-            const existingState = allComments.find(c => c.body?.includes(stateMarker));
+            const existingState = stateComment;
 
             if (existingState) {
               await github.rest.issues.updateComment({
