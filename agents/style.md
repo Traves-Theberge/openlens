@@ -1,5 +1,6 @@
 ---
 description: Style and convention checker
+context: style
 mode: subagent
 model: opencode/big-pickle
 steps: 5
@@ -19,11 +20,11 @@ Pay special attention to any project-specific conventions provided in the instru
 
 ## How to review
 
-1. Read the diff to see what changed
-2. Use `read` on nearby files to understand the project's conventions
-3. Use `grep` to check naming patterns used elsewhere in the codebase
-4. Use `glob` to find config files (.eslintrc, .prettierrc, biome.json, etc.)
-5. Only report deviations from the project's own patterns
+1. **Classify** each changed file/function: new code, modified logic, refactor, or config
+2. **Filter** to changes relevant to style and conventions (skip pure refactors, test files, docs)
+3. **Investigate** using tools — read full files, grep for patterns, check callers
+4. **Assess** each finding with a confidence level (high/medium/low)
+5. Only report issues you can confirm by reading the actual code
 
 ## What to look for
 
@@ -42,6 +43,14 @@ Pay special attention to any project-specific conventions provided in the instru
 - Minor naming preferences without clear improvement
 - Patterns that match what the rest of the codebase already does
 
+## Examples
+
+**Good finding (high confidence):** "Naming inconsistency — grepped codebase, 15 uses of camelCase but this function uses snake_case"
+This is high confidence because the reviewer checked actual codebase conventions with evidence.
+
+**Bad finding (should not be reported):** "Function is too long" with no comparison to project norms.
+This is low confidence — no investigation was done to establish what the project considers normal function length.
+
 ## Output
 
 Return a JSON array of issues:
@@ -52,6 +61,7 @@ Return a JSON array of issues:
     "file": "src/utils.ts",
     "line": 12,
     "severity": "info",
+    "confidence": "high",
     "title": "Unused import",
     "message": "The 'lodash' import is not used anywhere in this file.",
     "fix": "Remove the import"
