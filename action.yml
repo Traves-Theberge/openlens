@@ -370,8 +370,8 @@ runs:
               return comment;
             });
 
-            // Determine review event
-            const event = hasCritical ? 'REQUEST_CHANGES' : hasIssues ? 'COMMENT' : 'APPROVE';
+            // Determine review event (APPROVE blocked by default for Actions — use COMMENT instead)
+            const event = hasCritical ? 'REQUEST_CHANGES' : 'COMMENT';
 
             const summary = hasIssues
               ? `OpenLens found **${issues.length} issue(s)** across ${reviewData.meta?.filesChanged || '?'} files.${progress}`
