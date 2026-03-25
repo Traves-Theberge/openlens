@@ -30,4 +30,8 @@ jobs:
       - name: CLI smoke test
         run: |
           bun run src/index.ts --help
-          bun run src/index.ts agents
+          bun run src/index.ts --version
+          bun run src/index.ts agent list
+          bun run src/index.ts agent validate
+          bun run src/index.ts doctor
+          bun run src/index.ts run --dry-run --staged
