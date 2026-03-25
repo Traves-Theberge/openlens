@@ -104,7 +104,7 @@ describe("openlens serve", () => {
 
     const info = await fetchJson(`${url}/`)
     expect(info.name).toBe("openlens")
-    expect(info.version).toBe("0.1.0")
+    expect(info.version).toBe("0.1.1")
   })
 
   test("GET /agents returns agent list", TIMEOUT, async () => {

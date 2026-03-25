@@ -10,7 +10,7 @@ export function createServer(config: Config) {
   const app = new Hono()
 
   app.get("/", (c) => {
-    return c.json({ name: "openlens", version: "0.1.0" })
+    return c.json({ name: "openlens", version: "0.1.1" })
   })
 
   app.post("/review", async (c) => {
