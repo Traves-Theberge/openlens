@@ -9,6 +9,7 @@ import { loadAgents, type Agent } from "../agent/agent.js"
 import { getDiff, getAutoDetectedDiff, getDiffStats } from "../tool/diff.js"
 import { loadInstructions } from "../config/config.js"
 import { loadSuppressRules, shouldSuppress } from "../suppress.js"
+import { gatherStrategyContext } from "../context/strategy.js"
 import { bus } from "../bus/index.js"
 import { resolveOpencodeBin, detectCI } from "../env.js"
 import { spawn } from "child_process"
@@ -934,8 +935,10 @@ export async function runReview(
 
           try {
             // Per-agent file context: skip if agent has fullFileContext: false
+            const strategyContext = await gatherStrategyContext(agent.context, diff, cwd)
             const agentFileContext =
-              agent.fullFileContext === false ? "" : fileContext
+              (agent.fullFileContext === false ? "" : fileContext)
+              + (strategyContext ? "\n\n" + strategyContext : "")
 
             const issues = await runSingleAgent(
               client,

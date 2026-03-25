@@ -16,6 +16,8 @@ export interface Agent {
   color?: string
   // Per-agent override: include full file source in prompt (undefined = inherit global)
   fullFileContext?: boolean
+  // Context strategy for auto-gathering relevant files
+  context?: "security" | "bugs" | "performance" | "style"
   // Permission map: tool name → "allow" | "deny" | "ask" (or granular patterns)
   permission: Record<string, any>
 }
@@ -114,6 +116,7 @@ export async function loadAgents(
       color: agentConfig.color || frontmatter.color,
       fullFileContext:
         agentConfig.fullFileContext ?? frontmatter.fullFileContext,
+      context: agentConfig.context ?? frontmatter.context,
       permission,
     })
   }

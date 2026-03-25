@@ -31,6 +31,7 @@ export const AgentConfigSchema = z.object({
     .boolean()
     .optional()
     .describe("Include full file context in prompt (default: inherit from review.fullFileContext)"),
+  context: z.enum(["security", "bugs", "performance", "style"]).optional(),
   permission: z
     .record(z.string(), PermissionValueSchema)
     .optional()
