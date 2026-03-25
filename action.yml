@@ -129,11 +129,15 @@ runs:
 
         SARIF_FILE="${{ runner.temp }}/openlens-results.sarif"
 
-        # Run review
+        # Run review — stdout gets the formatted output, stderr goes to log
+        LOG_FILE="${{ runner.temp }}/openlens-review.log"
         set +e
-        bun run ${{ github.action_path }}/src/index.ts run $FLAGS > "$SARIF_FILE" 2>&1
+        NO_COLOR=1 bun run ${{ github.action_path }}/src/index.ts run $FLAGS > "$SARIF_FILE" 2>"$LOG_FILE"
         EXIT_CODE=$?
         set -e
+
+        # Show progress log in workflow output
+        if [ -f "$LOG_FILE" ]; then cat "$LOG_FILE"; fi
 
         # Parse issue counts from SARIF
         if [ -f "$SARIF_FILE" ] && command -v jq &> /dev/null; then
@@ -205,7 +209,7 @@ runs:
         JSON_FILE="${{ runner.temp }}/openlens-review.json"
 
         set +e
-        bun run ${{ github.action_path }}/src/index.ts run $FLAGS > "$JSON_FILE" 2>/dev/null
+        NO_COLOR=1 bun run ${{ github.action_path }}/src/index.ts run $FLAGS > "$JSON_FILE" 2>/dev/null
         set -e
 
         echo "json-file=$JSON_FILE" >> "$GITHUB_OUTPUT"
