@@ -21,7 +21,8 @@
   "files": [
     "dist",
     "agents",
-    "action.yml"
+    "action.yml",
+    "plugins"
   ],
   "scripts": {
     "dev": "bun run src/index.ts",

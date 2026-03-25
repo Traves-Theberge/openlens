@@ -10,12 +10,16 @@ OpenLens is a TypeScript CLI tool that orchestrates multiple AI review agents ag
 
 - **Parallel Agent Execution**: Run security, bug, performance, and style agents concurrently
 - **Full Codebase Access**: Agents can read, grep, and glob your project — not just the diff
+- **Confidence Scoring**: Agents assess confidence per finding — filter noise with configurable thresholds
+- **Smart Context**: Per-agent context strategies auto-gather relevant files (auth modules, callers, linter configs)
 - **Multiple AI Providers**: Any model supported by OpenCode (Anthropic, OpenAI, Google, AWS Bedrock, Groq, and more)
 - **SARIF Output**: First-class CI/CD integration with GitHub Actions, GitLab CI, and other tools
+- **Inline PR Comments**: GitHub Action posts review comments on exact lines, not just a summary
 - **Verification Pass**: Built-in false positive filter that re-examines flagged issues
 - **Suppression Rules**: Glob patterns and `.openlensignore` to silence known noise
 - **Customizable Agents**: Write your own review agents with markdown prompts and YAML frontmatter
 - **Library & Plugin API**: Use as a CLI, HTTP server, library import, or OpenCode plugin
+- **Platform Plugins**: Native integrations for Claude Code, Codex CLI, and Gemini CLI
 - **Event Bus**: Subscribe to review lifecycle events for custom integrations
 
 ## Installation
@@ -136,6 +140,7 @@ OpenLens looks for configuration in these locations (last wins):
     "baseBranch": "main",
     "fullFileContext": true,
     "verify": true,
+    "minConfidence": "medium",
     "timeoutMs": 180000,
     "maxConcurrency": 4
   },
@@ -218,6 +223,7 @@ For fine-grained control, use pattern matching on tools like `bash`:
 | `fullFileContext`    | boolean  | `true`         | Include full source of changed files           |
 | `verify`            | boolean  | `true`         | Run verification pass to filter false positives|
 | `timeoutMs`         | number   | `180000`       | Timeout per agent in milliseconds              |
+| `minConfidence`     | string   | `"medium"`     | Minimum confidence level to report (high/medium/low) |
 | `maxConcurrency`    | number   | `4`            | Max agents running in parallel                 |
 
 ### Suppression
@@ -339,6 +345,7 @@ openlens agent create a11y --description "Accessibility checker"
 | `disable`      | boolean                                | `false`       | Turn off without deleting            |
 | `hidden`       | boolean                                | `false`       | Hide from listings (subagents only)  |
 | `color`        | string                                 | —             | Hex color or theme name              |
+| `context`      | string                                 | —             | Context strategy: security, bugs, performance, style |
 | `permission`   | object                                 | Read-only     | Tool permissions for this agent      |
 
 ## CLI Reference
@@ -369,7 +376,7 @@ openlens doctor                 Check environment and configuration
 | `--agents <list>`  |       | Comma-separated agent whitelist                  |
 | `--exclude-agents` |       | Comma-separated agents to skip                   |
 | `--model <id>`     | `-m`  | Override model for all agents                    |
-| `--format <fmt>`   | `-f`  | Output format: `text`, `json`, `sarif`           |
+| `--format <fmt>`   | `-f`  | Output format: `text`, `json`, `sarif`, `markdown` |
 | `--no-verify`      |       | Skip the verification pass                       |
 | `--no-context`     |       | Skip full file context (diff only)               |
 | `--dry-run`        |       | Show what would run without making API calls      |
@@ -448,6 +455,7 @@ Start the server with `openlens serve`, then:
       "severity": "critical",
       "agent": "security",
       "title": "SQL injection via unsanitized input",
+      "confidence": "high",
       "message": "The username parameter is interpolated directly into the SQL query.",
       "fix": "Use a prepared statement.",
       "patch": "-db.query(`SELECT * FROM users WHERE name = '${username}'`)\n+db.query('SELECT * FROM users WHERE name = $1', [username])"
@@ -535,6 +543,11 @@ console.log(formatSarif(result))
 | `Agent`               | type       | Resolved agent type                  |
 | `ReviewEvents`        | type       | Event bus event types                |
 | `SuppressRule`        | type       | Suppression rule type                |
+| `formatGitHubReview`  | function   | Format results as GitHub PR review payload |
+| `gatherStrategyContext`| function  | Gather context files per agent strategy |
+| `filterByConfidence`  | function   | Filter issues by confidence threshold |
+| `GitHubReview`        | type       | GitHub PR review payload type        |
+| `GitHubReviewComment` | type       | GitHub PR review comment type        |
 
 ## OpenCode Plugin
 
@@ -624,12 +637,15 @@ src/
 ├── config/
 │   ├── schema.ts         # Zod config schema
 │   └── config.ts         # Config resolution (layered)
+├── context/
+│   └── strategy.ts       # Per-agent context strategies
 ├── session/
 │   └── review.ts         # Review orchestration & verification
 ├── server/
 │   └── server.ts         # Hono HTTP server
 ├── output/
-│   └── format.ts         # Text/JSON/SARIF formatters
+│   ├── format.ts         # Text/JSON/SARIF/Markdown formatters
+│   └── github-review.ts  # GitHub PR review formatter
 └── tool/
     └── diff.ts           # Git diff collection
 
@@ -638,6 +654,15 @@ agents/                   # Built-in agent prompts
 ├── bugs.md
 ├── performance.md
 └── style.md
+
+plugins/                  # Platform integrations
+├── claude-code/
+│   └── review.md         # Claude Code /review skill
+├── codex/
+│   ├── plugin.json       # Codex plugin manifest
+│   └── tools.ts          # Codex tool wrapper
+└── gemini/
+    └── tool.ts           # Gemini CLI tool wrapper
 ```
 
 ## Development

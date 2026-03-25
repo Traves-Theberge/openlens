@@ -10,6 +10,7 @@ export const IssueSchema = z.object({
   message: z.string(),
   fix: z.string().optional(),
   patch: z.string().optional(),
+  confidence: z.enum(["high", "medium", "low"]).default("high"),
 })
 
 export type Issue = z.infer<typeof IssueSchema>
@@ -25,6 +26,7 @@ export const IssueArraySchema = z.array(
     message: z.string(),
     fix: z.string().optional(),
     patch: z.string().optional(),
+    confidence: z.enum(["high", "medium", "low"]).default("high"),
   })
 )
 

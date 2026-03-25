@@ -9,6 +9,7 @@ import { loadAgents, type Agent } from "../agent/agent.js"
 import { getDiff, getAutoDetectedDiff, getDiffStats } from "../tool/diff.js"
 import { loadInstructions } from "../config/config.js"
 import { loadSuppressRules, shouldSuppress } from "../suppress.js"
+import { gatherStrategyContext } from "../context/strategy.js"
 import { bus } from "../bus/index.js"
 import { resolveOpencodeBin, detectCI } from "../env.js"
 import { spawn } from "child_process"
@@ -457,9 +458,10 @@ async function runSingleAgent(
           message: issue.message || "",
           fix: issue.fix,
           patch: issue.patch,
+          confidence: issue.confidence || "high",
         }))
 
-    return issues.map((issue) => ({ ...issue, agent: agent.name }))
+    return issues.map((issue) => ({ ...issue, agent: agent.name, confidence: issue.confidence || "high" }))
   } finally {
     // Clean up session — don't pollute the OpenCode session list
     try {
@@ -490,32 +492,33 @@ async function verifyIssues(
   if (!session?.id) return issues
 
   try {
-    const systemPrompt = `You are a code review verifier. Your job is to filter out false positives.
+    const systemPrompt = `You are a code review verifier. Your job is to filter false positives and calibrate confidence.
 
-For each issue, determine if it is:
-- A REAL issue that should be reported
-- A FALSE POSITIVE that should be removed
+You receive issues grouped by the agent that found them, each with a confidence level.
 
-You have access to tools to investigate the codebase.
-Use them to verify each issue — check the actual code, read imports, understand context.
+## Decision rules
+
+1. If multiple agents flag the same file+line, boost confidence to "high"
+2. If only one agent flags something at "low" confidence, remove it unless you can confirm it by reading the code
+3. You may upgrade or downgrade confidence based on your own investigation
+4. Use tools to verify — read the actual code, check imports, understand context
+
+## Output
 
 Return ONLY a JSON array of issues that are REAL (not false positives).
-Keep the exact same format. Remove any issue you determine is a false positive.
+Keep the exact same format. You may change the confidence field.
 If all issues are real, return them all. If all are false positives, return \`[]\`.`
 
-    const userMessage = `## Issues to verify
+    const grouped: Record<string, Issue[]> = {}
+    for (const issue of issues) {
+      if (!grouped[issue.agent]) grouped[issue.agent] = []
+      grouped[issue.agent].push(issue)
+    }
+    const issuesByAgent = Object.entries(grouped)
+      .map(([agent, agentIssues]) => `### ${agent}\n\`\`\`json\n${JSON.stringify(agentIssues, null, 2)}\n\`\`\``)
+      .join("\n\n")
 
-\`\`\`json
-${JSON.stringify(issues, null, 2)}
-\`\`\`
-
-## Diff that was reviewed
-
-\`\`\`diff
-${diff}
-\`\`\`
-
-${fileContext}`
+    const userMessage = `## Issues to verify (grouped by agent)\n\n${issuesByAgent}\n\n## Diff\n\n\`\`\`diff\n${diff}\n\`\`\`\n\n${fileContext}`
 
     const model = parseModel(config.model)
 
@@ -536,7 +539,7 @@ ${fileContext}`
 
     const time = performance.now() - start
     const verifiedIssues = validated.success
-      ? validated.data.map((i) => ({ ...i, agent: i.agent || "verified" }))
+      ? validated.data.map((i) => ({ ...i, agent: i.agent || "verified", confidence: i.confidence || "high" }))
       : issues
 
     bus.publish("agent.completed", {
@@ -572,6 +575,16 @@ function dedup(issues: Issue[]): Issue[] {
     }
   }
   return Array.from(seen.values())
+}
+
+const CONFIDENCE_RANK: Record<string, number> = { high: 0, medium: 1, low: 2 }
+
+export function filterByConfidence(issues: Issue[], minConfidence: string): Issue[] {
+  const threshold = CONFIDENCE_RANK[minConfidence] ?? 1
+  return issues.filter(issue => {
+    const rank = CONFIDENCE_RANK[issue.confidence || "high"] ?? 0
+    return rank <= threshold
+  })
 }
 
 const SEVERITY_RANK: Record<string, number> = {
@@ -923,8 +936,10 @@ export async function runReview(
 
           try {
             // Per-agent file context: skip if agent has fullFileContext: false
+            const strategyContext = await gatherStrategyContext(agent.context, diff, cwd)
             const agentFileContext =
-              agent.fullFileContext === false ? "" : fileContext
+              (agent.fullFileContext === false ? "" : fileContext)
+              + (strategyContext ? "\n\n" + strategyContext : "")
 
             const issues = await runSingleAgent(
               client,
@@ -973,6 +988,9 @@ export async function runReview(
 
     // Dedup
     let processedIssues = dedup(allIssues)
+
+    // Filter by confidence threshold
+    processedIssues = filterByConfidence(processedIssues, config.review.minConfidence)
 
     // Apply suppression rules
     let suppressed = 0

@@ -48,6 +48,14 @@ inputs:
     description: "Post review results as a PR comment (pull_request events only)"
     required: false
     default: "false"
+  inline-comments:
+    description: "Post inline review comments on specific lines (requires comment-on-pr)"
+    required: false
+    default: "true"
+  auto-resolve:
+    description: "Resolve previous comments that are now fixed on re-runs"
+    required: false
+    default: "true"
 
 outputs:
   issues:
@@ -163,14 +171,258 @@ runs:
         category: openlens
       continue-on-error: true
 
-    - name: Post PR Comment
+    - name: Generate JSON review output
+      id: json-review
+      if: inputs.comment-on-pr == 'true' && inputs.inline-comments == 'true' && github.event_name == 'pull_request' && always()
+      shell: bash
+      env:
+        CI: "true"
+        ANTHROPIC_API_KEY: ${{ inputs.anthropic-api-key || env.ANTHROPIC_API_KEY || '' }}
+        OPENAI_API_KEY: ${{ inputs.openai-api-key || env.OPENAI_API_KEY || '' }}
+        OPENLENS_MODE: ${{ inputs.mode }}
+        OPENLENS_AGENTS: ${{ inputs.agents }}
+        OPENLENS_BASE_BRANCH: ${{ inputs.base-branch }}
+        OPENLENS_VERIFY: ${{ inputs.verify }}
+        OPENLENS_CONFIG: ${{ inputs.config }}
+        OPENLENS_MODEL: ${{ inputs.model }}
+        OPENCODE_BIN: ${{ github.action_path }}/node_modules/.bin/opencode
+      run: |
+        FLAGS="--${OPENLENS_MODE:-branch}"
+        FLAGS="$FLAGS --format json"
+
+        if [ -n "$OPENLENS_AGENTS" ]; then
+          FLAGS="$FLAGS --agents $OPENLENS_AGENTS"
+        fi
+
+        if [ -n "$OPENLENS_BASE_BRANCH" ]; then
+          FLAGS="$FLAGS --branch $OPENLENS_BASE_BRANCH"
+        fi
+
+        if [ "$OPENLENS_VERIFY" = "false" ]; then
+          FLAGS="$FLAGS --no-verify"
+        fi
+
+        JSON_FILE="${{ runner.temp }}/openlens-review.json"
+
+        set +e
+        bun run ${{ github.action_path }}/src/index.ts run $FLAGS > "$JSON_FILE" 2>/dev/null
+        set -e
+
+        echo "json-file=$JSON_FILE" >> "$GITHUB_OUTPUT"
+      continue-on-error: true
+
+    - name: Post PR Review
       if: inputs.comment-on-pr == 'true' && github.event_name == 'pull_request' && always()
       uses: actions/github-script@v7
       with:
         script: |
           const fs = require('fs');
-          const sarifPath = '${{ steps.review.outputs.sarif-file }}';
+          const crypto = require('crypto');
 
+          const useInline = '${{ inputs.inline-comments }}' === 'true';
+          const jsonPath = '${{ steps.json-review.outputs.json-file }}';
+          const sarifPath = '${{ steps.review.outputs.sarif-file }}';
+          const prNumber = context.payload.pull_request?.number || context.issue.number;
+
+          // --- Read JSON review output ---
+          let reviewData = null;
+          if (useInline && jsonPath) {
+            try {
+              reviewData = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
+            } catch {
+              // JSON output not available — fall back to SARIF summary
+            }
+          }
+
+          // --- Inline review via PR Review API ---
+          if (reviewData && reviewData.issues) {
+            const issues = reviewData.issues;
+            const hasCritical = issues.some(i => i.severity === 'critical');
+            const hasIssues = issues.length > 0;
+
+            // Compute fingerprints
+            function fingerprint(issue) {
+              return crypto.createHash('sha256')
+                .update(`${issue.file}\x00${issue.title}\x00${issue.agent}`)
+                .digest('hex')
+                .slice(0, 16);
+            }
+
+            const fingerprints = {};
+            for (const issue of issues) {
+              fingerprints[fingerprint(issue)] = {
+                file: issue.file,
+                title: issue.title,
+                agent: issue.agent,
+                line: issue.line,
+              };
+            }
+
+            // --- Read previous fingerprints from state comment ---
+            const autoResolve = '${{ inputs.auto-resolve }}' === 'true';
+            const stateMarker = '<!-- openlens-review-state: ';
+
+            const { data: allComments } = await github.rest.issues.listComments({
+              ...context.repo,
+              issue_number: prNumber,
+            });
+            const stateComment = allComments.find(c => c.body?.includes(stateMarker));
+
+            let previousFingerprints = {};
+            if (stateComment) {
+              const stateMatch = stateComment.body.match(/<!-- openlens-review-state: ([\w+/=]+) -->/);
+              if (stateMatch) {
+                try { previousFingerprints = JSON.parse(Buffer.from(stateMatch[1], 'base64').toString()); } catch {}
+              }
+            }
+
+            // Compute resolved vs new vs remaining
+            const resolvedFps = Object.keys(previousFingerprints).filter(fp => !fingerprints[fp]);
+            const newFps = Object.keys(fingerprints).filter(fp => !previousFingerprints[fp]);
+            const remainingFps = Object.keys(fingerprints).filter(fp => previousFingerprints[fp]);
+
+            // --- Auto-resolve: strikethrough old review comments for resolved issues ---
+            let cachedReviews = null;
+            if (autoResolve && resolvedFps.length > 0) {
+              try {
+                const { data: existingReviews } = await github.rest.pulls.listReviews({
+                  ...context.repo,
+                  pull_number: prNumber,
+                });
+                cachedReviews = existingReviews;
+
+                for (const rev of existingReviews) {
+                  if (!rev.body?.includes('OpenLens found')) continue;
+
+                  const { data: reviewComments } = await github.rest.pulls.listCommentsForReview({
+                    ...context.repo,
+                    pull_number: prNumber,
+                    review_id: rev.id,
+                  });
+
+                  for (const rc of reviewComments) {
+                    // Check if this comment matches a resolved fingerprint
+                    const matchesResolved = resolvedFps.some(fp => {
+                      const prev = previousFingerprints[fp];
+                      if (!prev) return false;
+                      return rc.path === prev.file && rc.body?.includes(prev.title);
+                    });
+
+                    if (matchesResolved) {
+                      try {
+                        const resolvedBody = `~${rc.body.replace(/\n/g, '~\n~')}~\n\n**Resolved in latest push.**`;
+                        await github.rest.pulls.updateReviewComment({
+                          ...context.repo,
+                          comment_id: rc.id,
+                          body: resolvedBody,
+                        });
+                      } catch {
+                        // May fail if comment is outdated — continue
+                      }
+                    }
+                  }
+                }
+              } catch (err) {
+                core.warning(`Auto-resolve failed: ${err.message}`);
+              }
+            }
+
+            // --- Progress summary ---
+            const progressParts = [];
+            if (resolvedFps.length > 0) progressParts.push(`${resolvedFps.length} resolved`);
+            if (newFps.length > 0) progressParts.push(`${newFps.length} new`);
+            if (remainingFps.length > 0) progressParts.push(`${remainingFps.length} remaining`);
+            const progress = progressParts.length > 0 ? ` (${progressParts.join(', ')})` : '';
+
+            // Build review comments
+            const comments = issues.map(issue => {
+              const parts = [
+                `**${issue.severity.toUpperCase()}** — ${issue.title}`,
+                '',
+                issue.message,
+              ];
+              if (issue.fix) parts.push('', `**Fix:** ${issue.fix}`);
+              if (issue.patch) parts.push('', '```diff', issue.patch, '```');
+              parts.push('', `_Agent: ${issue.agent}_`);
+
+              const comment = {
+                path: issue.file,
+                line: issue.endLine || issue.line,
+                body: parts.join('\n'),
+              };
+              if (issue.endLine && issue.endLine !== issue.line) {
+                comment.start_line = issue.line;
+              }
+              return comment;
+            });
+
+            // Determine review event
+            const event = hasCritical ? 'REQUEST_CHANGES' : hasIssues ? 'COMMENT' : 'APPROVE';
+
+            const summary = hasIssues
+              ? `OpenLens found **${issues.length} issue(s)** across ${reviewData.meta?.filesChanged || '?'} files.${progress}`
+              : `OpenLens found no issues.${progress}`;
+
+            // Submit review
+            try {
+              // Dismiss previous OpenLens reviews to avoid stale REQUEST_CHANGES blocks
+              // Re-use reviews list if already fetched during auto-resolve, otherwise fetch now
+              const allReviews = cachedReviews || (await github.rest.pulls.listReviews({
+                ...context.repo,
+                pull_number: prNumber,
+              })).data;
+
+              for (const rev of allReviews) {
+                if (rev.body?.includes('OpenLens found') && rev.state === 'CHANGES_REQUESTED') {
+                  try {
+                    await github.rest.pulls.dismissReview({
+                      ...context.repo,
+                      pull_number: prNumber,
+                      review_id: rev.id,
+                      message: 'Superseded by new OpenLens review.',
+                    });
+                  } catch {
+                    // May not have permission to dismiss — continue
+                  }
+                }
+              }
+
+              await github.rest.pulls.createReview({
+                ...context.repo,
+                pull_number: prNumber,
+                commit_id: context.payload.pull_request.head.sha,
+                event,
+                body: summary,
+                comments: comments.slice(0, 50), // GitHub limits to ~50 comments per review
+              });
+            } catch (err) {
+              core.warning(`Failed to submit inline review: ${err.message}`);
+            }
+
+            // --- Save fingerprint state as a comment ---
+            const statePayload = Buffer.from(JSON.stringify(fingerprints)).toString('base64');
+            const stateBody = `${stateMarker}${statePayload} -->\n_OpenLens review fingerprints — do not edit._`;
+
+            const existingState = stateComment;
+
+            if (existingState) {
+              await github.rest.issues.updateComment({
+                ...context.repo,
+                comment_id: existingState.id,
+                body: stateBody,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                ...context.repo,
+                issue_number: prNumber,
+                body: stateBody,
+              });
+            }
+
+            return; // Done — inline review posted
+          }
+
+          // --- Fallback: summary comment from SARIF (when inline-comments is off or JSON unavailable) ---
           let results = [];
           try {
             const sarif = JSON.parse(fs.readFileSync(sarifPath, 'utf-8'));
@@ -201,7 +453,6 @@ runs:
             if (infoCount > 0) body += `| :blue_circle: Info | ${infoCount} |\n`;
             body += '\n---\n\n';
 
-            // Group by file
             const byFile = {};
             for (const r of results) {
               const file = r.locations?.[0]?.physicalLocation?.artifactLocation?.uri || 'unknown';
@@ -241,15 +492,13 @@ runs:
             }
           }
 
-          // Truncate if too long
           if (body.length > 60000) {
             body = body.slice(0, 59800) + '\n\n---\n\n> :warning: Output truncated. Run `openlens run` locally for full results.\n';
           }
 
-          // Find and update existing comment, or create new
           const { data: comments } = await github.rest.issues.listComments({
             ...context.repo,
-            issue_number: context.issue.number,
+            issue_number: prNumber,
           });
 
           const existing = comments.find(c => c.body?.includes(marker));
@@ -263,7 +512,7 @@ runs:
           } else {
             await github.rest.issues.createComment({
               ...context.repo,
-              issue_number: context.issue.number,
+              issue_number: prNumber,
               body,
             });
           }

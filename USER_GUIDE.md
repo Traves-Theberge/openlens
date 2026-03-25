@@ -456,6 +456,7 @@ Here's a complete custom agent example following this pattern:
 description: Accessibility checker
 mode: subagent
 model: opencode/big-pickle
+context: style
 steps: 5
 permission:
   read: allow
@@ -465,6 +466,8 @@ permission:
   edit: deny
   bash: deny
 ---
+
+> **Context strategies:** The `context` field tells OpenLens to auto-gather relevant files before the agent runs. Supported strategies: `security` (dependency manifests, auth modules), `bugs` (callers, related modules), `performance` (route handlers, database queries), `style` (linter configs, existing conventions). Capped at 10 files / 5000 lines.
 
 You are an accessibility-focused code reviewer with access to the full codebase.
 
@@ -1125,6 +1128,8 @@ jobs:
           mode: branch
           base-branch: ${{ github.base_ref }}
           comment-on-pr: "true"
+          inline-comments: "true"
+          auto-resolve: "true"
           upload-sarif: "true"
           fail-on-critical: "true"
 ```
@@ -1152,6 +1157,8 @@ jobs:
 | `model`            |            | Override model (e.g. `opencode/big-pickle`) |
 | `anthropic-api-key`|            | Anthropic API key (optional — or set env var)  |
 | `openai-api-key`   |            | OpenAI API key (optional — or set env var)     |
+| `inline-comments`  | `true`     | Post inline review comments on specific lines  |
+| `auto-resolve`     | `true`     | Resolve previous comments that are now fixed   |
 
 **Action outputs:**
 
@@ -1163,12 +1170,7 @@ jobs:
 
 **PR Comments:**
 
-When `comment-on-pr: "true"` is set, OpenLens posts a formatted review comment on the pull request. On subsequent pushes, the existing comment is **updated** instead of creating a new one (using a hidden `<!-- openlens-review -->` marker). The comment includes:
-
-- Severity summary table
-- Issues grouped by file in collapsible sections
-- Clickable permalinks to the exact lines on GitHub
-- Suggested fixes and diff patches
+When `comment-on-pr: "true"` is set, OpenLens submits a GitHub PR review with **inline comments on specific lines**. On subsequent pushes, resolved issues are marked with ~~strikethrough~~ and progress is shown ("3 resolved, 1 new, 2 remaining"). State is tracked via fingerprints (sha256 of file+title+agent). Enable `inline-comments: "true"` (default) for line-level annotations, or set to `"false"` for the legacy summary comment.
 
 > **Note:** PR commenting requires `pull-requests: write` permission and only works on `pull_request` events.
 
@@ -1296,6 +1298,9 @@ console.log(formatMarkdown(result))   // GitHub Markdown
 | `detectCI`              | Detect CI environment                |
 | `resolveOpencodeBin`    | Resolve OpenCode binary path         |
 | `inferBaseBranch`       | Infer base branch from CI env        |
+| `formatGitHubReview`    | Format results as GitHub PR review   |
+| `gatherStrategyContext`  | Gather context per agent strategy   |
+| `filterByConfidence`    | Filter issues by confidence threshold |
 
 **Type exports:**
 
@@ -1311,6 +1316,8 @@ console.log(formatMarkdown(result))   // GitHub Markdown
 | `MarkdownOptions` | Markdown formatter options |
 | `RulesDiscoveryConfig` | Rules discovery options |
 | `DiscoveredRule` | Discovered rules file metadata |
+| `GitHubReview`   | GitHub PR review payload type  |
+| `GitHubReviewComment` | GitHub PR review comment type |
 
 ### Custom Review Pipeline
 
@@ -1372,6 +1379,22 @@ OpenLens can run as a plugin inside [OpenCode](https://github.com/anomalyco/open
 - Auto-approves read-only tools (`read`, `grep`, `glob`, `list`) for OpenLens sessions
 - Sets temperature to `0` (deterministic) for review sessions
 - Sessions are named with `openlens-` prefix for identification
+
+### Platform Plugins
+
+OpenLens ships with plugins for popular AI coding platforms:
+
+**Claude Code** — Add `/review` as a slash command:
+```
+# Copy the plugin to your Claude Code skills directory
+cp -r node_modules/openlens/plugins/claude-code/ ~/.claude/skills/openlens/
+```
+
+**Codex CLI** — Register as a Codex tool using `plugins/codex/plugin.json`.
+
+**Gemini CLI** — Register as a Gemini tool using `plugins/gemini/tool.ts`.
+
+All plugins call `openlens run --format json` and return structured results.
 
 ---
 

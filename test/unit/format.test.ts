@@ -1,5 +1,5 @@
-import { describe, test, expect } from "bun:test"
-import { formatJson, formatSarif, formatMarkdown } from "../../src/output/format.js"
+import { describe, test, expect, it } from "bun:test"
+import { formatText, formatJson, formatSarif, formatMarkdown } from "../../src/output/format.js"
 import type { ReviewResult } from "../../src/types.js"
 
 const EMPTY_RESULT: ReviewResult = {
@@ -183,5 +183,45 @@ describe("formatMarkdown", () => {
     expect(output).toContain("2 files changed")
     expect(output).toContain("verified")
     expect(output).toContain("1 suppressed")
+  })
+})
+
+describe("confidence in output", () => {
+  const issueWithConfidence = {
+    file: "src/app.ts",
+    line: 10,
+    severity: "warning" as const,
+    agent: "bugs",
+    title: "Test issue",
+    message: "Test message",
+    confidence: "low" as const,
+  }
+
+  const result = {
+    issues: [issueWithConfidence],
+    timing: { bugs: 1000 },
+    meta: { mode: "staged", filesChanged: 1, agentsRun: 1, agentsFailed: 0, suppressed: 0, verified: false },
+  }
+
+  it("formatText shows confidence", () => {
+    const output = formatText(result)
+    expect(output).toContain("low")
+  })
+
+  it("formatJson includes confidence field", () => {
+    const output = JSON.parse(formatJson(result))
+    expect(output.issues[0].confidence).toBe("low")
+  })
+
+  it("formatSarif maps confidence to properties", () => {
+    const output = JSON.parse(formatSarif(result))
+    const sarifResult = output.runs[0].results[0]
+    expect(sarifResult.properties.confidence).toBe("low")
+    expect(sarifResult.rank).toBe(10.0)
+  })
+
+  it("formatMarkdown shows confidence", () => {
+    const output = formatMarkdown(result)
+    expect(output).toContain("low")
   })
 })
