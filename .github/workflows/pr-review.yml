@@ -19,6 +19,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Fetch base branch
+        run: git fetch origin ${{ github.base_ref }}:${{ github.base_ref }}
+
       # Uses OpenCode's free models by default — no API keys required.
       # To use a paid provider, set its secret and pass the model input.
       - uses: ./
