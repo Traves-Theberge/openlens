@@ -112,15 +112,20 @@ runs:
         # Use bundled binary
         OPENCODE_BIN: ${{ github.action_path }}/node_modules/.bin/opencode
       run: |
-        FLAGS="--${OPENLENS_MODE:-branch}"
-        FLAGS="$FLAGS --format ${OPENLENS_FORMAT:-sarif}"
+        MODE="${OPENLENS_MODE:-branch}"
+        FLAGS="--format ${OPENLENS_FORMAT:-sarif}"
+
+        # Set diff mode
+        if [ "$MODE" = "branch" ]; then
+          FLAGS="$FLAGS --branch ${OPENLENS_BASE_BRANCH:-main}"
+        elif [ "$MODE" = "staged" ]; then
+          FLAGS="$FLAGS --staged"
+        elif [ "$MODE" = "unstaged" ]; then
+          FLAGS="$FLAGS --unstaged"
+        fi
 
         if [ -n "$OPENLENS_AGENTS" ]; then
           FLAGS="$FLAGS --agents $OPENLENS_AGENTS"
-        fi
-
-        if [ -n "$OPENLENS_BASE_BRANCH" ]; then
-          FLAGS="$FLAGS --branch $OPENLENS_BASE_BRANCH"
         fi
 
         if [ "$OPENLENS_VERIFY" = "false" ]; then
@@ -191,15 +196,20 @@ runs:
         OPENLENS_MODEL: ${{ inputs.model }}
         OPENCODE_BIN: ${{ github.action_path }}/node_modules/.bin/opencode
       run: |
-        FLAGS="--${OPENLENS_MODE:-branch}"
-        FLAGS="$FLAGS --format json"
+        MODE="${OPENLENS_MODE:-branch}"
+        FLAGS="--format json"
+
+        # Set diff mode
+        if [ "$MODE" = "branch" ]; then
+          FLAGS="$FLAGS --branch ${OPENLENS_BASE_BRANCH:-main}"
+        elif [ "$MODE" = "staged" ]; then
+          FLAGS="$FLAGS --staged"
+        elif [ "$MODE" = "unstaged" ]; then
+          FLAGS="$FLAGS --unstaged"
+        fi
 
         if [ -n "$OPENLENS_AGENTS" ]; then
           FLAGS="$FLAGS --agents $OPENLENS_AGENTS"
-        fi
-
-        if [ -n "$OPENLENS_BASE_BRANCH" ]; then
-          FLAGS="$FLAGS --branch $OPENLENS_BASE_BRANCH"
         fi
 
         if [ "$OPENLENS_VERIFY" = "false" ]; then
@@ -360,8 +370,8 @@ runs:
               return comment;
             });
 
-            // Determine review event
-            const event = hasCritical ? 'REQUEST_CHANGES' : hasIssues ? 'COMMENT' : 'APPROVE';
+            // Determine review event (APPROVE blocked by default for Actions — use COMMENT instead)
+            const event = hasCritical ? 'REQUEST_CHANGES' : 'COMMENT';
 
             const summary = hasIssues
               ? `OpenLens found **${issues.length} issue(s)** across ${reviewData.meta?.filesChanged || '?'} files.${progress}`
