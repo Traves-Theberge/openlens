@@ -1,4 +1,5 @@
 import { describe, test, expect } from "bun:test"
+import { filterByConfidence } from "../../src/session/review"
 
 // These functions are internal to review.ts, so we re-implement them here for testing.
 // In a real project you'd export them or use a test helper.
@@ -232,5 +233,30 @@ describe("dedup", () => {
 
   test("handles empty array", () => {
     expect(dedup([])).toEqual([])
+  })
+})
+
+describe("filterByConfidence", () => {
+  const issues = [
+    { file: "a.ts", line: 1, severity: "warning" as const, agent: "bugs", title: "A", message: "A", confidence: "high" as const },
+    { file: "b.ts", line: 2, severity: "info" as const, agent: "style", title: "B", message: "B", confidence: "medium" as const },
+    { file: "c.ts", line: 3, severity: "info" as const, agent: "style", title: "C", message: "C", confidence: "low" as const },
+  ]
+
+  test("filters below medium threshold", () => {
+    const result = filterByConfidence(issues, "medium")
+    expect(result).toHaveLength(2)
+    expect(result.map(i => i.title)).toEqual(["A", "B"])
+  })
+
+  test("filters below high threshold", () => {
+    const result = filterByConfidence(issues, "high")
+    expect(result).toHaveLength(1)
+    expect(result[0].title).toBe("A")
+  })
+
+  test("returns all with low threshold", () => {
+    const result = filterByConfidence(issues, "low")
+    expect(result).toHaveLength(3)
   })
 })

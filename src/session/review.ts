@@ -457,9 +457,10 @@ async function runSingleAgent(
           message: issue.message || "",
           fix: issue.fix,
           patch: issue.patch,
+          confidence: issue.confidence || "high",
         }))
 
-    return issues.map((issue) => ({ ...issue, agent: agent.name }))
+    return issues.map((issue) => ({ ...issue, agent: agent.name, confidence: issue.confidence || "high" }))
   } finally {
     // Clean up session — don't pollute the OpenCode session list
     try {
@@ -536,7 +537,7 @@ ${fileContext}`
 
     const time = performance.now() - start
     const verifiedIssues = validated.success
-      ? validated.data.map((i) => ({ ...i, agent: i.agent || "verified" }))
+      ? validated.data.map((i) => ({ ...i, agent: i.agent || "verified", confidence: i.confidence || "high" }))
       : issues
 
     bus.publish("agent.completed", {
@@ -572,6 +573,16 @@ function dedup(issues: Issue[]): Issue[] {
     }
   }
   return Array.from(seen.values())
+}
+
+const CONFIDENCE_RANK: Record<string, number> = { high: 0, medium: 1, low: 2 }
+
+export function filterByConfidence(issues: Issue[], minConfidence: string): Issue[] {
+  const threshold = CONFIDENCE_RANK[minConfidence] ?? 1
+  return issues.filter(issue => {
+    const rank = CONFIDENCE_RANK[issue.confidence || "high"] ?? 0
+    return rank <= threshold
+  })
 }
 
 const SEVERITY_RANK: Record<string, number> = {
@@ -973,6 +984,9 @@ export async function runReview(
 
     // Dedup
     let processedIssues = dedup(allIssues)
+
+    // Filter by confidence threshold
+    processedIssues = filterByConfidence(processedIssues, config.review.minConfidence)
 
     // Apply suppression rules
     let suppressed = 0
