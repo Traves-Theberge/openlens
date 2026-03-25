@@ -33,10 +33,12 @@ function formatIssue(issue: Issue): string {
     ? `${issue.file}:${issue.line}-${issue.endLine}`
     : `${issue.file}:${issue.line}`
 
+  const conf = issue.confidence && issue.confidence !== "high" ? ` (${issue.confidence} confidence)` : ""
+
   const lines: string[] = []
 
   lines.push(
-    `  ${color}${BOLD}${label}${RESET}  ${WHITE}${location}${RESET}  ${DIM}[${issue.agent}]${RESET}`
+    `  ${color}${BOLD}${label}${conf}${RESET}  ${WHITE}${location}${RESET}  ${DIM}[${issue.agent}]${RESET}`
   )
   lines.push(`  ${issue.title}`)
   if (issue.message) {
@@ -174,6 +176,8 @@ export function formatSarif(result: ReviewResult): string {
               },
             },
           ],
+          rank: issue.confidence === "high" ? 90.0 : issue.confidence === "medium" ? 50.0 : 10.0,
+          properties: { confidence: issue.confidence || "high" },
           ...(issue.patch
             ? {
                 fixes: [
@@ -246,7 +250,8 @@ function formatMarkdownIssue(issue: Issue, repo?: string, sha?: string): string 
 
   const lines: string[] = []
 
-  lines.push(`${emoji} **${badge}**: ${issue.title}`)
+  const confLabel = issue.confidence && issue.confidence !== "high" ? ` (${issue.confidence} confidence)` : ""
+  lines.push(`${emoji} **${badge}${confLabel}**: ${issue.title}`)
   lines.push(`${link} | \`${issue.agent}\``)
   lines.push("")
 
