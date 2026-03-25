@@ -60,6 +60,7 @@ export const ConfigSchema = z.object({
       verify: z.boolean().default(true),
       timeoutMs: z.number().default(180_000),
       maxConcurrency: z.number().int().min(1).default(4),
+      minConfidence: z.enum(["high", "medium", "low"]).default("medium"),
       rules: z
         .object({
           enabled: z.boolean().default(true),
