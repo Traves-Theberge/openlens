@@ -59,7 +59,7 @@ Capped at 10 files / 5000 lines per agent.
 
 `plugins/` contains thin adapters for AI coding platforms:
 
-- `plugins/claude-code/openlens.md` — Claude Code `/openlens` slash command
+- `plugins/claude-code/SKILL.md` — Claude Code `/openlens` slash command
 - `plugins/codex/` — Codex CLI plugin manifest + tools
 - `plugins/gemini/` — Gemini CLI tool registration
 

@@ -3,7 +3,7 @@
 OpenLens integrates with four AI coding platforms as a plugin:
 
 - **OpenCode** -- built-in plugin via `src/plugin.ts`
-- **Claude Code** -- slash command skill via `plugins/claude-code/openlens.md`
+- **Claude Code** -- slash command skill via `plugins/claude-code/SKILL.md`
 - **Codex CLI** -- registered tool via `plugins/codex/`
 - **Gemini CLI** -- registered tool via `plugins/gemini/`
 
@@ -28,18 +28,16 @@ When you type `/openlens` in Claude Code, it reads the skill definition and runs
 
 ### Installation
 
-Copy or symlink the skill file into your Claude Code skills directory:
+Copy or symlink the skill directory into Claude Code's skills folder:
 
 ```bash
-mkdir -p ~/.claude/skills/openlens
-cp plugins/claude-code/openlens.md ~/.claude/skills/openlens/openlens.md
+cp -r plugins/claude-code ~/.claude/skills/openlens
 ```
 
 Or with a symlink (keeps it in sync with the repo):
 
 ```bash
-mkdir -p ~/.claude/skills/openlens
-ln -s "$(pwd)/plugins/claude-code/openlens.md" ~/.claude/skills/openlens/openlens.md
+ln -s "$(pwd)/plugins/claude-code" ~/.claude/skills/openlens
 ```
 
 ### Usage
@@ -54,7 +52,7 @@ ln -s "$(pwd)/plugins/claude-code/openlens.md" ~/.claude/skills/openlens/openlen
 
 ### How it works
 
-The skill file (`plugins/claude-code/openlens.md`) contains YAML frontmatter with the skill name and description, followed by instructions that tell Claude Code to execute:
+The skill file (`plugins/claude-code/SKILL.md`) contains YAML frontmatter with the skill name and description, followed by instructions that tell Claude Code to execute:
 
 ```
 openlens run --staged --format text

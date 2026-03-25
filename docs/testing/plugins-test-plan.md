@@ -4,7 +4,7 @@ Test plan for validating OpenLens platform plugins (Claude Code, Codex CLI, Gemi
 
 ---
 
-## 1. Claude Code Plugin (`plugins/claude-code/openlens.md`)
+## 1. Claude Code Plugin (`plugins/claude-code/SKILL.md`)
 
 ### Installation
 
@@ -33,7 +33,7 @@ cp -r node_modules/openlens/plugins/claude-code/ ~/.claude/skills/openlens/
 
 ```bash
 # Quick check — parse YAML frontmatter
-head -4 plugins/claude-code/openlens.md
+head -4 plugins/claude-code/SKILL.md
 # Should show:
 # ---
 # name: openlens
@@ -120,7 +120,7 @@ bun build plugins/gemini/tool.ts --outdir /tmp 2>&1 | tail -1
 | # | Test | Expected | Pass? |
 |---|------|----------|-------|
 | 5.1 | `plugins/` in package.json `files` array | Yes — plugins included in npm package | |
-| 5.2 | `npm pack --dry-run` | Lists `plugins/claude-code/openlens.md`, `plugins/codex/*`, `plugins/gemini/*` | |
+| 5.2 | `npm pack --dry-run` | Lists `plugins/claude-code/SKILL.md`, `plugins/codex/*`, `plugins/gemini/*` | |
 | 5.3 | After `npm install openlens` | Plugins available at `node_modules/openlens/plugins/` | |
 
 ### Quick Validation
