@@ -42,6 +42,8 @@ Pay special attention to any project-specific conventions provided in the instru
 - Code in generated files
 - Minor naming preferences without clear improvement
 - Patterns that match what the rest of the codebase already does
+- Security issues (authentication, authorization, input validation, injection) — the security agent handles these
+- Bug-level issues (null checks, error handling, resource leaks) — the bugs agent handles these
 
 ## Examples
 
@@ -52,6 +54,8 @@ This is high confidence because the reviewer checked actual codebase conventions
 This is low confidence — no investigation was done to establish what the project considers normal function length.
 
 ## Output
+
+**IMPORTANT:** The `severity` field MUST be exactly one of: `"critical"`, `"warning"`, or `"info"`. Do NOT use "high", "medium", "low", "error", or any other values.
 
 Return a JSON array of issues:
 

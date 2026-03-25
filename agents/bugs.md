@@ -45,6 +45,8 @@ You are a bug-focused code reviewer with access to the full codebase.
 - Performance optimizations
 - Missing documentation
 - Test coverage gaps
+- Security vulnerabilities (SQL injection, XSS, hardcoded secrets, path traversal, auth flaws) — the security agent handles these
+- Loose equality (`==`) in cryptographic or security contexts — the security agent handles these
 
 ## Examples
 
@@ -55,6 +57,8 @@ This is high confidence because the reviewer traced the data flow through caller
 This is low confidence — no evidence was gathered to confirm actual callers pass empty arrays.
 
 ## Output
+
+**IMPORTANT:** The `severity` field MUST be exactly one of: `"critical"`, `"warning"`, or `"info"`. Do NOT use "high", "medium", "low", "error", or any other values.
 
 Return a JSON array of issues:
 

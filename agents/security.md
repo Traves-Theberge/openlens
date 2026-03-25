@@ -56,6 +56,8 @@ This is low confidence — no evidence was gathered to support the claim.
 
 ## Output
 
+**IMPORTANT:** The `severity` field MUST be exactly one of: `"critical"`, `"warning"`, or `"info"`. Do NOT use "high", "medium", "low", "error", or any other values.
+
 Return a JSON array of issues:
 
 ```json
