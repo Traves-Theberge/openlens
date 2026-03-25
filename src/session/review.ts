@@ -147,12 +147,6 @@ function permissionToTools(permission: Record<string, any>): Record<string, bool
   return tools
 }
 
-// Get list of allowed tool names from permission map
-function getAllowedToolNames(permission: Record<string, any>): string[] {
-  return Object.entries(permission)
-    .filter(([_, v]) => v === "allow")
-    .map(([k]) => k)
-}
 
 // Wait for session to become idle.
 // Try SSE event streaming first (instant notification), fall back to status polling.
