@@ -1384,7 +1384,7 @@ OpenLens can run as a plugin inside [OpenCode](https://github.com/anomalyco/open
 
 OpenLens ships with plugins for popular AI coding platforms:
 
-**Claude Code** — Add `/review` as a slash command:
+**Claude Code** — Add `/openlens` as a slash command:
 ```
 # Copy the plugin to your Claude Code skills directory
 cp -r node_modules/openlens/plugins/claude-code/ ~/.claude/skills/openlens/

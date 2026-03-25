@@ -1,5 +1,5 @@
 ---
-name: review
+name: openlens
 description: Run OpenLens AI code review on current changes
 ---
 
@@ -7,11 +7,11 @@ Run an OpenLens code review on your current git changes.
 
 ## Usage
 
-- `/review` — review staged changes (default)
-- `/review --unstaged` — review unstaged changes
-- `/review --branch main` — review diff against a branch
-- `/review --agents security,bugs` — run specific agents only
-- `/review --no-verify` — skip verification pass
+- `/openlens` — review staged changes (default)
+- `/openlens --unstaged` — review unstaged changes
+- `/openlens --branch main` — review diff against a branch
+- `/openlens --agents security,bugs` — run specific agents only
+- `/openlens --no-verify` — skip verification pass
 
 ## How to execute
 

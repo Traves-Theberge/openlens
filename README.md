@@ -657,7 +657,7 @@ agents/                   # Built-in agent prompts
 
 plugins/                  # Platform integrations
 ├── claude-code/
-│   └── review.md         # Claude Code /review skill
+│   └── openlens.md       # Claude Code /openlens skill
 ├── codex/
 │   ├── plugin.json       # Codex plugin manifest
 │   └── tools.ts          # Codex tool wrapper
