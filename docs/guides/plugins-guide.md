@@ -64,83 +64,67 @@ User-provided flags like `--unstaged` or `--branch main` are passed through dire
 
 ## Codex CLI
 
-The Codex plugin registers `openlens-review` as a callable tool.
+The Codex plugin adds `$openlens` as a skill that Codex can invoke.
 
 ### What it does
 
-Codex can invoke `openlens-review` during a session. The tool shells out to the `openlens` CLI, returns JSON results, and Codex uses those results in its reasoning.
+When you type `$openlens` or ask Codex to review your code, it runs the `openlens` CLI and presents the results.
 
-### Setup
+### Installation
 
-Reference the plugin manifest in your Codex configuration. The manifest lives at `plugins/codex/plugin.json` and declares the tool with its parameters:
+Copy the skill to your Codex skills directory:
 
-```json
-{
-  "name": "openlens",
-  "description": "AI-powered code review using specialized agents",
-  "tools": [
-    {
-      "name": "openlens-review",
-      "description": "Run code review on staged, unstaged, or branch changes",
-      "parameters": {
-        "mode": { "type": "string", "enum": ["staged", "unstaged", "branch"], "default": "staged" },
-        "agents": { "type": "string", "description": "Comma-separated agent names to run" },
-        "branch": { "type": "string", "description": "Branch to diff against (required when mode is branch)" }
-      }
-    }
-  ]
-}
+```bash
+cp -r plugins/codex ~/.codex/skills/openlens
 ```
 
 ### Usage
 
-Codex calls the tool automatically when appropriate, or you can prompt it:
-
 ```
-Review my staged changes with openlens
-Review the diff against main using the security agent
+$openlens                              # review staged changes
+$openlens review against main          # review branch diff
+$openlens just check security          # run specific agents
 ```
 
-Codex passes parameters to the tool:
+Or just ask naturally — Codex auto-matches the skill when you say "review my code", "check for bugs", etc.
 
-| Parameter | Description | Example |
-|-----------|-------------|---------|
-| `mode` | `"staged"`, `"unstaged"`, or `"branch"` | `"branch"` |
-| `agents` | Comma-separated agent names | `"security,bugs"` |
-| `branch` | Base branch for branch mode | `"main"` |
+### Note
 
-### The tools.ts wrapper
-
-The wrapper at `plugins/codex/tools.ts` exports an `openlensReview` function that:
-
-1. Builds the CLI arguments starting with `run --format json`
-2. Appends `--unstaged`, `--branch <name>`, or `--staged` based on the `mode` parameter
-3. Appends `--agents <names>` if provided
-4. Executes `openlens` via `execSync` with a 5-minute timeout
-5. Returns the raw JSON output, or a JSON error object on failure
+Codex runs commands in a sandbox by default. OpenLens needs network access to call AI models. Use `codex --full-auto` or approve network access when prompted.
 
 ---
 
 ## Gemini CLI
 
-The Gemini plugin registers `review` as a callable tool. It follows the same pattern as the Codex plugin.
+The Gemini plugin adds `/openlens` as a custom command.
 
 ### What it does
 
-Gemini can invoke the `review` tool during a session to run OpenLens code review and incorporate the results into its response.
+When you type `/openlens` in Gemini CLI, it runs `openlens run --staged --format json`, then Gemini analyzes and summarizes the results.
 
-### Setup
+### Installation
 
-Reference the tool file at `plugins/gemini/tool.ts` in your Gemini CLI configuration.
+Copy the command file to your project's `.gemini/commands/` directory:
+
+```bash
+mkdir -p .gemini/commands
+cp plugins/gemini/openlens.toml .gemini/commands/openlens.toml
+```
+
+Or for global access:
+
+```bash
+mkdir -p ~/.gemini/commands
+cp plugins/gemini/openlens.toml ~/.gemini/commands/openlens.toml
+```
 
 ### Usage
 
-Prompt Gemini to review your changes:
+```
+/openlens                    # review staged changes
+```
 
-```
-Review my code changes
-Run a security review on the diff against main
-```
+The `{{args}}` placeholder captures any user input after the command name.
 
 The tool accepts the same parameters as the Codex plugin: `mode`, `agents`, and `branch`.
 

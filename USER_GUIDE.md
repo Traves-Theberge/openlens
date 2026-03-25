@@ -1385,16 +1385,30 @@ OpenLens can run as a plugin inside [OpenCode](https://github.com/anomalyco/open
 OpenLens ships with plugins for popular AI coding platforms:
 
 **Claude Code** — Add `/openlens` as a slash command:
+```bash
+# Symlink the skill directory
+ln -s /path/to/OpenLens/plugins/claude-code ~/.claude/skills/openlens
 ```
-# Copy the plugin to your Claude Code skills directory
-cp -r node_modules/openlens/plugins/claude-code/ ~/.claude/skills/openlens/
+Then type `/openlens` in Claude Code to run a review.
+
+**Codex CLI** — Add `$openlens` as a skill:
+```bash
+# Copy the skill directory
+cp -r /path/to/OpenLens/plugins/codex ~/.codex/skills/openlens
 ```
+Then type `$openlens` in Codex to run a review. Requires `--full-auto` or approving network access.
 
-**Codex CLI** — Register as a Codex tool using `plugins/codex/plugin.json`.
+**Gemini CLI** — Add `/openlens` as a custom command:
+```bash
+# Copy the command file to your project
+cp -r /path/to/OpenLens/plugins/gemini/.gemini/commands/ .gemini/commands/
+# Or copy just the file
+mkdir -p .gemini/commands
+cp /path/to/OpenLens/plugins/gemini/openlens.toml .gemini/commands/openlens.toml
+```
+Then type `/openlens` in Gemini CLI to run a review.
 
-**Gemini CLI** — Register as a Gemini tool using `plugins/gemini/tool.ts`.
-
-All plugins call `openlens run --format json` and return structured results.
+All plugins invoke the `openlens` CLI directly. Ensure `openlens` is installed and in your PATH.
 
 ---
 

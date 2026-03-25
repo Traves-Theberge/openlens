@@ -659,10 +659,9 @@ plugins/                  # Platform integrations
 ├── claude-code/
 │   └── SKILL.md          # Claude Code /openlens skill
 ├── codex/
-│   ├── plugin.json       # Codex plugin manifest
-│   └── tools.ts          # Codex tool wrapper
+│   └── SKILL.md          # Codex CLI $openlens skill
 └── gemini/
-    └── tool.ts           # Gemini CLI tool wrapper
+    └── openlens.toml     # Gemini CLI /openlens command
 ```
 
 ## Development

@@ -1,0 +1,12 @@
+description = "Run OpenLens AI code review on current changes"
+
+prompt = """
+Run an OpenLens code review. Analyze the results and present them clearly to the user.
+
+{{args}}
+
+Review output:
+!{openlens run --staged --format json}
+
+Summarize the issues found by severity. For each issue show the file, line, severity, title, and suggested fix. If no issues were found, say so.
+"""

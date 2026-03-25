@@ -60,10 +60,10 @@ Capped at 10 files / 5000 lines per agent.
 `plugins/` contains thin adapters for AI coding platforms:
 
 - `plugins/claude-code/SKILL.md` — Claude Code `/openlens` slash command
-- `plugins/codex/` — Codex CLI plugin manifest + tools
-- `plugins/gemini/` — Gemini CLI tool registration
+- `plugins/codex/SKILL.md` — Codex CLI `$openlens` skill
+- `plugins/gemini/openlens.toml` — Gemini CLI `/openlens` custom command
 
-All plugins shell out to `openlens run --format json` or call the library API directly.
+All plugins invoke the `openlens` CLI. Claude Code and Codex use SKILL.md files, Gemini uses a TOML command with `!{shell}` execution.
 
 ### Package Exports
 
