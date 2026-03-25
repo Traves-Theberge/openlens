@@ -1,8 +1,9 @@
 // Public library API
-export { runReview, runSingleAgentReview } from "./session/review.js"
+export { runReview, runSingleAgentReview, filterByConfidence } from "./session/review.js"
 export { loadConfig, loadInstructions } from "./config/config.js"
 export { discoverRules, formatDiscoveredRules } from "./config/rules.js"
 export type { RulesDiscoveryConfig, DiscoveredRule } from "./config/rules.js"
+export { gatherStrategyContext } from "./context/strategy.js"
 export { loadAgents, filterAgents, excludeAgents } from "./agent/agent.js"
 export { getDiff, getAutoDetectedDiff, getDiffStats } from "./tool/diff.js"
 export { formatText, formatJson, formatSarif, formatMarkdown } from "./output/format.js"
