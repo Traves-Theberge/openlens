@@ -15,6 +15,13 @@ import { spawn } from "child_process"
 import fs from "fs/promises"
 import path from "path"
 
+const DEBUG = !!process.env.OPENLENS_DEBUG
+function debug(...args: any[]) {
+  if (!DEBUG) return
+  const ts = new Date().toISOString().slice(11, 23)
+  console.error(`  [debug ${ts}]`, ...args)
+}
+
 function parseModel(model: string): { providerID: string; modelID: string } {
   const slash = model.indexOf("/")
   if (slash === -1) return { providerID: "opencode", modelID: model }
@@ -148,48 +155,70 @@ function getAllowedToolNames(permission: Record<string, any>): string[] {
 
 // Wait for session to become idle.
 // Try SSE event streaming first (instant notification), fall back to status polling.
+// Emits agent.progress events for live CLI output.
 async function waitForSession(
   client: OpencodeClient,
   sessionId: string,
-  timeoutMs: number
+  timeoutMs: number,
+  agentName?: string
 ): Promise<void> {
   const start = Date.now()
 
+  debug(`waitForSession: ${sessionId} (agent=${agentName}, timeout=${timeoutMs}ms)`)
+
   // Try SSE event streaming for instant notification
   try {
+    debug("attempting SSE connection...")
     const resolved = await Promise.race([
-      waitViaSSE(client, sessionId),
+      waitViaSSE(client, sessionId, agentName),
       timeout(timeoutMs),
     ])
     if (resolved === "timeout") {
+      debug("SSE path timed out")
       try { await client.session.abort({ path: { id: sessionId } }) } catch {}
       throw new Error(`Session ${sessionId} timed out after ${timeoutMs}ms`)
     }
+    debug("SSE resolved successfully")
     return
   } catch (err: any) {
     // SSE not available or failed — fall back to status polling
+    debug(`SSE failed: ${err.message}`)
     if (err.message?.includes("timed out")) throw err
   }
 
   // Fallback: poll session.status()
+  debug("falling back to status polling")
   let delay = 300
   const maxDelay = 3000
+  let pollCount = 0
 
   while (Date.now() - start < timeoutMs) {
     await new Promise((resolve) => setTimeout(resolve, delay))
     delay = Math.min(delay * 1.5, maxDelay)
+    pollCount++
 
     try {
       const statusRes = await client.session.status()
       const statuses = await statusRes.data
-      if (!statuses) continue
+      if (!statuses) { debug(`poll #${pollCount}: no statuses`); continue }
 
       const sessionStatus = statuses[sessionId]
-      if (!sessionStatus) continue
+      if (!sessionStatus) {
+        // Log what sessions we DO see
+        if (pollCount <= 3 || pollCount % 10 === 0) {
+          const ids = Object.keys(statuses)
+          debug(`poll #${pollCount}: session ${sessionId} not found in ${ids.length} sessions: ${ids.slice(0, 3).join(", ")}`)
+        }
+        continue
+      }
+
+      if (pollCount <= 5 || pollCount % 10 === 0) {
+        debug(`poll #${pollCount}: session status=${JSON.stringify(sessionStatus).slice(0, 200)}`)
+      }
 
       if (sessionStatus.type === "idle") return
-    } catch {
-      // Network error — retry
+    } catch (err: any) {
+      debug(`poll #${pollCount}: error: ${err.message}`)
     }
   }
 
@@ -197,24 +226,87 @@ async function waitForSession(
   throw new Error(`Session ${sessionId} timed out after ${timeoutMs}ms`)
 }
 
+// Extract progress info from an SSE event and emit it via bus
+function emitProgress(event: any, sessionId: string, agentName?: string): void {
+  if (!agentName) return
+  const props = event?.properties
+  if (!props) return
+
+  // Filter to only events for our session
+  const part = props.part
+  if (part && part.sessionID !== sessionId) return
+
+  if (event.type === "message.part.updated" && part) {
+    if (part.type === "tool") {
+      const toolName = part.tool || "unknown"
+      const state = part.state
+      if (state?.status === "running" || state?.status === "pending") {
+        // Show what tool is being called and with what input
+        const input = state.input || {}
+        let detail = toolName
+        if (toolName === "read" && input.file_path) {
+          detail = `read ${input.file_path}`
+        } else if (toolName === "grep" && input.pattern) {
+          detail = `grep "${input.pattern}"`
+        } else if (toolName === "glob" && input.pattern) {
+          detail = `glob ${input.pattern}`
+        } else if (toolName === "list" && input.path) {
+          detail = `list ${input.path}`
+        }
+        bus.publish("agent.progress", { name: agentName, kind: "tool", detail })
+      }
+    } else if (part.type === "step-start") {
+      bus.publish("agent.progress", { name: agentName, kind: "step", detail: "thinking..." })
+    } else if (part.type === "step-finish") {
+      const tokens = part.tokens
+      const detail = tokens
+        ? `step done (${Number(tokens.input) + Number(tokens.output)} tokens)`
+        : "step done"
+      bus.publish("agent.progress", { name: agentName, kind: "step-done", detail })
+    }
+  }
+}
+
 // SSE-based wait: subscribe to events and resolve when session becomes idle
 async function waitViaSSE(
   client: OpencodeClient,
-  sessionId: string
+  sessionId: string,
+  agentName?: string
 ): Promise<void> {
-  const stream = await client.event.subscribe()
-  const reader = (stream as any)?.getReader?.() || (stream as any)?.[Symbol.asyncIterator]?.()
+  debug("SSE: calling client.event.subscribe()...")
+  const streamResult = await client.event.subscribe()
+  debug(`SSE: got result, type=${typeof streamResult}, keys=${streamResult ? Object.keys(streamResult).slice(0, 10) : 'null'}`)
 
-  if (!reader) throw new Error("SSE not available")
+  // The SDK may return { stream: ReadableStream } or a ReadableStream directly or an AsyncIterable
+  const rawStream = (streamResult as any)?.stream || streamResult
+  debug(`SSE: rawStream type=${typeof rawStream}, keys=${rawStream ? Object.keys(rawStream).slice(0, 10) : 'null'}`)
+
+  const reader =
+    (typeof rawStream?.getReader === "function" ? rawStream.getReader() : null) ||
+    (rawStream?.[Symbol.asyncIterator] ? rawStream[Symbol.asyncIterator]() : null) ||
+    (typeof rawStream?.read === "function" ? rawStream : null)
+
+  if (!reader) {
+    debug(`SSE: no reader available from rawStream`)
+    throw new Error("SSE not available")
+  }
+  debug(`SSE: reader acquired, hasRead=${typeof reader.read}, hasNext=${typeof reader.next}`)
 
   try {
     // Handle both ReadableStream and AsyncIterator patterns
     if (typeof reader.read === "function") {
       // ReadableStream reader
+      debug("SSE: using ReadableStream reader")
+      let eventCount = 0
       while (true) {
         const { done, value } = await reader.read()
-        if (done) break
+        if (done) { debug("SSE: stream done"); break }
+        eventCount++
         const event = (value as any)?.payload || value
+        const evtType = event?.type || "unknown"
+        const evtSession = event?.properties?.sessionID || event?.properties?.part?.sessionID || "?"
+        debug(`SSE event #${eventCount}: type=${evtType} session=${evtSession} (want=${sessionId})`)
+        emitProgress(event, sessionId, agentName)
         if (
           event?.type === "session.idle" &&
           event?.properties?.sessionID === sessionId
@@ -227,8 +319,15 @@ async function waitViaSSE(
       }
     } else {
       // AsyncIterator
+      debug("SSE: using AsyncIterator")
+      let eventCount = 0
       for await (const value of reader) {
+        eventCount++
         const event = (value as any)?.payload || value
+        const evtType = event?.type || "unknown"
+        const evtSession = event?.properties?.sessionID || event?.properties?.part?.sessionID || "?"
+        debug(`SSE event #${eventCount}: type=${evtType} session=${evtSession} (want=${sessionId})`)
+        emitProgress(event, sessionId, agentName)
         if (
           event?.type === "session.idle" &&
           event?.properties?.sessionID === sessionId
@@ -244,6 +343,7 @@ async function waitViaSSE(
     try {
       if (typeof reader.cancel === "function") reader.cancel()
       else if (typeof reader.return === "function") reader.return()
+      else if (typeof (reader as any).close === "function") (reader as any).close()
     } catch {}
   }
 }
@@ -290,6 +390,7 @@ async function runSingleAgent(
   mcpToolIds?: Set<string>,
   availableSubagents?: Agent[]
 ): Promise<Issue[]> {
+  debug(`runSingleAgent: creating session for ${agent.name}`)
   const sessionRes = await client.session.create({
     body: { title: `openlens-${agent.name}` },
   })
@@ -297,6 +398,7 @@ async function runSingleAgent(
   if (!session?.id) {
     throw new Error(`Failed to create session for agent ${agent.name}`)
   }
+  debug(`runSingleAgent: session created: ${session.id}`)
 
   try {
     const tools = permissionToTools(agent.permission)
@@ -325,7 +427,8 @@ async function runSingleAgent(
     const model = parseModel(agent.model)
 
     // Use promptAsync to fire-and-forget, then poll status
-    await client.session.promptAsync({
+    debug(`runSingleAgent: sending promptAsync (model=${model.providerID}/${model.modelID}, tools=${Object.keys(tools).filter(k => tools[k]).length})`)
+    const promptRes = await client.session.promptAsync({
       path: { id: session.id },
       body: {
         // System prompt goes in the system field — not baked into user message
@@ -335,8 +438,9 @@ async function runSingleAgent(
         tools,
       },
     })
+    debug(`runSingleAgent: promptAsync response status=${promptRes?.response?.status}`)
 
-    await waitForSession(client, session.id, timeoutMs)
+    await waitForSession(client, session.id, timeoutMs, agent.name)
 
     const responseText = await getSessionResponse(client, session.id)
     const rawIssues = extractJsonArray(responseText)
@@ -425,7 +529,7 @@ ${fileContext}`
       },
     })
 
-    await waitForSession(client, session.id, config.review.timeoutMs)
+    await waitForSession(client, session.id, config.review.timeoutMs, "verifier")
     const responseText = await getSessionResponse(client, session.id)
     const verified = extractJsonArray(responseText)
     const validated = IssueArraySchema.safeParse(verified)

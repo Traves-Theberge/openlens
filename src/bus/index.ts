@@ -48,6 +48,11 @@ export function createBus<
 export type ReviewEvents = {
   "review.started": { agents: string[] }
   "agent.started": { name: string }
+  "agent.progress": {
+    name: string
+    kind: "tool" | "text" | "step" | "step-done"
+    detail: string
+  }
   "agent.completed": {
     name: string
     issueCount: number

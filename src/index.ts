@@ -28,11 +28,23 @@ function fatal(msg: string): never {
 
 yargs(hideBin(process.argv))
   .scriptName("openlens")
-  .usage("$0 <command> [options]")
+  .usage(`${B}openlens${R} — AI-powered code review using specialized agents
+
+Usage: $0 <command> [options]
+
+Run multiple AI agents in parallel to review your code changes for
+security vulnerabilities, bugs, performance issues, and style problems.
+Works with staged, unstaged, or branch diffs.
+
+${B}Quick start:${R}
+  $0 init                 Set up OpenLens in your project
+  $0 run --staged         Review staged changes
+  $0 run --branch main    Review diff against main branch
+  $0 doctor               Verify your environment is ready`)
 
   .command(
     "run",
-    "Run code review",
+    "Run AI code review on your changes (staged, unstaged, or branch diff)",
     (y) =>
       y
         .option("staged", {
@@ -202,6 +214,10 @@ yargs(hideBin(process.argv))
         bus.subscribe("agent.started", (evt) => {
           process.stdout.write(`  ${D}●${R} ${evt.name}  reviewing...\n`)
         })
+        bus.subscribe("agent.progress", (evt) => {
+          const icon = evt.kind === "tool" ? "→" : evt.kind === "step-done" ? "◆" : "·"
+          process.stdout.write(`  ${D}  ${icon} ${evt.name}  ${evt.detail}${R}\n`)
+        })
         bus.subscribe("agent.completed", (evt) => {
           console.log(
             `  ${G}✓${R} ${evt.name}  ${evt.issueCount} issues (${(evt.time / 1000).toFixed(1)}s)`
@@ -244,11 +260,11 @@ yargs(hideBin(process.argv))
     }
   )
 
-  .command("agent", "Manage review agents", (y) =>
+  .command("agent", "Manage review agents (list, create, test, enable/disable)", (y) =>
     y
       .command(
         "list",
-        "List configured review agents",
+        "Show all configured agents with their models, permissions, and steps",
         (yy) => yy,
         async () => {
           let config
@@ -285,7 +301,7 @@ yargs(hideBin(process.argv))
 
       .command(
         "create <name>",
-        "Create a new review agent",
+        "Scaffold a new agent with prompt template and config entry",
         (yy) =>
           yy
             .positional("name", {
@@ -419,7 +435,7 @@ If no issues found, return \`[]\`
 
       .command(
         "test <name>",
-        "Test a single agent on current changes",
+        "Run a single agent against current changes to debug or iterate on its prompt",
         (yy) =>
           yy
             .positional("name", {
@@ -512,6 +528,10 @@ If no issues found, return \`[]\`
           bus.subscribe("agent.started", () => {
             process.stdout.write(`  ${D}●${R} ${name}  reviewing...\n`)
           })
+          bus.subscribe("agent.progress", (evt) => {
+            const icon = evt.kind === "tool" ? "→" : evt.kind === "step-done" ? "◆" : "·"
+            process.stdout.write(`  ${D}  ${icon} ${evt.name}  ${evt.detail}${R}\n`)
+          })
           bus.subscribe("agent.completed", (evt) => {
             console.log(
               `  ${G}✓${R} ${name}  ${evt.issueCount} issues (${(evt.time / 1000).toFixed(1)}s)`
@@ -537,7 +557,7 @@ If no issues found, return \`[]\`
 
       .command(
         "validate",
-        "Validate all agent configurations",
+        "Check all agent configs for errors (missing prompts, bad models, no tools)",
         (yy) => yy,
         async () => {
           const cwd = process.cwd()
@@ -644,7 +664,7 @@ If no issues found, return \`[]\`
 
       .command(
         "enable <name>",
-        "Enable a disabled agent",
+        "Re-enable a previously disabled agent in openlens.json",
         (yy) =>
           yy.positional("name", {
             type: "string",
@@ -686,7 +706,7 @@ If no issues found, return \`[]\`
 
       .command(
         "disable <name>",
-        "Disable an agent",
+        "Disable an agent so it won't run during reviews",
         (yy) =>
           yy.positional("name", {
             type: "string",
@@ -723,7 +743,7 @@ If no issues found, return \`[]\`
 
   .command(
     "init",
-    "Initialize OpenLens in current project",
+    "Set up OpenLens in your project (creates openlens.json and agents/ directory with default agents)",
     (y) => y,
     async () => {
       const cwd = process.cwd()
@@ -807,7 +827,7 @@ If no issues found, return \`[]\`
 
   .command(
     "serve",
-    "Start HTTP server",
+    "Start an HTTP API server for running reviews programmatically (POST /review, GET /agents, GET /health)",
     (y) =>
       y
         .option("port", {
@@ -855,7 +875,7 @@ If no issues found, return \`[]\`
 
   .command(
     "models",
-    "List available models from OpenCode",
+    "List all available AI models from OpenCode (free and paid)",
     (y) => y,
     async () => {
       const { resolveOpencodeBin } = await import("./env.js")
@@ -889,7 +909,7 @@ If no issues found, return \`[]\`
 
   .command(
     "doctor",
-    "Check environment and configuration",
+    "Diagnose your setup — checks git, opencode binary, API keys, config, and agents",
     (y) => y,
     async () => {
       const cwd = process.cwd()
@@ -993,8 +1013,18 @@ If no issues found, return \`[]\`
     }
   )
 
-  .demandCommand(1, "Please specify a command")
+  .demandCommand(1, "Please specify a command. Run openlens --help to see available commands.")
   .strict()
   .help()
+  .alias("h", "help")
   .version("0.1.0")
+  .alias("v", "version")
+  .example("$0 run --staged", "Review only staged (git add) changes")
+  .example("$0 run --branch main", "Review all changes vs main branch")
+  .example("$0 run --agents security,bugs", "Run only specific agents")
+  .example("$0 run --format sarif", "Output SARIF for GitHub Code Scanning")
+  .example("$0 agent test security --staged", "Test one agent in isolation")
+  .example("$0 agent create api-review", "Create a custom review agent")
+  .epilog(`${D}Docs: https://github.com/Traves-Theberge/OpenLens${R}`)
+  .wrap(Math.min(100, yargs(hideBin(process.argv)).terminalWidth()))
   .parse()
