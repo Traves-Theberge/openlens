@@ -510,6 +510,48 @@ graph TB
     Output -->|json| JSONOut
 ```
 
+## Platform Hooks
+
+OpenLens ships platform-specific hook configurations in the `hooks/` directory. These hooks trigger OpenLens reviews automatically on **git commit and push only** (not on file writes or other tool events).
+
+| File | Platform | Trigger |
+|------|----------|---------|
+| `hooks/claude-code-hooks.json` | Claude Code | Git commit and push |
+| `hooks/gemini-hooks.json` | Gemini CLI | Git commit and push |
+| `hooks/codex-hooks.json` | Codex CLI | Git commit and push |
+| `hooks/opencode-hooks.ts` | OpenCode | Git commit and push |
+
+### Claude Code Hooks
+
+Install by copying or symlinking `hooks/claude-code-hooks.json` to your project. Claude Code will run OpenLens automatically when you commit or push.
+
+### Codex CLI Hooks
+
+Uses `.codex/hooks.json` (JSON format). Copy `hooks/codex-hooks.json` to `.codex/hooks.json` in your project.
+
+### Gemini CLI Hooks
+
+Copy `hooks/gemini-hooks.json` to your Gemini CLI configuration directory.
+
+### OpenCode Hooks
+
+The `hooks/opencode-hooks.ts` file registers TypeScript hook handlers for the OpenCode runtime.
+
+### Skipping Hooks
+
+Set `OPENLENS_SKIP=1` to bypass hooks for a single operation:
+
+```bash
+OPENLENS_SKIP=1 git commit -m "wip"
+OPENLENS_SKIP=1 git push
+```
+
+Use `OPENLENS_AGENTS` to control which agents run during hook execution:
+
+```bash
+OPENLENS_AGENTS=security,bugs git commit -m "quick check"
+```
+
 ## Cross-references
 
 - [CLI Reference](6-cli-reference.md) for all command flags

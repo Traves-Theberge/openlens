@@ -91,7 +91,7 @@ The four built-in agents are defined as markdown prompt files in `agents/` and l
 
 | Interface | Entry Point | Description |
 |-----------|------------|-------------|
-| **CLI** | `src/index.ts` | yargs-based commands: `run`, `agent`, `diff`, `init`, `doctor`, `serve` |
+| **CLI** | `src/index.ts` | yargs-based commands: `run`, `agent`, `hooks`, `docs`, `init`, `doctor`, `serve`, `models` |
 | **Library** | `src/lib.ts` | Programmatic API exporting `runReview`, `loadConfig`, `formatText`, etc. |
 | **HTTP Server** | `src/server/server.ts` | Hono-based REST API for remote/CI integration |
 | **Plugins** | `plugins/` | Thin adapters that shell out to `openlens run --format json` |
@@ -149,6 +149,10 @@ OpenLens/
   hooks/
     pre-commit                   # Git hook: security+bugs on staged changes (~15s)
     pre-push                     # Git hook: all agents on branch diff (~60s)
+    claude-code-hooks.json       # Platform hook for Claude Code (git commit/push)
+    gemini-hooks.json            # Platform hook for Gemini CLI (git commit/push)
+    codex-hooks.json             # Platform hook for Codex CLI (git commit/push)
+    opencode-hooks.ts            # Platform hook for OpenCode (git commit/push)
   test/
     unit/                      # Unit tests (config, agents, diff, formatting, suppression)
     integration/               # Full review workflow tests
@@ -175,6 +179,7 @@ OpenLens/
 | MCP server support | Connect external tool servers via Model Context Protocol | `src/session/review.ts` lines 599-635 |
 | Event bus | Typed publish/subscribe for lifecycle events | `src/bus/index.ts` lines 7-45 |
 | Git hooks | Automatic pre-commit and pre-push review with `openlens hooks install` | `hooks/pre-commit`, `hooks/pre-push` |
+| Local docs server | `openlens docs` serves wiki locally with dark theme + mermaid diagrams | `src/index.ts` |
 | No API keys required | Default model `opencode/big-pickle` is free to use | `src/config/schema.ts` line 43 |
 
 ## Related Wiki Pages

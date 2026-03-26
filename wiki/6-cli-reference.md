@@ -23,6 +23,7 @@ This page documents every command, flag, environment variable, and exit code for
 | `openlens init` | Set up OpenLens in your project (creates openlens.json and agents/ directory) |
 | `openlens serve` | Start an HTTP API server for running reviews programmatically |
 | `openlens models` | List all available AI models from OpenCode (free and paid) |
+| `openlens docs` | Serve the wiki locally with dark theme and mermaid diagram support |
 | `openlens doctor` | Diagnose your setup -- checks git, opencode binary, API keys, config, and agents |
 
 ```mermaid
@@ -33,6 +34,7 @@ graph TD
     CLI --> hooks[hooks]
     CLI --> init[init]
     CLI --> serve[serve]
+    CLI --> docs[docs]
     CLI --> models[models]
     CLI --> doctor[doctor]
 
@@ -276,6 +278,14 @@ openlens models
 
 Source: [src/index.ts, lines 876-908](https://github.com/Traves-Theberge/OpenLens/blob/main/src/index.ts#L876-L908)
 
+## openlens docs
+
+Serve the OpenLens wiki locally. Launches a local HTTP server with dark theme styling and mermaid diagram rendering.
+
+```bash
+openlens docs
+```
+
 ## openlens doctor
 
 Diagnose your environment. Checks in order:
@@ -317,7 +327,8 @@ These are consumed during config loading and override corresponding config file 
 | Variable | Description |
 |----------|-------------|
 | `OPENLENS_MODE` | Override default review mode (`staged`, `unstaged`, `branch`, `auto`) |
-| `OPENLENS_AGENTS` | Comma-separated agent whitelist |
+| `OPENLENS_AGENTS` | Comma-separated agent whitelist (also used by git hooks to select agents) |
+| `OPENLENS_SKIP` | Set to `1` to skip OpenLens git hooks for a single operation |
 | `OPENLENS_FORMAT` | Override output format |
 | `OPENLENS_BASE_BRANCH` | Override base branch for branch mode |
 | `OPENLENS_VERIFY` | Set to `"false"` to skip verification |
@@ -366,4 +377,4 @@ Source: [src/env.ts](https://github.com/Traves-Theberge/OpenLens/blob/main/src/e
 | Flag | Description |
 |------|-------------|
 | `-h, --help` | Show help |
-| `-v, --version` | Show version (currently `0.1.1`) |
+| `-v, --version` | Show version (currently `2.0.0`) |
