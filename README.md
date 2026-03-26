@@ -1,20 +1,20 @@
 # OpenLens
 
-AI-powered code review that catches security holes, bugs, and performance issues before they merge — from your terminal, CI pipeline, or AI coding agent.
+AI-powered code review that catches security holes, bugs, and performance issues before they merge -from your terminal, CI pipeline, or AI coding agent.
 
 ## Overview
 
-OpenLens runs specialized AI agents in parallel against your git diffs. Each agent investigates your full codebase — grepping for callers, reading imports, checking related files — and only reports issues it can confirm. A verification pass cross-references findings between agents and filters false positives.
+OpenLens runs specialized AI agents in parallel against your git diffs. Each agent investigates your full codebase -grepping for callers, reading imports, checking related files -and only reports issues it can confirm. A verification pass cross-references findings between agents and filters false positives.
 
 It works everywhere: as a **CLI** (`openlens run`), a **library** (import into your own tools), an **HTTP server**, a **GitHub Action** with inline PR comments, and as a **native plugin** for **Claude Code**, **Codex**, **Gemini CLI**, and **OpenCode**. Git hooks and platform hooks automate reviews on every commit and push.
 
-Built on [OpenCode](https://github.com/anomalyco/opencode). Free models work out of the box — no API keys required.
+Built on [OpenCode](https://github.com/anomalyco/opencode). Free models work out of the box -no API keys required.
 
 ## Features
 
 - **Parallel Agent Execution**: Run security, bug, performance, and style agents concurrently
-- **Full Codebase Access**: Agents can read, grep, and glob your project — not just the diff
-- **Confidence Scoring**: Agents assess confidence per finding — filter noise with configurable thresholds
+- **Full Codebase Access**: Agents can read, grep, and glob your project -not just the diff
+- **Confidence Scoring**: Agents assess confidence per finding -filter noise with configurable thresholds
 - **Smart Context**: Per-agent context strategies auto-gather relevant files (auth modules, callers, linter configs)
 - **Multiple AI Providers**: Any model supported by OpenCode (Anthropic, OpenAI, Google, AWS Bedrock, Groq, and more)
 - **SARIF Output**: First-class CI/CD integration with GitHub Actions, GitLab CI, and other tools
@@ -341,17 +341,17 @@ openlens agent create a11y --description "Accessibility checker"
 
 | Field          | Type                                   | Default       | Description                          |
 | -------------- | -------------------------------------- | ------------- | ------------------------------------ |
-| `description`  | string                                 | —             | Human-readable description           |
+| `description`  | string                                 | -            | Human-readable description           |
 | `mode`         | `"primary"` \| `"subagent"` \| `"all"` | `"subagent"` | When the agent can run               |
 | `model`        | string                                 | Global model  | Provider/model-id (e.g. `opencode/big-pickle`) |
-| `prompt`       | string                                 | —             | Inline text or `{file:./path.md}`    |
+| `prompt`       | string                                 | -            | Inline text or `{file:./path.md}`    |
 | `steps`        | number                                 | `5`           | Max agentic loop iterations          |
-| `temperature`  | number                                 | —             | Sampling temperature (0–1)           |
-| `top_p`        | number                                 | —             | Nucleus sampling (0–1)               |
+| `temperature`  | number                                 | -            | Sampling temperature (0–1)           |
+| `top_p`        | number                                 | -            | Nucleus sampling (0–1)               |
 | `disable`      | boolean                                | `false`       | Turn off without deleting            |
 | `hidden`       | boolean                                | `false`       | Hide from listings (subagents only)  |
-| `color`        | string                                 | —             | Hex color or theme name              |
-| `context`      | string                                 | —             | Context strategy: security, bugs, performance, style |
+| `color`        | string                                 | -            | Hex color or theme name              |
+| `context`      | string                                 | -            | Context strategy: security, bugs, performance, style |
 | `permission`   | object                                 | Read-only     | Tool permissions for this agent      |
 
 ## CLI Reference
@@ -617,7 +617,7 @@ This registers four tools:
 
 ## Hooks
 
-OpenLens hooks automate code review on every commit and push — both from your terminal and from AI coding agents.
+OpenLens hooks automate code review on every commit and push -both from your terminal and from AI coding agents.
 
 ### Git Hooks
 
@@ -650,7 +650,7 @@ cp hooks/gemini-hooks.json .gemini/settings.json
 # Codex CLI
 mkdir -p .codex && cp hooks/codex-hooks.json .codex/hooks.json
 
-# OpenCode — copy hooks/opencode-hooks.ts into your plugin
+# OpenCode -copy hooks/opencode-hooks.ts into your plugin
 ```
 
 See the [Hooks Guide](docs/guides/hooks-guide.md) for full details on each platform.
@@ -801,7 +801,7 @@ bun test
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT -see [LICENSE](LICENSE).
 
 ## Contributing
 
