@@ -617,7 +617,7 @@ This registers four tools:
 
 ## Hooks
 
-OpenLens hooks automate code review at two levels: **git hooks** block bad commits, and **platform hooks** review as AI agents write code.
+OpenLens hooks automate code review on every commit and push — both from your terminal and from AI coding agents.
 
 ### Git Hooks
 
@@ -638,7 +638,7 @@ OPENLENS_AGENTS=security git commit -m "fix"   # customize agents
 
 ### Platform Hooks
 
-Ready-made hook configs for all 4 AI coding platforms. Each reviews after file writes and blocks `git commit`/`git push` on critical issues:
+Ready-made hook configs for all 4 AI coding platforms. Each blocks `git commit`/`git push` on critical issues:
 
 ```bash
 # Claude Code
@@ -684,6 +684,7 @@ bus.subscribe("review.completed", ({ issueCount, time }) => {
 | `review.started`    | `{ agents: string[] }`                   |
 | `agent.started`     | `{ name: string }`                       |
 | `agent.completed`   | `{ name: string, issueCount: number, time: number }` |
+| `agent.progress`    | `{ name: string, kind: string, detail: string }` |
 | `agent.failed`      | `{ name: string, error: string }`        |
 | `review.completed`  | `{ issueCount: number, time: number }`   |
 
@@ -728,6 +729,8 @@ src/
 │   └── strategy.ts       # Per-agent context strategies
 ├── session/
 │   └── review.ts         # Review orchestration & verification
+├── docs/
+│   └── serve.ts          # Local wiki server (dark theme, mermaid, search)
 ├── server/
 │   └── server.ts         # Hono HTTP server
 ├── output/
@@ -745,9 +748,10 @@ agents/                   # Built-in agent prompts
 hooks/                    # Git & platform hook configs
 ├── pre-commit            # Git pre-commit hook (security+bugs)
 ├── pre-push              # Git pre-push hook (all agents)
-├── claude-code-hooks.json# Claude Code PostToolUse config
-├── gemini-hooks.json     # Gemini CLI AfterTool config
-└── codex-hooks.toml      # Codex CLI AfterToolUse config
+├── claude-code-hooks.json# Claude Code PreToolUse config
+├── gemini-hooks.json     # Gemini CLI BeforeTool config
+├── codex-hooks.json      # Codex CLI PreToolUse config
+└── opencode-hooks.ts     # OpenCode plugin hook
 
 plugins/                  # Platform integrations
 ├── claude-code/
@@ -760,10 +764,11 @@ plugins/                  # Platform integrations
 docs/                     # How-to guides
 ├── guides/
 │   ├── cli-guide.md      # CLI workflows
+│   ├── cicd-guide.md     # CI/CD integration
 │   ├── hooks-guide.md    # Git & platform hooks
 │   └── plugins-guide.md  # Plugin integrations
 
-wiki/                     # Project wiki pages
+wiki/                     # 11-page project wiki (served by openlens docs)
 ```
 
 ## Development

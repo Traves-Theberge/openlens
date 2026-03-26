@@ -1486,6 +1486,7 @@ bus.subscribe("review.completed", ({ issueCount, time }) => {
 | ------------------- | ------------------------------------------------- |
 | `review.started`    | `{ agents: string[] }`                            |
 | `agent.started`     | `{ name: string }`                                |
+| `agent.progress`    | `{ name: string, kind: string, detail: string }`  |
 | `agent.completed`   | `{ name: string, issueCount: number, time: number }` |
 | `agent.failed`      | `{ name: string, error: string }`                 |
 | `review.completed`  | `{ issueCount: number, time: number }`            |
