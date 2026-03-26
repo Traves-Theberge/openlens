@@ -1,14 +1,14 @@
 # OpenLens
 
-AI-powered code review that runs anywhere - your terminal, your CI pipeline, or inside your AI coding agent.
+AI-powered code review that catches security holes, bugs, and performance issues before they merge — from your terminal, CI pipeline, or AI coding agent.
 
 ## Overview
 
-OpenLens is an open-source code review tool that runs multiple specialized AI agents in parallel against your git diffs. It works as a **CLI**, a **library**, an **HTTP server**, a **GitHub Action**, and as a **native plugin** for Claude Code, Codex, Gemini CLI, and OpenCode.
+OpenLens runs specialized AI agents in parallel against your git diffs. Each agent investigates your full codebase — grepping for callers, reading imports, checking related files — and only reports issues it can confirm. A verification pass cross-references findings between agents and filters false positives.
 
-Each agent has read-only access to your full codebase — they don't just read the diff, they investigate. They grep for callers, read related files, check imports, and only report issues they can confirm. A built-in verification pass cross-references findings between agents and filters false positives.
+It works everywhere: as a **CLI** (`openlens run`), a **library** (import into your own tools), an **HTTP server**, a **GitHub Action** with inline PR comments, and as a **native plugin** for **Claude Code**, **Codex**, **Gemini CLI**, and **OpenCode**. Git hooks and platform hooks automate reviews on every file write, commit, and push.
 
-Built on [OpenCode](https://github.com/anomalyco/opencode) with free models available out of the box — no API keys required.
+Built on [OpenCode](https://github.com/anomalyco/opencode). Free models work out of the box — no API keys required.
 
 ## Features
 
