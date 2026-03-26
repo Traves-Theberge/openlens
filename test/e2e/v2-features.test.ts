@@ -96,7 +96,7 @@ describe("confidence scoring", () => {
     expect(sarif).toHaveProperty("runs")
     expect(Array.isArray(sarif.runs)).toBe(true)
     expect(sarif.runs[0].tool.driver.name).toBe("openlens")
-    expect(sarif.runs[0].tool.driver.version).toBe("0.1.1")
+    expect(sarif.runs[0].tool.driver.version).toBe("2.0.0")
   })
 
   test("markdown output contains review marker", () => {
@@ -344,7 +344,7 @@ describe("version and help", () => {
     setupRepo()
     const result = run(["--version"], tmpDir)
     expect(result.exitCode).toBe(0)
-    expect(result.stdout.trim()).toBe("0.1.1")
+    expect(result.stdout.trim()).toBe("2.0.0")
   })
 
   test("--help shows extended descriptions", () => {
@@ -367,6 +367,6 @@ describe("version and help", () => {
 
     const versionResult = run(["-v"], tmpDir)
     expect(versionResult.exitCode).toBe(0)
-    expect(versionResult.stdout.trim()).toBe("0.1.1")
+    expect(versionResult.stdout.trim()).toBe("2.0.0")
   })
 })

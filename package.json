@@ -1,6 +1,6 @@
 {
   "name": "openlens",
-  "version": "0.1.1",
+  "version": "2.0.0",
   "description": "AI-powered code review using specialized agents",
   "type": "module",
   "bin": {
@@ -22,7 +22,8 @@
     "dist",
     "agents",
     "action.yml",
-    "plugins"
+    "plugins",
+    "wiki"
   ],
   "scripts": {
     "dev": "bun run src/index.ts",

@@ -44,7 +44,7 @@ ${B}Quick start:${R}
 
   .command(
     "run",
-    "Run AI code review on your changes (staged, unstaged, or branch diff)",
+    "Review code changes for security, bugs, performance, and style issues",
     (y) =>
       y
         .option("staged", {
@@ -260,7 +260,7 @@ ${B}Quick start:${R}
     }
   )
 
-  .command("agent", "Manage review agents (list, create, test, enable/disable)", (y) =>
+  .command("agent", "Manage agents (list, create, test, enable/disable)", (y) =>
     y
       .command(
         "list",
@@ -743,7 +743,7 @@ If no issues found, return \`[]\`
 
   .command(
     "init",
-    "Set up OpenLens in your project (creates openlens.json and agents/ directory with default agents)",
+    "Set up OpenLens in your project (config + default agents)",
     (y) => y,
     async () => {
       const cwd = process.cwd()
@@ -827,7 +827,7 @@ If no issues found, return \`[]\`
 
   .command(
     "serve",
-    "Start an HTTP API server for running reviews programmatically (POST /review, GET /agents, GET /health)",
+    "Start HTTP API server for programmatic reviews",
     (y) =>
       y
         .option("port", {
@@ -909,7 +909,7 @@ If no issues found, return \`[]\`
 
   .command(
     "doctor",
-    "Diagnose your setup — checks git, opencode binary, API keys, config, and agents",
+    "Check your environment and configuration",
     (y) => y,
     async () => {
       const cwd = process.cwd()
@@ -1013,11 +1013,49 @@ If no issues found, return \`[]\`
     }
   )
 
+  .command(
+    "docs",
+    "Open the OpenLens wiki in your browser",
+    (y) =>
+      y
+        .option("port", {
+          type: "number",
+          default: 4200,
+          describe: "Port for the docs server",
+        })
+        .option("open", {
+          type: "boolean",
+          default: true,
+          describe: "Open browser automatically (use --no-open to disable)",
+        }),
+    async (argv) => {
+      const { createDocsServer } = await import("./docs/serve.js")
+      const wikiDir = path.join(path.dirname(fileURLToPath(import.meta.url)), "../wiki")
+
+      try {
+        const { serve } = await import("@hono/node-server")
+        const server = createDocsServer(wikiDir)
+        const port = argv.port as number
+
+        serve({ fetch: server.fetch, port })
+        console.log(`\n  ${B}OpenLens Wiki${R}  http://localhost:${port}\n`)
+
+        if (argv.open) {
+          const { exec } = await import("child_process")
+          const cmd = process.platform === "darwin" ? "open" : process.platform === "win32" ? "start" : "xdg-open"
+          exec(`${cmd} http://localhost:${port}`)
+        }
+      } catch (err: any) {
+        fatal(`Failed to start docs server: ${err.message}`)
+      }
+    }
+  )
+
   .demandCommand(1, "Please specify a command. Run openlens --help to see available commands.")
   .strict()
   .help()
   .alias("h", "help")
-  .version("0.1.1")
+  .version("2.0.0")
   .alias("v", "version")
   .example("$0 run --staged", "Review only staged (git add) changes")
   .example("$0 run --branch main", "Review all changes vs main branch")
