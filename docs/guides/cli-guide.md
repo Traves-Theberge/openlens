@@ -83,6 +83,23 @@ The process exits with code 1 if any critical issues are found, 0 otherwise. Thi
 | **performance** | N+1 queries, unnecessary allocations, blocking calls |
 | **style** | Naming conventions, code organization, consistency |
 
+### Review flow
+
+```mermaid
+graph LR
+    A[openlens run] --> B{Diff Mode}
+    B -->|--staged| C[Staged Changes]
+    B -->|--unstaged| D[Unstaged Changes]
+    B -->|--branch| E[Branch Diff]
+    C & D & E --> F[Load Agents]
+    F --> G[Parallel Review]
+    G --> H[Dedup + Filter]
+    H --> I{Verify?}
+    I -->|yes| J[Verification Pass]
+    I -->|no| K[Output]
+    J --> K
+```
+
 ---
 
 ## Common Workflows

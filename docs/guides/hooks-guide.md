@@ -100,7 +100,7 @@ Exit code 1 (critical issues) blocks the tool execution. Claude sees the error a
 
 ---
 
-## OpenCode Hooks
+## OpenCode Tools (not hooks)
 
 OpenLens is a native OpenCode plugin. Add to your `opencode.json`:
 
@@ -110,7 +110,9 @@ OpenLens is a native OpenCode plugin. Add to your `opencode.json`:
 }
 ```
 
-This registers 4 tools (`openlens`, `openlens-delegate`, `openlens-conventions`, `openlens-agents`) that OpenCode can call directly during sessions.
+This registers 4 **tools** (`openlens`, `openlens-delegate`, `openlens-conventions`, `openlens-agents`) that OpenCode can call during sessions. This is tool registration, not hook registration -- OpenCode calls these tools on demand, not automatically before or after other actions.
+
+> **Note:** Automatic pre-tool hooks (e.g., running a review before every file write) are not supported out of the box. To achieve this, you would need to write a custom OpenCode plugin that uses the `tool.execute.before` lifecycle event to trigger OpenLens before specific tool executions.
 
 ### Requirements
 
@@ -171,6 +173,26 @@ command = "openlens run --staged --agents security,bugs --no-verify --no-context
 
 Codex hooks are experimental. There is no `BeforeToolUse` event, so you cannot block tool execution. The hook runs after changes are made.
 
+> **Note:** The `AfterToolUse` event is experimental and may not be available in all Codex versions. Check your Codex CLI version's documentation to confirm hook support.
+
+---
+
+## Hook flow
+
+```mermaid
+graph TD
+    A[Developer Action] --> B{Which Hook?}
+    B -->|git commit| C[pre-commit]
+    B -->|git push| D[pre-push]
+    B -->|AI writes file| E[PostToolUse / AfterTool]
+    C --> F[security + bugs agents]
+    D --> G[all 4 agents]
+    E --> F
+    F & G --> H{Critical Issues?}
+    H -->|yes| I[Block Action]
+    H -->|no| J[Allow Action]
+```
+
 ---
 
 ## Which hook to use where
@@ -180,7 +202,7 @@ Codex hooks are experimental. There is no `BeforeToolUse` event, so you cannot b
 | Before committing | Git pre-commit hook | All (git-level) |
 | Before pushing | Git pre-push hook | All (git-level) |
 | After AI writes a file | PostToolUse / AfterTool hook | Claude Code, Gemini, Codex |
-| Before AI writes a file | PreToolUse / BeforeTool hook | Claude Code, Gemini, OpenCode |
+| Before AI writes a file | PreToolUse / BeforeTool hook | Claude Code, Gemini, OpenCode (requires custom plugin) |
 | On demand | `/openlens` or `$openlens` command | All platforms |
 | In CI/CD | GitHub Action / GitLab CI | CI pipelines |
 

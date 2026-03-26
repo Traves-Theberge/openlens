@@ -309,3 +309,9 @@ The full list of public exports from `src/lib.ts`:
 | `detectCI` | function | Detect CI environment |
 | `resolveOpencodeBin` | function | Resolve OpenCode binary path |
 | `inferBaseBranch` | function | Infer the base branch name |
+
+---
+
+## Hooks
+
+OpenLens also supports automatic code review via git hooks and platform-specific hooks (Claude Code, Gemini CLI, Codex CLI). For setup instructions, see the [Hooks Guide](./hooks-guide.md).

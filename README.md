@@ -367,6 +367,7 @@ openlens agent enable <name>    Re-enable a disabled agent
 openlens agent disable <name>   Disable an agent
 openlens hooks install           Install git hooks (pre-commit + pre-push)
 openlens hooks remove            Remove git hooks (restores backups)
+openlens docs                   Open documentation in your browser
 openlens serve                  Start HTTP server
 openlens models                 List available models from OpenCode
 openlens doctor                 Check environment and configuration
@@ -732,6 +733,13 @@ agents/                   # Built-in agent prompts
 ├── performance.md
 └── style.md
 
+hooks/                    # Git & platform hook configs
+├── pre-commit            # Git pre-commit hook (security+bugs)
+├── pre-push              # Git pre-push hook (all agents)
+├── claude-code-hooks.json# Claude Code PostToolUse config
+├── gemini-hooks.json     # Gemini CLI AfterTool config
+└── codex-hooks.toml      # Codex CLI AfterToolUse config
+
 plugins/                  # Platform integrations
 ├── claude-code/
 │   └── SKILL.md          # Claude Code /openlens skill
@@ -739,6 +747,14 @@ plugins/                  # Platform integrations
 │   └── SKILL.md          # Codex CLI $openlens skill
 └── gemini/
     └── openlens.toml     # Gemini CLI /openlens command
+
+docs/                     # How-to guides
+├── guides/
+│   ├── cli-guide.md      # CLI workflows
+│   ├── hooks-guide.md    # Git & platform hooks
+│   └── plugins-guide.md  # Plugin integrations
+
+wiki/                     # Project wiki pages
 ```
 
 ## Development
