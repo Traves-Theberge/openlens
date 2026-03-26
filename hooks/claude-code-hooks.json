@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "openlens run --staged --agents security,bugs --no-verify --no-context --format text 2>&1 | tail -20 || true"
+          }
+        ]
+      }
+    ]
+  }
+}
