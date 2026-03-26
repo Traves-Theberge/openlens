@@ -43,6 +43,15 @@
     "cli"
   ],
   "license": "MIT",
+  "author": "Traves Theberge",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Traves-Theberge/OpenLens.git"
+  },
+  "homepage": "https://github.com/Traves-Theberge/OpenLens",
+  "bugs": {
+    "url": "https://github.com/Traves-Theberge/OpenLens/issues"
+  },
   "engines": {
     "node": ">=18"
   },
