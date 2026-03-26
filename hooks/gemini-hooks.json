@@ -3,20 +3,6 @@
     "enabled": true
   },
   "hooks": {
-    "AfterTool": [
-      {
-        "matcher": "write_file|edit_file|create_file",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "openlens run --staged --agents security,bugs --no-verify --no-context --format text >&2 || true",
-            "name": "openlens-review",
-            "timeout": 120000,
-            "description": "Run OpenLens review after file edits"
-          }
-        ]
-      }
-    ],
     "BeforeTool": [
       {
         "matcher": "run_shell_command",
