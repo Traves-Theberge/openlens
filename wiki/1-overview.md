@@ -9,7 +9,7 @@
 - [src/config/schema.ts](../src/config/schema.ts) - Zod schema definitions for all config and data shapes
 - [src/types.ts](../src/types.ts) - Issue and ReviewResult schemas
 
-OpenLens is an AI-powered code review tool that runs multiple specialized agents in parallel to analyze code changes for security vulnerabilities, bugs, performance issues, and style problems. It provides four interfaces for integration: a **CLI** built on yargs, a **programmatic library** API, an **HTTP server** built on Hono, and **platform plugins** for Claude Code, Codex, and Gemini.
+OpenLens is an AI-powered code review tool that runs multiple specialized agents in parallel to analyze code changes for security vulnerabilities, bugs, performance issues, and style problems. It provides five interfaces: a **CLI** built on yargs, a **programmatic library** API, an **HTTP server** built on Hono, a **GitHub Action** with inline PR comments, and **platform plugins** for Claude Code, Codex, Gemini CLI, and OpenCode. Git hooks and platform hooks automate reviews on every commit and push.
 
 By default, OpenLens uses the `opencode/big-pickle` model via the OpenCode SDK, requiring no API keys. Agents operate in read-only mode and communicate results as structured JSON with confidence scoring, severity levels, and optional fix suggestions.
 
@@ -26,8 +26,14 @@ graph TB
 
     subgraph Plugins
         CC["Claude Code<br/>/openlens"]
-        CX["Codex CLI"]
-        GM["Gemini CLI"]
+        CX["Codex CLI<br/>$openlens"]
+        GM["Gemini CLI<br/>/openlens"]
+        OC["OpenCode<br/>(native plugin)"]
+    end
+
+    subgraph Hooks
+        GH["Git Hooks<br/>(pre-commit / pre-push)"]
+        PH["Platform Hooks<br/>(PreToolUse / BeforeTool)"]
     end
 
     subgraph Core Pipeline
@@ -61,6 +67,9 @@ graph TB
     CC --> CLI
     CX --> CLI
     GM --> CLI
+    OC --> LIB
+    GH --> CLI
+    PH --> CLI
 
     CFG --> AGT
     AGT --> REV
