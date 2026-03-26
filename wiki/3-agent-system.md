@@ -2,19 +2,6 @@
 
 The agent system is the core abstraction that drives OpenLens code reviews. Each agent is a specialized AI reviewer with its own prompt, permissions, context strategy, and confidence thresholds. Agents run in parallel against the same diff and produce structured issue arrays that are later deduplicated, filtered, and optionally verified.
 
-## Relevant source files
-
-- [src/agent/agent.ts](../src/agent/agent.ts) - Agent loading, resolution, and permission merging
-- [src/context/strategy.ts](../src/context/strategy.ts) - Context strategy implementations
-- [src/config/schema.ts](../src/config/schema.ts) - `AgentConfigSchema` and `PermissionValueSchema` Zod definitions
-- [agents/security.md](../agents/security.md) - Built-in security agent prompt
-- [agents/bugs.md](../agents/bugs.md) - Built-in bugs agent prompt
-- [agents/performance.md](../agents/performance.md) - Built-in performance agent prompt
-- [agents/style.md](../agents/style.md) - Built-in style agent prompt
-- [src/types.ts](../src/types.ts) - `IssueSchema` with confidence and severity enums
-
----
-
 ## Agent File Format
 
 Agent prompts are Markdown files with YAML frontmatter. The frontmatter declares metadata and defaults that can be overridden by config. The Markdown body is the system prompt sent to the LLM.
@@ -261,3 +248,14 @@ Both functions return a new `Config` with the `disable` flag set on filtered age
 - For how agents are executed during a review, see [Review Pipeline](5-review-pipeline.md)
 - For config file locations and layering that feeds into agent resolution, see [Configuration](4-configuration.md)
 - For the `IssueSchema` and `ReviewResultSchema` that agents produce, see [src/types.ts](../src/types.ts)
+
+## Relevant source files
+
+- [src/agent/agent.ts](../src/agent/agent.ts) - Agent loading, resolution, and permission merging
+- [src/context/strategy.ts](../src/context/strategy.ts) - Context strategy implementations
+- [src/config/schema.ts](../src/config/schema.ts) - `AgentConfigSchema` and `PermissionValueSchema` Zod definitions
+- [agents/security.md](../agents/security.md) - Built-in security agent prompt
+- [agents/bugs.md](../agents/bugs.md) - Built-in bugs agent prompt
+- [agents/performance.md](../agents/performance.md) - Built-in performance agent prompt
+- [agents/style.md](../agents/style.md) - Built-in style agent prompt
+- [src/types.ts](../src/types.ts) - `IssueSchema` with confidence and severity enums

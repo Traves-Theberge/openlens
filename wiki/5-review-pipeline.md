@@ -2,20 +2,6 @@
 
 The review pipeline orchestrates the entire code review process: collecting a diff, spawning or connecting to an OpenCode server, fanning out agent sessions in parallel, collecting and deduplicating results, filtering by confidence, applying suppression rules, and optionally running a verification pass.
 
-## Relevant source files
-
-- [src/session/review.ts](../src/session/review.ts) - Full pipeline implementation (1040 lines)
-- [src/agent/agent.ts](../src/agent/agent.ts) - Agent loading and filtering
-- [src/tool/diff.ts](../src/tool/diff.ts) - Git diff collection
-- [src/config/config.ts](../src/config/config.ts) - Instruction loading
-- [src/suppress.ts](../src/suppress.ts) - Suppression rule matching
-- [src/context/strategy.ts](../src/context/strategy.ts) - Context strategy file gathering
-- [src/bus/index.ts](../src/bus/index.ts) - Event bus for lifecycle events
-- [src/env.ts](../src/env.ts) - OpenCode binary resolution and CI detection
-- [src/types.ts](../src/types.ts) - `IssueSchema`, `IssueArraySchema`, `ReviewResultSchema`
-
----
-
 ## Full Pipeline Overview
 
 ```mermaid
@@ -302,3 +288,15 @@ The pipeline returns a `ReviewResult` ([src/types.ts:33-48](../src/types.ts)):
 
 - For agent configuration, permissions, and context strategies, see [Agent System](3-agent-system.md)
 - For config loading, suppression rules, and CI detection, see [Configuration](4-configuration.md)
+
+## Relevant source files
+
+- [src/session/review.ts](../src/session/review.ts) - Full pipeline implementation (1040 lines)
+- [src/agent/agent.ts](../src/agent/agent.ts) - Agent loading and filtering
+- [src/tool/diff.ts](../src/tool/diff.ts) - Git diff collection
+- [src/config/config.ts](../src/config/config.ts) - Instruction loading
+- [src/suppress.ts](../src/suppress.ts) - Suppression rule matching
+- [src/context/strategy.ts](../src/context/strategy.ts) - Context strategy file gathering
+- [src/bus/index.ts](../src/bus/index.ts) - Event bus for lifecycle events
+- [src/env.ts](../src/env.ts) - OpenCode binary resolution and CI detection
+- [src/types.ts](../src/types.ts) - `IssueSchema`, `IssueArraySchema`, `ReviewResultSchema`

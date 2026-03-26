@@ -1,17 +1,5 @@
 # Core Architecture
 
-## Relevant source files
-
-- [src/config/config.ts](../src/config/config.ts) - Layered config loading (lines 90-139)
-- [src/config/schema.ts](../src/config/schema.ts) - Zod schemas for Config and AgentConfig
-- [src/agent/agent.ts](../src/agent/agent.ts) - Agent loading, prompt resolution, permission merging
-- [src/tool/diff.ts](../src/tool/diff.ts) - Git diff collection
-- [src/session/review.ts](../src/session/review.ts) - Review orchestration and verification
-- [src/output/format.ts](../src/output/format.ts) - Text, JSON, SARIF, Markdown formatters
-- [src/bus/index.ts](../src/bus/index.ts) - Typed event bus
-- [src/index.ts](../src/index.ts) - CLI entry point
-- [src/types.ts](../src/types.ts) - Issue and ReviewResult schemas
-
 This page covers the core review pipeline in detail, from CLI invocation through config loading, agent resolution, diff collection, parallel review execution, and output formatting.
 
 ## Full Review Flow
@@ -338,3 +326,15 @@ A separate module `src/output/github-review.ts` formats results as GitHub PR rev
 ## Related Wiki Pages
 
 - [Overview](./1-overview.md) - High-level architecture, repository layout, and feature summary
+
+## Relevant source files
+
+- [src/config/config.ts](../src/config/config.ts) - Layered config loading (lines 90-139)
+- [src/config/schema.ts](../src/config/schema.ts) - Zod schemas for Config and AgentConfig
+- [src/agent/agent.ts](../src/agent/agent.ts) - Agent loading, prompt resolution, permission merging
+- [src/tool/diff.ts](../src/tool/diff.ts) - Git diff collection
+- [src/session/review.ts](../src/session/review.ts) - Review orchestration and verification
+- [src/output/format.ts](../src/output/format.ts) - Text, JSON, SARIF, Markdown formatters
+- [src/bus/index.ts](../src/bus/index.ts) - Typed event bus
+- [src/index.ts](../src/index.ts) - CLI entry point
+- [src/types.ts](../src/types.ts) - Issue and ReviewResult schemas

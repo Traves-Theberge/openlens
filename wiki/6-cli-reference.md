@@ -1,10 +1,5 @@
 # CLI Reference
 
-**Relevant source files:**
-- [src/index.ts](https://github.com/Traves-Theberge/OpenLens/blob/main/src/index.ts)
-- [src/env.ts](https://github.com/Traves-Theberge/OpenLens/blob/main/src/env.ts)
-- [src/config/config.ts](https://github.com/Traves-Theberge/OpenLens/blob/main/src/config/config.ts)
-
 This page documents every command, flag, environment variable, and exit code for the `openlens` CLI. The CLI is built with [yargs](https://yargs.js.org/) and serves as the primary interface for running AI-powered code reviews.
 
 ## Command Overview
@@ -378,3 +373,9 @@ Source: [src/env.ts](https://github.com/Traves-Theberge/OpenLens/blob/main/src/e
 |------|-------------|
 | `-h, --help` | Show help |
 | `-v, --version` | Show version (currently `0.2.0`) |
+
+## Relevant source files
+
+- [src/index.ts](https://github.com/Traves-Theberge/OpenLens/blob/main/src/index.ts)
+- [src/env.ts](https://github.com/Traves-Theberge/OpenLens/blob/main/src/env.ts)
+- [src/config/config.ts](https://github.com/Traves-Theberge/OpenLens/blob/main/src/config/config.ts)

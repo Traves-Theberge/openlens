@@ -1,15 +1,5 @@
 # Integrations
 
-**Relevant source files:**
-- [action.yml](https://github.com/Traves-Theberge/OpenLens/blob/main/action.yml)
-- [.github/workflows/pr-review.yml](https://github.com/Traves-Theberge/OpenLens/blob/main/.github/workflows/pr-review.yml)
-- [plugins/claude-code/SKILL.md](https://github.com/Traves-Theberge/OpenLens/blob/main/plugins/claude-code/SKILL.md)
-- [plugins/codex/SKILL.md](https://github.com/Traves-Theberge/OpenLens/blob/main/plugins/codex/SKILL.md)
-- [plugins/gemini/openlens.toml](https://github.com/Traves-Theberge/OpenLens/blob/main/plugins/gemini/openlens.toml)
-- [src/plugin.ts](https://github.com/Traves-Theberge/OpenLens/blob/main/src/plugin.ts)
-- [src/server/server.ts](https://github.com/Traves-Theberge/OpenLens/blob/main/src/server/server.ts)
-- [src/lib.ts](https://github.com/Traves-Theberge/OpenLens/blob/main/src/lib.ts)
-
 OpenLens integrates with CI/CD systems, AI coding assistants, and programmatic consumers through multiple interfaces. This page covers every integration point.
 
 ```mermaid
@@ -33,6 +23,11 @@ graph TB
         LIB[Library API]
     end
 
+    subgraph "Hooks"
+        GH[Git Hooks<br/>pre-commit / pre-push]
+        PH[Platform Hooks<br/>PreToolUse / BeforeTool]
+    end
+
     GHA --> OpenLens
     OpenLens --> SARIF
 
@@ -40,6 +35,9 @@ graph TB
     CX -->|"shell out"| OpenLens
     GM -->|"shell out"| OpenLens
     OC -->|"library API"| OpenLens
+
+    GH -->|"on commit/push"| OpenLens
+    PH -->|"on git commit/push"| OpenLens
 
     HTTP --> OpenLens
     LIB --> OpenLens
@@ -557,3 +555,14 @@ OPENLENS_AGENTS=security,bugs git commit -m "quick check"
 - [CLI Reference](6-cli-reference.md) for all command flags
 - [Output Formats](7-output-formats.md) for format details and examples
 - [Testing](9-testing.md) for server endpoint tests and E2E CLI tests
+
+## Relevant source files
+
+- [action.yml](https://github.com/Traves-Theberge/OpenLens/blob/main/action.yml)
+- [.github/workflows/pr-review.yml](https://github.com/Traves-Theberge/OpenLens/blob/main/.github/workflows/pr-review.yml)
+- [plugins/claude-code/SKILL.md](https://github.com/Traves-Theberge/OpenLens/blob/main/plugins/claude-code/SKILL.md)
+- [plugins/codex/SKILL.md](https://github.com/Traves-Theberge/OpenLens/blob/main/plugins/codex/SKILL.md)
+- [plugins/gemini/openlens.toml](https://github.com/Traves-Theberge/OpenLens/blob/main/plugins/gemini/openlens.toml)
+- [src/plugin.ts](https://github.com/Traves-Theberge/OpenLens/blob/main/src/plugin.ts)
+- [src/server/server.ts](https://github.com/Traves-Theberge/OpenLens/blob/main/src/server/server.ts)
+- [src/lib.ts](https://github.com/Traves-Theberge/OpenLens/blob/main/src/lib.ts)

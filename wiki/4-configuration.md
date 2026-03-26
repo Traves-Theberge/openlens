@@ -2,17 +2,6 @@
 
 OpenLens uses a layered configuration system where each layer can override values from the previous one. Configuration is validated at load time using Zod schemas, and supports JSON with comments (JSONC), environment variable substitution, and CI auto-detection.
 
-## Relevant source files
-
-- [src/config/config.ts](../src/config/config.ts) - Config loading, layering, deep merge, and instruction loading
-- [src/config/schema.ts](../src/config/schema.ts) - `ConfigSchema`, `AgentConfigSchema`, and all Zod validation
-- [src/config/rules.ts](../src/config/rules.ts) - Rules discovery (AGENTS.md, CLAUDE.md, custom patterns)
-- [src/env.ts](../src/env.ts) - CI detection, base branch inference, OpenCode binary resolution
-- [src/suppress.ts](../src/suppress.ts) - Suppression rules loading and matching
-- [src/agent/agent.ts](../src/agent/agent.ts) - Agent loading and permission merging
-
----
-
 ## Config File Locations and Layering
 
 Configuration is resolved in `loadConfig()` ([src/config/config.ts:90-140](../src/config/config.ts)) through four layers, each deep-merged on top of the previous:
@@ -399,3 +388,12 @@ When primary agents exist, they run instead of subagents and can delegate focuse
 
 - For how agents inherit and merge permissions, see [Agent System](3-agent-system.md)
 - For how config feeds into the review pipeline execution, see [Review Pipeline](5-review-pipeline.md)
+
+## Relevant source files
+
+- [src/config/config.ts](../src/config/config.ts) - Config loading, layering, deep merge, and instruction loading
+- [src/config/schema.ts](../src/config/schema.ts) - `ConfigSchema`, `AgentConfigSchema`, and all Zod validation
+- [src/config/rules.ts](../src/config/rules.ts) - Rules discovery (AGENTS.md, CLAUDE.md, custom patterns)
+- [src/env.ts](../src/env.ts) - CI detection, base branch inference, OpenCode binary resolution
+- [src/suppress.ts](../src/suppress.ts) - Suppression rules loading and matching
+- [src/agent/agent.ts](../src/agent/agent.ts) - Agent loading and permission merging

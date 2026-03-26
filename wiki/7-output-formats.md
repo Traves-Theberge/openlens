@@ -1,10 +1,5 @@
 # Output Formats
 
-**Relevant source files:**
-- [src/output/format.ts](https://github.com/Traves-Theberge/OpenLens/blob/main/src/output/format.ts)
-- [src/output/github-review.ts](https://github.com/Traves-Theberge/OpenLens/blob/main/src/output/github-review.ts)
-- [src/types.ts](https://github.com/Traves-Theberge/OpenLens/blob/main/src/types.ts)
-
 OpenLens supports five output formats, each designed for a different consumption context. This page covers the structure, features, and usage of each format.
 
 ```mermaid
@@ -396,3 +391,9 @@ graph TD
 
 - [CLI Reference](6-cli-reference.md) for `--format` flag usage
 - [Integrations](8-integrations.md) for GitHub Actions SARIF upload and inline comment workflows
+
+## Relevant source files
+
+- [src/output/format.ts](https://github.com/Traves-Theberge/OpenLens/blob/main/src/output/format.ts)
+- [src/output/github-review.ts](https://github.com/Traves-Theberge/OpenLens/blob/main/src/output/github-review.ts)
+- [src/types.ts](https://github.com/Traves-Theberge/OpenLens/blob/main/src/types.ts)

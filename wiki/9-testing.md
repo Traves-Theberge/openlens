@@ -1,12 +1,5 @@
 # Testing
 
-**Relevant source files:**
-- [test/e2e/helpers.ts](https://github.com/Traves-Theberge/OpenLens/blob/main/test/e2e/helpers.ts)
-- [.github/workflows/ci.yml](https://github.com/Traves-Theberge/OpenLens/blob/main/.github/workflows/ci.yml)
-- [test/unit/](https://github.com/Traves-Theberge/OpenLens/tree/main/test/unit)
-- [test/integration/](https://github.com/Traves-Theberge/OpenLens/tree/main/test/integration)
-- [test/e2e/](https://github.com/Traves-Theberge/OpenLens/tree/main/test/e2e)
-
 This page covers OpenLens's testing strategy, the three test tiers, helper utilities, CI workflow, and how to run tests locally.
 
 ## Test Runner
@@ -258,3 +251,11 @@ test/e2e/helpers.ts          # shared test utilities (not a test file)
 
 - [CLI Reference](6-cli-reference.md) for the commands tested in E2E and smoke tests
 - [Integrations > HTTP Server](8-integrations.md#http-server) for the endpoints tested in `test/unit/server.test.ts`
+
+## Relevant source files
+
+- [test/e2e/helpers.ts](https://github.com/Traves-Theberge/OpenLens/blob/main/test/e2e/helpers.ts)
+- [.github/workflows/ci.yml](https://github.com/Traves-Theberge/OpenLens/blob/main/.github/workflows/ci.yml)
+- [test/unit/](https://github.com/Traves-Theberge/OpenLens/tree/main/test/unit)
+- [test/integration/](https://github.com/Traves-Theberge/OpenLens/tree/main/test/integration)
+- [test/e2e/](https://github.com/Traves-Theberge/OpenLens/tree/main/test/e2e)

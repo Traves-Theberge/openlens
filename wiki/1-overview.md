@@ -1,14 +1,5 @@
 # OpenLens Overview
 
-## Relevant source files
-
-- [src/index.ts](../src/index.ts) - CLI entry point (yargs command definitions)
-- [src/lib.ts](../src/lib.ts) - Public library API exports
-- [src/server/server.ts](../src/server/server.ts) - HTTP server (Hono)
-- [src/plugin.ts](../src/plugin.ts) - OpenCode plugin registration
-- [src/config/schema.ts](../src/config/schema.ts) - Zod schema definitions for all config and data shapes
-- [src/types.ts](../src/types.ts) - Issue and ReviewResult schemas
-
 OpenLens is an AI-powered code review tool that runs multiple specialized agents in parallel to analyze code changes for security vulnerabilities, bugs, performance issues, and style problems. It provides five interfaces: a **CLI** built on yargs, a **programmatic library** API, an **HTTP server** built on Hono, a **GitHub Action** with inline PR comments, and **platform plugins** for Claude Code, Codex, Gemini CLI, and OpenCode. Git hooks and platform hooks automate reviews on every commit and push.
 
 By default, OpenLens uses the `opencode/big-pickle` model via the OpenCode SDK, requiring no API keys. Agents operate in read-only mode and communicate results as structured JSON with confidence scoring, severity levels, and optional fix suggestions.
@@ -194,3 +185,12 @@ OpenLens/
 ## Related Wiki Pages
 
 - [Core Architecture](./2-core-architecture.md) - Detailed walkthrough of the review pipeline: config loading, agent resolution, diff collection, review orchestration, and output formatting
+
+## Relevant source files
+
+- [src/index.ts](../src/index.ts) - CLI entry point (yargs command definitions)
+- [src/lib.ts](../src/lib.ts) - Public library API exports
+- [src/server/server.ts](../src/server/server.ts) - HTTP server (Hono)
+- [src/plugin.ts](../src/plugin.ts) - OpenCode plugin registration
+- [src/config/schema.ts](../src/config/schema.ts) - Zod schema definitions for all config and data shapes
+- [src/types.ts](../src/types.ts) - Issue and ReviewResult schemas
