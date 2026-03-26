@@ -29,8 +29,14 @@ echo ""
 echo "  OpenLens  reviewing branch diff against $BASE_BRANCH..."
 echo ""
 
-# Run full review with all agents
-openlens run --branch "$BASE_BRANCH" --format text
+# Run review — override agents with OPENLENS_AGENTS env var
+# e.g., OPENLENS_AGENTS=security,bugs git push (empty = all agents)
+AGENTS="${OPENLENS_AGENTS:-}"
+if [ -n "$AGENTS" ]; then
+  openlens run --branch "$BASE_BRANCH" --agents "$AGENTS" --format text
+else
+  openlens run --branch "$BASE_BRANCH" --format text
+fi
 
 # Exit code 1 = critical issues found → block push
 # Exit code 0 = clean or only warnings → allow push

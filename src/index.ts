@@ -1122,6 +1122,15 @@ If no issues found, return \`[]\`
       const wikiDir = path.join(path.dirname(fileURLToPath(import.meta.url)), "../wiki")
 
       try {
+        await fs.access(wikiDir)
+      } catch {
+        fatal(
+          `Wiki directory not found at ${wikiDir}\n` +
+          "  Clone the wiki or create markdown files in the wiki/ directory."
+        )
+      }
+
+      try {
         const { serve } = await import("@hono/node-server")
         const server = createDocsServer(wikiDir)
         const port = argv.port as number

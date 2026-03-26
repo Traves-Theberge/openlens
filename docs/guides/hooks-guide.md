@@ -18,6 +18,20 @@ This installs:
 - **pre-commit** — reviews staged changes with security+bugs agents (~15s). Blocks on critical.
 - **pre-push** — reviews full branch diff with all agents (~60s). Blocks on critical.
 
+### Customize agents
+
+Override which agents run via the `OPENLENS_AGENTS` env var:
+
+```bash
+# Pre-commit: only run security agent
+OPENLENS_AGENTS=security git commit -m "feat: add auth"
+
+# Pre-push: run security and bugs only (default is all agents)
+OPENLENS_AGENTS=security,bugs git push
+```
+
+If `OPENLENS_AGENTS` is not set, pre-commit defaults to `security,bugs` and pre-push runs all agents.
+
 ### Skip once
 
 ```bash

@@ -15,6 +15,10 @@ bun test test/unit/config.test.ts  # Run a single test file
 
 No linter is configured; TypeScript strict mode is the primary code quality gate.
 
+### Debugging
+
+Set `OPENLENS_DEBUG=1` to enable verbose debug logging to stderr. This prints timestamped SSE connection details, session polling status, and agent execution traces — useful for troubleshooting review timeouts and OpenCode server connectivity issues.
+
 ### Git Hooks
 
 ```bash

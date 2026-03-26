@@ -927,13 +927,30 @@ export function createDocsServer(wikiDir: string) {
 
   app.get("/:slug", async (c) => {
     const slug = c.req.param("slug")
-    const pages = await loadPages(wikiDir)
-    const page = pages.find((p) => p.slug === slug)
 
-    if (!page) return c.text("Page not found", 404)
+    try {
+      const pages = await loadPages(wikiDir)
+      const page = pages.find((p) => p.slug === slug)
 
-    const content = await fs.readFile(page.path, "utf-8")
-    return c.html(renderPage(content, pages, slug))
+      if (!page) return c.text("Page not found", 404)
+
+      const content = await fs.readFile(page.path, "utf-8")
+      return c.html(renderPage(content, pages, slug))
+    } catch (err: any) {
+      if (err?.code === "ENOENT") {
+        return c.html(
+          `<!DOCTYPE html><html><head><title>OpenLens Docs</title><style>${CSS}</style></head>` +
+          `<body style="display:flex;align-items:center;justify-content:center;min-height:100vh">` +
+          `<div style="text-align:center;max-width:500px"><h1>Wiki not found</h1>` +
+          `<p style="color:#888;margin-top:16px">The wiki directory was not found at:<br>` +
+          `<code style="color:#d4d4d4">${wikiDir}</code></p>` +
+          `<p style="color:#888;margin-top:12px">Clone the wiki or create markdown files in the wiki/ directory.</p>` +
+          `</div></body></html>`,
+          500
+        )
+      }
+      throw err
+    }
   })
 
   return app
