@@ -365,6 +365,8 @@ openlens agent test <name>      Test a single agent on current changes
 openlens agent validate         Validate all agent configurations
 openlens agent enable <name>    Re-enable a disabled agent
 openlens agent disable <name>   Disable an agent
+openlens hooks install           Install git hooks (pre-commit + pre-push)
+openlens hooks remove            Remove git hooks (restores backups)
 openlens serve                  Start HTTP server
 openlens models                 List available models from OpenCode
 openlens doctor                 Check environment and configuration
@@ -609,6 +611,39 @@ This registers four tools:
 | `openlens-delegate`     | Delegate to a specialist agent       |
 | `openlens-conventions`  | Get project review instructions      |
 | `openlens-agents`       | List available agents                |
+
+## Git Hooks
+
+OpenLens can install git hooks for automatic code review on every commit and push.
+
+```bash
+# Install hooks into the current repo
+openlens hooks install
+
+# Remove hooks (restores any previously backed-up hooks)
+openlens hooks remove
+```
+
+| Hook | Agents | Speed | Behavior |
+| ---- | ------ | ----- | -------- |
+| `pre-commit` | security, bugs | ~15s | Reviews staged changes, blocks on critical issues |
+| `pre-push` | all agents | ~60s | Reviews full branch diff, blocks on critical issues |
+
+Skip hooks for a single operation:
+
+```bash
+OPENLENS_SKIP=1 git commit -m "wip"
+```
+
+For global hooks across all repos:
+
+```bash
+openlens hooks install --global
+# or manually:
+git config --global core.hooksPath ~/.config/openlens/hooks
+```
+
+Install is idempotent and backs up any existing hooks. Remove restores the backups.
 
 ## Event Bus
 

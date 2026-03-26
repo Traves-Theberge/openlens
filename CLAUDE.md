@@ -15,6 +15,18 @@ bun test test/unit/config.test.ts  # Run a single test file
 
 No linter is configured; TypeScript strict mode is the primary code quality gate.
 
+### Git Hooks
+
+```bash
+openlens hooks install           # Install pre-commit + pre-push hooks
+openlens hooks remove            # Remove hooks, restore backups
+OPENLENS_SKIP=1 git commit -m x # Skip hooks for one operation
+```
+
+- `hooks/pre-commit` — runs security+bugs agents on staged changes (~15s), blocks on critical
+- `hooks/pre-push` — runs all agents on full branch diff (~60s), blocks on critical
+- Idempotent install; backs up existing hooks; remove restores them
+
 ## Architecture
 
 OpenLens is an AI-powered code review tool with four interfaces: **CLI** (yargs), **library** (programmatic API), **HTTP server** (Hono), and **OpenCode plugin**.

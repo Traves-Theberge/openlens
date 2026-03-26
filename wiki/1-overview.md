@@ -146,6 +146,9 @@ OpenLens/
       SKILL.md                 # Codex CLI plugin manifest
     gemini/
       openlens.toml            # Gemini CLI tool registration
+  hooks/
+    pre-commit                   # Git hook: security+bugs on staged changes (~15s)
+    pre-push                     # Git hook: all agents on branch diff (~60s)
   test/
     unit/                      # Unit tests (config, agents, diff, formatting, suppression)
     integration/               # Full review workflow tests
@@ -171,6 +174,7 @@ OpenLens/
 | Context strategies | Per-agent auto-gathering of related files (security, bugs, perf, style) | `src/context/strategy.ts` |
 | MCP server support | Connect external tool servers via Model Context Protocol | `src/session/review.ts` lines 599-635 |
 | Event bus | Typed publish/subscribe for lifecycle events | `src/bus/index.ts` lines 7-45 |
+| Git hooks | Automatic pre-commit and pre-push review with `openlens hooks install` | `hooks/pre-commit`, `hooks/pre-push` |
 | No API keys required | Default model `opencode/big-pickle` is free to use | `src/config/schema.ts` line 43 |
 
 ## Related Wiki Pages

@@ -189,6 +189,39 @@ openlens doctor
 
 This checks: git availability, OpenCode binary, API keys, config file validity, agent configurations, MCP server connectivity, and CI environment detection.
 
+### Git Hooks
+
+Install git hooks for automatic review on commit and push:
+
+```bash
+openlens hooks install
+```
+
+This installs two hooks:
+
+- **`pre-commit`** — runs security and bugs agents on staged changes (~15s). Blocks the commit if critical issues are found.
+- **`pre-push`** — runs all agents against the full branch diff (~60s). Blocks the push if critical issues are found.
+
+Skip hooks when needed:
+
+```bash
+OPENLENS_SKIP=1 git commit -m "wip"
+```
+
+Remove hooks (restores any backed-up originals):
+
+```bash
+openlens hooks remove
+```
+
+For global hooks across all repositories:
+
+```bash
+git config --global core.hooksPath ~/.config/openlens/hooks
+```
+
+Install is idempotent — safe to run multiple times.
+
 ---
 
 ## 3. Configuration
@@ -769,6 +802,8 @@ openlens agent test <name>       Test a single agent on current changes
 openlens agent validate          Validate all agent configurations
 openlens agent enable <name>     Re-enable a disabled agent
 openlens agent disable <name>    Disable an agent
+openlens hooks install           Install git hooks (pre-commit + pre-push)
+openlens hooks remove            Remove git hooks (restores backups)
 openlens serve                   Start HTTP server
 openlens models                  List available models from OpenCode
 openlens doctor                  Check environment and configuration

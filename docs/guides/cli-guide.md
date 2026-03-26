@@ -377,14 +377,35 @@ NO_COLOR=1 openlens run --staged
 openlens models
 ```
 
-**Git pre-commit hook:**
+**Git hooks (recommended):**
 ```bash
-# .git/hooks/pre-commit
-#!/bin/sh
-openlens run --staged --no-verify
+openlens hooks install
 ```
 
-Exit code 1 (critical issues found) will block the commit.
+This installs two hooks:
+
+- **`pre-commit`** — reviews staged changes with security+bugs agents (~15s), blocks on critical issues
+- **`pre-push`** — reviews full branch diff with all agents (~60s), blocks on critical issues
+
+Skip hooks for a single operation:
+
+```bash
+OPENLENS_SKIP=1 git commit -m "wip"
+```
+
+Remove hooks (restores backed-up originals):
+
+```bash
+openlens hooks remove
+```
+
+For global hooks across all repos:
+
+```bash
+git config --global core.hooksPath ~/.config/openlens/hooks
+```
+
+Install is idempotent and backs up existing hooks.
 
 **CI usage with SARIF:**
 ```bash

@@ -167,7 +167,26 @@ Kill server after testing.
 
 ---
 
-## 13. Automated Test Suite
+## 13. `openlens hooks`
+
+| # | Command | Expected | Pass? |
+|---|---------|----------|-------|
+| 13.1 | `openlens hooks install` (fresh repo) | Creates `.git/hooks/pre-commit` and `.git/hooks/pre-push`, prints confirmation | |
+| 13.2 | `openlens hooks install` (already installed) | Idempotent — no error, no duplicate content | |
+| 13.3 | `openlens hooks install` (existing hooks present) | Backs up originals to `.backup`, installs new hooks | |
+| 13.4 | `openlens hooks remove` | Removes hooks, restores `.backup` files if present | |
+| 13.5 | `openlens hooks remove` (no hooks installed) | No error (idempotent) | |
+| 13.6 | `OPENLENS_SKIP=1 git commit -m "test"` (with hooks installed) | Hook exits early, commit succeeds without review | |
+| 13.7 | `openlens hooks install --global` | Installs to `~/.config/openlens/hooks`, sets `core.hooksPath` | |
+| 13.8 | Pre-commit hook (staged changes, no critical issues) | Hook exits 0, commit proceeds | |
+| 13.9 | Pre-commit hook (staged changes, critical issue found) | Hook exits 1, commit blocked | |
+| 13.10 | Pre-push hook (branch diff, no critical issues) | Hook exits 0, push proceeds | |
+| 13.11 | Pre-push hook (branch diff, critical issue found) | Hook exits 1, push blocked | |
+| 13.12 | `openlens hooks` (outside git repo) | Error: "Not a git repository" (exit 2) | |
+
+---
+
+## 14. Automated Test Suite
 
 ```bash
 bun run typecheck          # No type errors
@@ -177,6 +196,6 @@ bun run build              # Compiles to dist/
 
 | # | Command | Expected | Pass? |
 |---|---------|----------|-------|
-| 13.1 | `bun run typecheck` | Exit 0, no errors | |
-| 13.2 | `bun test` | 217+ pass, 0 fail | |
-| 13.3 | `bun run build` | Clean compilation to `dist/` | |
+| 14.1 | `bun run typecheck` | Exit 0, no errors | |
+| 14.2 | `bun test` | 217+ pass, 0 fail | |
+| 14.3 | `bun run build` | Clean compilation to `dist/` | |

@@ -18,6 +18,8 @@ This page documents every command, flag, environment variable, and exit code for
 | `openlens agent validate` | Check all agent configs for errors (missing prompts, bad models, no tools) |
 | `openlens agent enable <name>` | Re-enable a previously disabled agent in openlens.json |
 | `openlens agent disable <name>` | Disable an agent so it will not run during reviews |
+| `openlens hooks install` | Install git hooks (pre-commit + pre-push) for automatic review |
+| `openlens hooks remove` | Remove git hooks and restore backups |
 | `openlens init` | Set up OpenLens in your project (creates openlens.json and agents/ directory) |
 | `openlens serve` | Start an HTTP API server for running reviews programmatically |
 | `openlens models` | List all available AI models from OpenCode (free and paid) |
@@ -28,6 +30,7 @@ graph TD
     CLI[openlens CLI]
     CLI --> run[run]
     CLI --> agent[agent]
+    CLI --> hooks[hooks]
     CLI --> init[init]
     CLI --> serve[serve]
     CLI --> models[models]
@@ -39,6 +42,9 @@ graph TD
     agent --> validate[validate]
     agent --> enable["enable &lt;name&gt;"]
     agent --> disable["disable &lt;name&gt;"]
+
+    hooks --> install[install]
+    hooks --> remove[remove]
 ```
 
 ## openlens run
@@ -185,6 +191,42 @@ Disable an agent by setting `disable: true` in its config entry in `openlens.jso
 
 ```bash
 openlens agent disable style
+```
+
+## openlens hooks
+
+Manage git hooks for automatic code review on commit and push.
+
+### hooks install
+
+Install `pre-commit` and `pre-push` hooks into the current repository. Existing hooks are backed up with a `.backup` suffix.
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--global` | boolean | — | Install to `~/.config/openlens/hooks` and set `core.hooksPath` globally |
+
+```bash
+openlens hooks install
+openlens hooks install --global
+```
+
+The `pre-commit` hook runs security and bugs agents on staged changes (~15s). The `pre-push` hook runs all agents against the full branch diff (~60s). Both block on critical issues (exit code 1).
+
+Install is idempotent — safe to run multiple times.
+
+Skip hooks for a single operation with `OPENLENS_SKIP=1`:
+
+```bash
+OPENLENS_SKIP=1 git commit -m "wip"
+OPENLENS_SKIP=1 git push
+```
+
+### hooks remove
+
+Remove installed hooks and restore any backups.
+
+```bash
+openlens hooks remove
 ```
 
 ## openlens init
