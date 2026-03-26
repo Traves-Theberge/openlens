@@ -23,7 +23,8 @@
     "agents",
     "action.yml",
     "plugins",
-    "wiki"
+    "wiki",
+    "hooks"
   ],
   "scripts": {
     "dev": "bun run src/index.ts",

@@ -1013,6 +1013,95 @@ If no issues found, return \`[]\`
     }
   )
 
+  .command("hooks", "Install or remove git hooks for automatic code review", (y) =>
+    y
+      .command(
+        "install",
+        "Install pre-commit and pre-push hooks into the current repo",
+        (yy) => yy,
+        async () => {
+          const cwd = process.cwd()
+          const gitDir = path.join(cwd, ".git", "hooks")
+
+          try {
+            await fs.access(path.join(cwd, ".git"))
+          } catch {
+            fatal("Not a git repository.")
+          }
+
+          await fs.mkdir(gitDir, { recursive: true })
+
+          const hooksDir = path.join(path.dirname(fileURLToPath(import.meta.url)), "../hooks")
+          const hooks = ["pre-commit", "pre-push"]
+
+          for (const hook of hooks) {
+            const src = path.join(hooksDir, hook)
+            const dst = path.join(gitDir, hook)
+
+            try {
+              await fs.access(dst)
+              // Backup existing hook
+              const existing = await fs.readFile(dst, "utf-8")
+              if (existing.includes("OpenLens")) {
+                console.log(`  ${D}exists${R} .git/hooks/${hook}`)
+                continue
+              }
+              await fs.writeFile(dst + ".backup", existing)
+              console.log(`  ${YELLOW}!${R} backed up existing .git/hooks/${hook}`)
+            } catch {
+              // No existing hook
+            }
+
+            const content = await fs.readFile(src, "utf-8")
+            await fs.writeFile(dst, content, { mode: 0o755 })
+            console.log(`  ${G}✓${R} installed .git/hooks/${hook}`)
+          }
+
+          console.log(`\n  ${B}Done.${R} OpenLens will review your code before commits and pushes.`)
+          console.log(`  ${D}Skip with: OPENLENS_SKIP=1 git commit${R}\n`)
+        }
+      )
+
+      .command(
+        "remove",
+        "Remove OpenLens git hooks from the current repo",
+        (yy) => yy,
+        async () => {
+          const cwd = process.cwd()
+          const gitDir = path.join(cwd, ".git", "hooks")
+          const hooks = ["pre-commit", "pre-push"]
+
+          for (const hook of hooks) {
+            const dst = path.join(gitDir, hook)
+            try {
+              const content = await fs.readFile(dst, "utf-8")
+              if (!content.includes("OpenLens")) {
+                console.log(`  ${D}skipped${R} .git/hooks/${hook} (not an OpenLens hook)`)
+                continue
+              }
+              await fs.unlink(dst)
+
+              // Restore backup if exists
+              try {
+                const backup = await fs.readFile(dst + ".backup", "utf-8")
+                await fs.writeFile(dst, backup, { mode: 0o755 })
+                await fs.unlink(dst + ".backup")
+                console.log(`  ${G}✓${R} restored .git/hooks/${hook} from backup`)
+              } catch {
+                console.log(`  ${G}✓${R} removed .git/hooks/${hook}`)
+              }
+            } catch {
+              console.log(`  ${D}skipped${R} .git/hooks/${hook} (not found)`)
+            }
+          }
+
+          console.log("")
+        }
+      )
+
+      .demandCommand(1, "Use: openlens hooks <install|remove>")
+  )
+
   .command(
     "docs",
     "Open the OpenLens wiki in your browser",

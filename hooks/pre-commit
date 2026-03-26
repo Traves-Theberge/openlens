@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# OpenLens pre-commit hook
+# Runs a quick review on staged changes. Blocks commit if critical issues found.
+# Install: cp hooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
+# Or: openlens hooks install
+
+set -e
+
+# Skip if OPENLENS_SKIP is set (e.g., OPENLENS_SKIP=1 git commit -m "wip")
+if [ -n "$OPENLENS_SKIP" ]; then
+  exit 0
+fi
+
+# Check if openlens is available
+if ! command -v openlens &> /dev/null; then
+  echo "openlens not found — skipping review"
+  exit 0
+fi
+
+# Check if there are staged changes
+if git diff --cached --quiet; then
+  exit 0
+fi
+
+echo ""
+echo "  OpenLens  reviewing staged changes..."
+echo ""
+
+# Run quick review: security + bugs only, no verification, no full context
+openlens run --staged --agents security,bugs --no-verify --no-context --format text
+
+# Exit code 1 = critical issues found → block commit
+# Exit code 0 = clean or only warnings → allow commit
