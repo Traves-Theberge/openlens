@@ -347,12 +347,11 @@ describe("version and help", () => {
     expect(result.stdout.trim()).toBe("2.0.0")
   })
 
-  test("--help shows extended descriptions", () => {
+  test("--help shows commands and examples", () => {
     setupRepo()
     const result = run(["--help"], tmpDir)
     expect(result.exitCode).toBe(0)
-    expect(result.stdout).toContain("AI-powered code review")
-    expect(result.stdout).toContain("Quick start:")
+    expect(result.stdout).toContain("Commands:")
     expect(result.stdout).toContain("Examples:")
     expect(result.stdout).toContain("openlens run")
     expect(result.stdout).toContain("openlens agent")

@@ -28,19 +28,7 @@ function fatal(msg: string): never {
 
 yargs(hideBin(process.argv))
   .scriptName("openlens")
-  .usage(`${B}openlens${R} — AI-powered code review using specialized agents
-
-Usage: $0 <command> [options]
-
-Run multiple AI agents in parallel to review your code changes for
-security vulnerabilities, bugs, performance issues, and style problems.
-Works with staged, unstaged, or branch diffs.
-
-${B}Quick start:${R}
-  $0 init                 Set up OpenLens in your project
-  $0 run --staged         Review staged changes
-  $0 run --branch main    Review diff against main branch
-  $0 doctor               Verify your environment is ready`)
+  .usage(`$0 <command> [options]`)
 
   .command(
     "run",
@@ -1161,6 +1149,6 @@ If no issues found, return \`[]\`
   .example("$0 run --format sarif", "Output SARIF for GitHub Code Scanning")
   .example("$0 agent test security --staged", "Test one agent in isolation")
   .example("$0 agent create api-review", "Create a custom review agent")
-  .epilog(`${D}Docs: https://github.com/Traves-Theberge/OpenLens${R}`)
-  .wrap(Math.min(100, yargs(hideBin(process.argv)).terminalWidth()))
+  .epilog(`${D}https://github.com/Traves-Theberge/OpenLens${R}`)
+  .wrap(yargs(hideBin(process.argv)).terminalWidth())
   .parse()
