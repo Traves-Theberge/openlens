@@ -15,7 +15,7 @@ function md2html(md: string): string {
     const idx = preserved.length
     if (lang === "mermaid") {
       preserved.push(
-        `<div class="mermaid-wrapper"><pre class="mermaid">${code.trim()}</pre></div>`
+        `<div class="mermaid-wrapper"><div class="diagram-toolbar"><button class="diagram-btn" onclick="zoomDiagram(this, 1.3)" title="Zoom in">+</button><button class="diagram-btn" onclick="zoomDiagram(this, 0.7)" title="Zoom out">&minus;</button><button class="diagram-btn" onclick="resetZoom(this)" title="Reset">&#8634;</button><button class="diagram-btn" onclick="fullscreenDiagram(this)" title="Fullscreen">&#x26F6;</button></div><div class="diagram-container"><pre class="mermaid">${code.trim()}</pre></div></div>`
       )
     } else {
       const escaped = code
@@ -115,16 +115,22 @@ function md2html(md: string): string {
   // 10. Horizontal rules
   html = html.replace(/^---$/gm, "<hr>")
 
-  // 11. Paragraphs — wrap loose text lines
+  // 11. Paragraphs — wrap loose text lines, detect glossary-style entries
   const lines = html.split("\n")
   const result: string[] = []
   for (const line of lines) {
     const trimmed = line.trim()
-    if (
-      !trimmed ||
-      trimmed.startsWith("<") ||
-      trimmed.startsWith("%%BLOCK_")
-    ) {
+    if (!trimmed || trimmed.startsWith("%%BLOCK_")) {
+      result.push(line)
+    } else if (trimmed.match(/^<strong>[^<]+<\/strong>\s*[—–-]\s*/)) {
+      // Glossary-style entry: **Term** — Definition
+      const match = trimmed.match(/^(<strong>[^<]+<\/strong>)\s*[—–-]\s*(.+)$/)
+      if (match) {
+        result.push(`<div class="glossary-entry"><div class="glossary-term">${match[1]}</div><div class="glossary-def">${match[2]}</div></div>`)
+      } else {
+        result.push(`<p>${trimmed}</p>`)
+      }
+    } else if (trimmed.startsWith("<")) {
       result.push(line)
     } else {
       result.push(`<p>${trimmed}</p>`)
@@ -286,7 +292,7 @@ body {
 }
 
 .content {
-  max-width: 780px;
+  max-width: 100%;
   width: 100%;
   padding: 40px 48px 80px;
 }
@@ -435,20 +441,101 @@ pre code {
 /* ─── Mermaid ──────────────────────────────────────────── */
 
 .mermaid-wrapper {
+  position: relative;
   margin: 16px 0;
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 24px;
-  overflow-x: auto;
+  overflow: hidden;
 }
 
-.mermaid-wrapper pre.mermaid {
+.diagram-toolbar {
+  display: flex;
+  gap: 4px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.diagram-btn {
+  background: var(--bg-hover);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  width: 30px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.diagram-btn:hover {
+  background: var(--border);
+  color: var(--text);
+}
+
+.diagram-container {
+  padding: 24px;
+  overflow: auto;
+  cursor: grab;
+}
+
+.diagram-container:active { cursor: grabbing; }
+
+.diagram-container pre.mermaid {
   background: transparent;
   border: none;
   padding: 0;
   margin: 0;
+  transition: transform 0.2s ease;
+  transform-origin: center center;
 }
+
+/* Fullscreen overlay */
+.diagram-fullscreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0,0,0,0.95);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  cursor: zoom-out;
+}
+
+.diagram-fullscreen .diagram-container {
+  max-width: 100%;
+  max-height: 100%;
+  overflow: auto;
+  cursor: grab;
+}
+
+.diagram-fullscreen .close-btn {
+  position: fixed;
+  top: 16px;
+  right: 20px;
+  background: var(--bg-hover);
+  border: 1px solid var(--border);
+  color: var(--text);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1001;
+}
+
+.diagram-fullscreen .close-btn:hover { background: var(--border); }
 
 /* ─── Tables ───────────────────────────────────────────── */
 
@@ -510,6 +597,29 @@ blockquote {
   font-size: 14px;
 }
 
+/* ─── Glossary ─────────────────────────────────────────── */
+
+.glossary-entry {
+  padding: 16px 20px;
+  margin: 8px 0;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.glossary-term {
+  font-size: 15px;
+  margin-bottom: 6px;
+}
+
+.glossary-term strong { color: var(--accent); }
+
+.glossary-def {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
 /* ─── Misc ─────────────────────────────────────────────── */
 
 hr {
@@ -558,7 +668,12 @@ async function loadPages(wikiDir: string): Promise<WikiPage[]> {
   const files = await fs.readdir(wikiDir)
   const pages: WikiPage[] = []
 
-  for (const file of files.sort()) {
+  // Numeric sort so 10-glossary comes after 9-testing
+  for (const file of files.sort((a, b) => {
+    const numA = parseInt(a.match(/^(\d+)/)?.[1] || "0")
+    const numB = parseInt(b.match(/^(\d+)/)?.[1] || "0")
+    return numA - numB
+  })) {
     if (!file.endsWith(".md") || file === "index.md") continue
     const content = await fs.readFile(path.join(wikiDir, file), "utf-8")
     const titleMatch = content.match(/^#\s+(.+)$/m)
@@ -646,6 +761,157 @@ function renderPage(content: string, pages: WikiPage[], currentSlug: string): st
         fontFamily: 'Inter, sans-serif',
         fontSize: '13px',
       },
+    });
+  </script>
+  <script>
+    // Track scale per wrapper
+    const diagramState = new WeakMap();
+
+    function getState(wrapper) {
+      if (!diagramState.has(wrapper)) diagramState.set(wrapper, { scale: 1, panX: 0, panY: 0 });
+      return diagramState.get(wrapper);
+    }
+
+    function applyTransform(wrapper) {
+      const s = getState(wrapper);
+      const target = wrapper.querySelector('svg') || wrapper.querySelector('pre.mermaid');
+      if (!target) return;
+      target.style.transform = 'scale(' + s.scale + ') translate(' + s.panX + 'px, ' + s.panY + 'px)';
+      target.style.transformOrigin = 'center center';
+    }
+
+    function zoomDiagram(btn, factor) {
+      const wrapper = btn.closest('.mermaid-wrapper');
+      const s = getState(wrapper);
+      s.scale = Math.max(0.3, Math.min(5, s.scale * factor));
+      applyTransform(wrapper);
+    }
+
+    function resetZoom(btn) {
+      const wrapper = btn.closest('.mermaid-wrapper');
+      const s = getState(wrapper);
+      s.scale = 1; s.panX = 0; s.panY = 0;
+      applyTransform(wrapper);
+    }
+
+    // Inline drag to pan
+    document.addEventListener('DOMContentLoaded', () => {
+      document.querySelectorAll('.diagram-container').forEach(container => {
+        const wrapper = container.closest('.mermaid-wrapper');
+        let dragging = false, lastX = 0, lastY = 0;
+
+        container.addEventListener('mousedown', (e) => {
+          if (e.target.closest('.diagram-toolbar')) return;
+          dragging = true;
+          lastX = e.clientX;
+          lastY = e.clientY;
+          container.style.cursor = 'grabbing';
+          e.preventDefault();
+        });
+
+        window.addEventListener('mousemove', (e) => {
+          if (!dragging) return;
+          const s = getState(wrapper);
+          s.panX += (e.clientX - lastX) / s.scale;
+          s.panY += (e.clientY - lastY) / s.scale;
+          lastX = e.clientX;
+          lastY = e.clientY;
+          applyTransform(wrapper);
+        });
+
+        window.addEventListener('mouseup', () => {
+          if (dragging) { dragging = false; container.style.cursor = 'grab'; }
+        });
+
+        // Scroll wheel zoom on inline diagrams
+        container.addEventListener('wheel', (e) => {
+          e.preventDefault();
+          const s = getState(wrapper);
+          s.scale = Math.max(0.2, Math.min(5, s.scale + (e.deltaY > 0 ? -0.1 : 0.1)));
+          applyTransform(wrapper);
+        }, { passive: false });
+      });
+    });
+
+    // Fullscreen diagram
+    function fullscreenDiagram(btn) {
+      const wrapper = btn.closest('.mermaid-wrapper');
+      const svg = wrapper.querySelector('svg');
+      if (!svg) return;
+
+      const overlay = document.createElement('div');
+      overlay.className = 'diagram-fullscreen';
+
+      const svgClone = svg.cloneNode(true);
+      svgClone.style.width = '90vw';
+      svgClone.style.height = 'auto';
+      svgClone.style.maxHeight = '85vh';
+      svgClone.style.transform = 'none';
+      svgClone.removeAttribute('width');
+      svgClone.removeAttribute('height');
+
+      const container = document.createElement('div');
+      container.className = 'diagram-container';
+      container.style.display = 'flex';
+      container.style.alignItems = 'center';
+      container.style.justifyContent = 'center';
+      container.appendChild(svgClone);
+
+      const closeBtn = document.createElement('button');
+      closeBtn.className = 'close-btn';
+      closeBtn.innerHTML = '&times;';
+      closeBtn.title = 'Close (Esc)';
+      closeBtn.onclick = (e) => { e.stopPropagation(); overlay.remove(); };
+
+      overlay.appendChild(closeBtn);
+      overlay.appendChild(container);
+      overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+
+      // Fullscreen zoom + pan state
+      let fsScale = 1, fsPanX = 0, fsPanY = 0;
+      let fsDragging = false, fsLastX = 0, fsLastY = 0;
+
+      function fsApply() {
+        svgClone.style.transform = 'scale(' + fsScale + ') translate(' + fsPanX + 'px, ' + fsPanY + 'px)';
+        svgClone.style.transformOrigin = 'center center';
+      }
+
+      container.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        fsScale = Math.max(0.2, Math.min(8, fsScale + (e.deltaY > 0 ? -0.15 : 0.15)));
+        fsApply();
+      }, { passive: false });
+
+      container.addEventListener('mousedown', (e) => {
+        fsDragging = true;
+        fsLastX = e.clientX;
+        fsLastY = e.clientY;
+        container.style.cursor = 'grabbing';
+        e.preventDefault();
+      });
+
+      window.addEventListener('mousemove', function fsDrag(e) {
+        if (!fsDragging) return;
+        fsPanX += (e.clientX - fsLastX) / fsScale;
+        fsPanY += (e.clientY - fsLastY) / fsScale;
+        fsLastX = e.clientX;
+        fsLastY = e.clientY;
+        fsApply();
+      });
+
+      window.addEventListener('mouseup', function fsUp() {
+        if (fsDragging) { fsDragging = false; container.style.cursor = 'grab'; }
+      });
+
+      document.body.appendChild(overlay);
+    }
+
+    // Escape closes fullscreen
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        const fs = document.querySelector('.diagram-fullscreen');
+        if (fs) fs.remove();
+      }
     });
   </script>
 </body>
