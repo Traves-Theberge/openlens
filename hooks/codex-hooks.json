@@ -7,7 +7,7 @@
           {
             "type": "command",
             "command": "openlens run --staged --agents security,bugs --no-verify --no-context --format text 2>&1 | tail -30 || true",
-            "timeout": 120,
+            "timeoutSec": 120,
             "statusMessage": "Running OpenLens review..."
           }
         ]
@@ -20,7 +20,7 @@
           {
             "type": "command",
             "command": "bash -c 'INPUT=$(cat); CMD=$(echo \"$INPUT\" | jq -r .tool_input.command 2>/dev/null); if echo \"$CMD\" | grep -qE \"^git (commit|push)\"; then openlens run --staged --agents security,bugs --no-verify --no-context --format text >&2; else exit 0; fi'",
-            "timeout": 180,
+            "timeoutSec": 180,
             "statusMessage": "OpenLens pre-commit review..."
           }
         ]

@@ -615,39 +615,45 @@ This registers four tools:
 | `openlens-conventions`  | Get project review instructions      |
 | `openlens-agents`       | List available agents                |
 
-## Git Hooks
+## Hooks
 
-OpenLens can install git hooks for automatic code review on every commit and push.
+OpenLens hooks automate code review at two levels: **git hooks** block bad commits, and **platform hooks** review as AI agents write code.
+
+### Git Hooks
 
 ```bash
-# Install hooks into the current repo
-openlens hooks install
-
-# Remove hooks (restores any previously backed-up hooks)
-openlens hooks remove
+openlens hooks install    # pre-commit + pre-push
+openlens hooks remove     # restore originals
 ```
 
-| Hook | Agents | Speed | Behavior |
-| ---- | ------ | ----- | -------- |
-| `pre-commit` | security, bugs | ~15s | Reviews staged changes, blocks on critical issues |
-| `pre-push` | all agents | ~60s | Reviews full branch diff, blocks on critical issues |
-
-Customize which agents run, or skip entirely:
+| Hook | Agents | Behavior |
+| ---- | ------ | -------- |
+| `pre-commit` | security, bugs | Blocks commit on critical issues |
+| `pre-push` | all agents | Blocks push on critical issues |
 
 ```bash
 OPENLENS_SKIP=1 git commit -m "wip"           # skip hooks
-OPENLENS_AGENTS=security git commit -m "fix"   # security only
+OPENLENS_AGENTS=security git commit -m "fix"   # customize agents
 ```
 
-For global hooks across all repos:
+### Platform Hooks
+
+Ready-made hook configs for all 4 AI coding platforms. Each reviews after file writes and blocks `git commit`/`git push` on critical issues:
 
 ```bash
-openlens hooks install --global
-# or manually:
-git config --global core.hooksPath ~/.config/openlens/hooks
+# Claude Code
+cp hooks/claude-code-hooks.json .claude/settings.json
+
+# Gemini CLI
+cp hooks/gemini-hooks.json .gemini/settings.json
+
+# Codex CLI
+mkdir -p .codex && cp hooks/codex-hooks.json .codex/hooks.json
+
+# OpenCode — copy hooks/opencode-hooks.ts into your plugin
 ```
 
-Install is idempotent and backs up any existing hooks. Remove restores the backups.
+See the [Hooks Guide](docs/guides/hooks-guide.md) for full details on each platform.
 
 ## Event Bus
 

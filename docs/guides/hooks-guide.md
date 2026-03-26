@@ -1,6 +1,6 @@
 # OpenLens Hooks Guide
 
-Automate code review at every level — git hooks block bad commits, platform hooks review as you code.
+Automate code review at every level — git hooks block bad commits, platform hooks review as you code and catch issues before git commit/push.
 
 ---
 
@@ -23,11 +23,8 @@ This installs:
 Override which agents run via the `OPENLENS_AGENTS` env var:
 
 ```bash
-# Pre-commit: only run security agent
-OPENLENS_AGENTS=security git commit -m "feat: add auth"
-
-# Pre-push: run security and bugs only (default is all agents)
-OPENLENS_AGENTS=security,bugs git push
+OPENLENS_AGENTS=security git commit -m "feat: add auth"     # security only
+OPENLENS_AGENTS=security,bugs git push                       # security+bugs only
 ```
 
 If `OPENLENS_AGENTS` is not set, pre-commit defaults to `security,bugs` and pre-push runs all agents.
@@ -45,8 +42,6 @@ OPENLENS_SKIP=1 git push
 openlens hooks remove
 ```
 
-Restores any hooks that were backed up during install.
-
 ### Global (all repos)
 
 ```bash
@@ -60,11 +55,11 @@ cp /path/to/OpenLens/hooks/pre-push ~/.config/openlens/hooks/
 
 ## Claude Code Hooks
 
-Run OpenLens automatically after Claude writes or edits files.
+Two hooks: review after file writes, and block git commit/push on critical issues.
 
 ### Setup
 
-Add to your project's `.claude/settings.json`:
+Copy into your project's `.claude/settings.json` or merge with existing hooks:
 
 ```json
 {
@@ -75,7 +70,22 @@ Add to your project's `.claude/settings.json`:
         "hooks": [
           {
             "type": "command",
-            "command": "openlens run --staged --agents security,bugs --no-verify --no-context --format text 2>&1 | tail -20 || true"
+            "command": "openlens run --staged --agents security,bugs --no-verify --no-context --format text 2>&1 | tail -30 || true",
+            "timeout": 120,
+            "statusMessage": "Running OpenLens review..."
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'INPUT=$(cat); CMD=$(echo \"$INPUT\" | jq -r .tool_input.command 2>/dev/null); if echo \"$CMD\" | grep -qE \"^git (commit|push)\"; then openlens run --staged --agents security,bugs --no-verify --no-context --format text >&2; else exit 0; fi'",
+            "timeout": 180,
+            "statusMessage": "OpenLens pre-commit review..."
           }
         ]
       }
@@ -86,75 +96,56 @@ Add to your project's `.claude/settings.json`:
 
 ### What happens
 
-Every time Claude uses the `Write` or `Edit` tool, OpenLens runs a quick security+bugs review on staged changes. Results appear in the conversation. Non-blocking (uses `|| true`) so it doesn't interrupt Claude's flow.
+- **PostToolUse (Write|Edit):** After Claude writes or edits a file, OpenLens runs a quick review. Non-blocking (`|| true`) — results appear as context but don't stop Claude.
+- **PreToolUse (Bash → git commit/push):** When Claude runs `git commit` or `git push`, OpenLens reviews first. Exit code 1 (critical issues) = exit code 2 → blocks the command. Claude sees the issues and fixes them before retrying.
 
-### Blocking variant
+### Config location
 
-To block file writes when critical issues are found, use `PreToolUse` instead:
+- `.claude/settings.json` — project-scoped (committable to repo)
+- `~/.claude/settings.json` — user-scoped (global)
 
-```json
-{
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "openlens run --staged --agents security --no-verify --no-context --format text"
-          }
-        ]
-      }
-    ]
-  }
-}
-```
-
-Exit code 1 (critical issues) blocks the tool execution. Claude sees the error and adjusts.
-
----
-
-## OpenCode Tools (not hooks)
-
-OpenLens is a native OpenCode plugin. Add to your `opencode.json`:
-
-```json
-{
-  "plugin": ["openlens"]
-}
-```
-
-This registers 4 **tools** (`openlens`, `openlens-delegate`, `openlens-conventions`, `openlens-agents`) that OpenCode can call during sessions. This is tool registration, not hook registration -- OpenCode calls these tools on demand, not automatically before or after other actions.
-
-> **Note:** Automatic pre-tool hooks (e.g., running a review before every file write) are not supported out of the box. To achieve this, you would need to write a custom OpenCode plugin that uses the `tool.execute.before` lifecycle event to trigger OpenLens before specific tool executions.
-
-### Requirements
-
-The `openlens` package must be resolvable. Either:
-- `npm link` from the OpenLens repo (for development)
-- `npm install -g openlens` (after publishing)
-- Install in the project: `npm install openlens`
+Or use the ready-made file: `cp hooks/claude-code-hooks.json .claude/settings.json`
 
 ---
 
 ## Gemini CLI Hooks
 
-Run OpenLens automatically after Gemini writes files.
+Two hooks: review after file writes, and review before git commit/push via shell commands.
 
 ### Setup
 
-Add to your project's `.gemini/settings.json` (or `~/.gemini/settings.json` for global):
+Add to `.gemini/settings.json` (project) or `~/.gemini/settings.json` (global):
 
 ```json
 {
+  "hooksConfig": {
+    "enabled": true
+  },
   "hooks": {
     "AfterTool": [
       {
-        "matcher": "write_file|edit_file|replace_in_file",
+        "matcher": "write_file|edit_file|create_file",
         "hooks": [
           {
             "type": "command",
-            "command": "openlens run --staged --agents security,bugs --no-verify --no-context --format json 2>/dev/null"
+            "command": "openlens run --staged --agents security,bugs --no-verify --no-context --format text >&2 || true",
+            "name": "openlens-review",
+            "timeout": 120000,
+            "description": "Run OpenLens review after file edits"
+          }
+        ]
+      }
+    ],
+    "BeforeTool": [
+      {
+        "matcher": "run_shell_command",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'INPUT=$(cat); CMD=$(echo \"$INPUT\" | jq -r .tool_input.command 2>/dev/null); if echo \"$CMD\" | grep -qE \"^git (commit|push)\"; then openlens run --staged --agents security,bugs --no-verify --no-context --format text >&2; else exit 0; fi'",
+            "name": "openlens-precommit",
+            "timeout": 180000,
+            "description": "Run OpenLens review before git commit/push"
           }
         ]
       }
@@ -163,31 +154,137 @@ Add to your project's `.gemini/settings.json` (or `~/.gemini/settings.json` for 
 }
 ```
 
-### Note
+### What happens
 
-Gemini hooks communicate via stdin/stdout JSON. The command's stdout is parsed as JSON by Gemini. Use `--format json` and redirect stderr to `/dev/null`.
+- **AfterTool (write_file|edit_file):** Reviews after Gemini writes files. Output goes to stderr (Gemini expects JSON on stdout). Non-blocking.
+- **BeforeTool (run_shell_command → git commit/push):** Reviews before git operations. Exit code 1 blocks the command.
+
+### Notes
+
+- Gemini uses snake_case tool names (`write_file`, `edit_file`, `run_shell_command`)
+- Timeouts are in milliseconds (120000 = 2 minutes)
+- Manage hooks: `/hooks panel`, `/hooks enable-all`, `/hooks disable <name>`
+
+Or use the ready-made file: `cp hooks/gemini-hooks.json .gemini/settings.json`
 
 ---
 
 ## Codex CLI Hooks
 
-Run OpenLens after Codex executes tools.
+Two hooks: review after file writes, and review before git commit/push.
 
 ### Setup
 
-Add to `~/.codex/config.toml` or `.codex/config.toml`:
+Create `.codex/hooks.json` (project) or `~/.codex/hooks.json` (global):
 
-```toml
-[[hooks]]
-event = "AfterToolUse"
-command = "openlens run --staged --agents security,bugs --no-verify --no-context --format text 2>&1 | tail -20 || true"
+```json
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "openlens run --staged --agents security,bugs --no-verify --no-context --format text 2>&1 | tail -30 || true",
+            "timeoutSec": 120,
+            "statusMessage": "Running OpenLens review..."
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'INPUT=$(cat); CMD=$(echo \"$INPUT\" | jq -r .tool_input.command 2>/dev/null); if echo \"$CMD\" | grep -qE \"^git (commit|push)\"; then openlens run --staged --agents security,bugs --no-verify --no-context --format text >&2; else exit 0; fi'",
+            "timeoutSec": 180,
+            "statusMessage": "OpenLens pre-commit review..."
+          }
+        ]
+      }
+    ]
+  }
+}
 ```
 
-### Limitations
+### What happens
 
-Codex hooks are experimental. There is no `BeforeToolUse` event, so you cannot block tool execution. The hook runs after changes are made.
+- **PostToolUse (Write|Edit):** Reviews after Codex writes files. Non-blocking.
+- **PreToolUse (Bash → git commit/push):** Reviews before git operations. Exit code 2 blocks the command.
 
-> **Note:** The `AfterToolUse` event is experimental and may not be available in all Codex versions. Check your Codex CLI version's documentation to confirm hook support.
+### Notes
+
+- Codex uses PascalCase tool names (`Write`, `Edit`, `Bash`) — same as Claude Code
+- Timeouts use `timeoutSec` (in seconds)
+- Config file is `hooks.json`, NOT `config.toml`
+
+Or use the ready-made file: `cp hooks/codex-hooks.json .codex/hooks.json`
+
+---
+
+## OpenCode Hooks
+
+OpenCode uses a programmatic TypeScript plugin API. A hook plugin is included at `hooks/opencode-hooks.ts`.
+
+### What it does
+
+- **tool.execute.after (write|edit|patch):** Appends OpenLens review findings to the tool output so OpenCode sees the issues.
+- **tool.execute.before (bash → git commit/push):** Blocks the command if critical issues are found by throwing an error.
+
+### Setup
+
+The base OpenLens plugin (`"plugin": ["openlens"]`) registers tools. To add hooks, you need to extend it with the hook plugin or copy the hook logic into your own plugin.
+
+```typescript
+// hooks/opencode-hooks.ts — copy into your plugin or import
+import { type Plugin } from "@opencode-ai/plugin"
+import { execSync } from "child_process"
+
+const WRITE_TOOLS = new Set(["write", "edit", "patch"])
+const AGENTS = process.env.OPENLENS_AGENTS || "security,bugs"
+
+const plugin: Plugin = async ({ directory }) => ({
+  "tool.execute.after": async (input, output) => {
+    if (!WRITE_TOOLS.has(input.tool)) return
+    try {
+      const result = execSync(
+        `openlens run --staged --agents ${AGENTS} --no-verify --no-context --format text`,
+        { cwd: directory, encoding: "utf-8", timeout: 120_000 }
+      )
+      if (result.trim()) {
+        output.output += "\n\n--- OpenLens Review ---\n" + result
+      }
+    } catch {}
+  },
+
+  "tool.execute.before": async (input, output) => {
+    if (input.tool !== "bash") return
+    const cmd = (output.args as any)?.command || ""
+    if (!/^git\s+(commit|push)/.test(cmd)) return
+    try {
+      execSync(
+        `openlens run --staged --agents ${AGENTS} --no-verify --no-context --format text`,
+        { cwd: directory, encoding: "utf-8", timeout: 120_000 }
+      )
+    } catch (err: any) {
+      if (err.status === 1) {
+        throw new Error("OpenLens found critical issues.\n\n" + (err.stdout || ""))
+      }
+    }
+  },
+})
+
+export default plugin
+```
+
+### Notes
+
+- OpenCode tool names are lowercase: `write`, `edit`, `bash`, `patch`
+- Block execution by throwing an Error in `tool.execute.before`
+- `OPENLENS_AGENTS` env var customizes which agents run
 
 ---
 
@@ -195,15 +292,15 @@ Codex hooks are experimental. There is no `BeforeToolUse` event, so you cannot b
 
 ```mermaid
 graph TD
-    A[Developer Action] --> B{Which Hook?}
-    B -->|git commit| C[pre-commit]
-    B -->|git push| D[pre-push]
-    B -->|AI writes file| E[PostToolUse / AfterTool]
-    C --> F[security + bugs agents]
-    D --> G[all 4 agents]
-    E --> F
+    A[Developer / AI Action] --> B{What's happening?}
+    B -->|File written| C[PostToolUse / AfterTool]
+    B -->|git commit| D[PreToolUse + pre-commit hook]
+    B -->|git push| E[PreToolUse + pre-push hook]
+    C --> F[security + bugs review]
+    D --> F
+    E --> G[all agents review]
     F & G --> H{Critical Issues?}
-    H -->|yes| I[Block Action]
+    H -->|yes| I[Block + Show Issues]
     H -->|no| J[Allow Action]
 ```
 
@@ -211,25 +308,39 @@ graph TD
 
 ## Which hook to use where
 
-| When | What | Platform |
-|------|------|----------|
-| Before committing | Git pre-commit hook | All (git-level) |
-| Before pushing | Git pre-push hook | All (git-level) |
-| After AI writes a file | PostToolUse / AfterTool hook | Claude Code, Gemini, Codex |
-| Before AI writes a file | PreToolUse / BeforeTool hook | Claude Code, Gemini, OpenCode (requires custom plugin) |
-| On demand | `/openlens` or `$openlens` command | All platforms |
-| In CI/CD | GitHub Action / GitLab CI | CI pipelines |
+| When | What | Claude Code | Gemini CLI | Codex CLI | OpenCode |
+|------|------|------------|------------|-----------|----------|
+| After file write | Review changes | PostToolUse | AfterTool | PostToolUse | tool.execute.after |
+| Before git commit/push | Block on critical | PreToolUse (Bash) | BeforeTool (run_shell_command) | PreToolUse (Bash) | tool.execute.before |
+| Before any commit | Git hook | pre-commit | pre-commit | pre-commit | pre-commit |
+| Before any push | Git hook | pre-push | pre-push | pre-push | pre-push |
+| On demand | Manual | `/openlens` | `/openlens` | `$openlens` | `/openlens` tool |
 
 ---
 
 ## Hook files included
 
-All hook configs are in the `hooks/` directory:
+| File | Platform | Format | Purpose |
+|------|----------|--------|---------|
+| `hooks/pre-commit` | Git (all) | Bash | Pre-commit hook |
+| `hooks/pre-push` | Git (all) | Bash | Pre-push hook |
+| `hooks/claude-code-hooks.json` | Claude Code | JSON | PostToolUse + PreToolUse (git) |
+| `hooks/gemini-hooks.json` | Gemini CLI | JSON | AfterTool + BeforeTool (git) |
+| `hooks/codex-hooks.json` | Codex CLI | JSON | PostToolUse + PreToolUse (git) |
+| `hooks/opencode-hooks.ts` | OpenCode | TypeScript | tool.execute.after + before |
 
-| File | Purpose |
-|------|---------|
-| `hooks/pre-commit` | Git pre-commit hook (security+bugs, fast) |
-| `hooks/pre-push` | Git pre-push hook (all agents, thorough) |
-| `hooks/claude-code-hooks.json` | Claude Code PostToolUse config |
-| `hooks/gemini-hooks.json` | Gemini CLI AfterTool config |
-| `hooks/codex-hooks.toml` | Codex CLI AfterToolUse config |
+### Quick install
+
+```bash
+# Git hooks
+openlens hooks install
+
+# Claude Code
+cp hooks/claude-code-hooks.json .claude/settings.json
+
+# Gemini CLI
+cp hooks/gemini-hooks.json .gemini/settings.json
+
+# Codex CLI
+mkdir -p .codex && cp hooks/codex-hooks.json .codex/hooks.json
+```

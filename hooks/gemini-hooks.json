@@ -1,12 +1,32 @@
 {
+  "hooksConfig": {
+    "enabled": true
+  },
   "hooks": {
     "AfterTool": [
       {
-        "matcher": "write_file|edit_file|replace_in_file",
+        "matcher": "write_file|edit_file|create_file",
         "hooks": [
           {
             "type": "command",
-            "command": "openlens run --staged --agents security,bugs --no-verify --no-context --format json 2>/dev/null"
+            "command": "openlens run --staged --agents security,bugs --no-verify --no-context --format text >&2 || true",
+            "name": "openlens-review",
+            "timeout": 120000,
+            "description": "Run OpenLens review after file edits"
+          }
+        ]
+      }
+    ],
+    "BeforeTool": [
+      {
+        "matcher": "run_shell_command",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'INPUT=$(cat); CMD=$(echo \"$INPUT\" | jq -r .tool_input.command 2>/dev/null); if echo \"$CMD\" | grep -qE \"^git (commit|push)\"; then openlens run --staged --agents security,bugs --no-verify --no-context --format text >&2; else exit 0; fi'",
+            "name": "openlens-precommit",
+            "timeout": 180000,
+            "description": "Run OpenLens review before git commit/push"
           }
         ]
       }

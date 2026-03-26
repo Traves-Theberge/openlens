@@ -1,6 +1,0 @@
-# OpenLens hooks for Codex CLI
-# Add to ~/.codex/config.toml or .codex/config.toml
-
-[[hooks]]
-event = "AfterToolUse"
-command = "openlens run --staged --agents security,bugs --no-verify --no-context --format text 2>&1 | tail -20 || true"
