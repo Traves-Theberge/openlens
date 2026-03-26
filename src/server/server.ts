@@ -1,8 +1,16 @@
 import { Hono } from "hono"
+import { readFileSync } from "fs"
+import { fileURLToPath } from "url"
+import path from "path"
 import type { Config } from "../config/schema.js"
 import { runReview } from "../session/review.js"
 import { loadAgents, filterAgents } from "../agent/agent.js"
 import { getDiffStats, getDiff } from "../tool/diff.js"
+
+// Read version from package.json (single source of truth)
+const PKG_VERSION = JSON.parse(
+  readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), "../../package.json"), "utf-8")
+).version as string
 
 const VALID_MODES = new Set(["staged", "unstaged", "branch", "auto"])
 
@@ -10,7 +18,7 @@ export function createServer(config: Config) {
   const app = new Hono()
 
   app.get("/", (c) => {
-    return c.json({ name: "openlens", version: "0.2.0" })
+    return c.json({ name: "openlens", version: PKG_VERSION })
   })
 
   app.post("/review", async (c) => {

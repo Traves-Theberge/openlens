@@ -4,6 +4,8 @@ import fs from "fs"
 import path from "path"
 import { createTempGitRepo, cleanup, writeConfig } from "./helpers"
 
+const PKG_VERSION = JSON.parse(fs.readFileSync("package.json", "utf-8")).version
+
 let tmpDir: string
 let serverProc: ChildProcess | null = null
 
@@ -104,7 +106,7 @@ describe("openlens serve", () => {
 
     const info = await fetchJson(`${url}/`)
     expect(info.name).toBe("openlens")
-    expect(info.version).toBe("0.2.0")
+    expect(info.version).toBe(PKG_VERSION)
   })
 
   test("GET /agents returns agent list", TIMEOUT, async () => {

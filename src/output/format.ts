@@ -1,4 +1,12 @@
+import { readFileSync } from "fs"
+import { fileURLToPath } from "url"
+import path from "path"
 import type { Issue, ReviewResult } from "../types.js"
+
+// Read version from package.json (single source of truth)
+const PKG_VERSION = JSON.parse(
+  readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), "../../package.json"), "utf-8")
+).version as string
 
 const NO_COLOR = !!process.env.NO_COLOR
 
@@ -144,7 +152,7 @@ export function formatSarif(result: ReviewResult): string {
         tool: {
           driver: {
             name: "openlens",
-            version: "0.2.0",
+            version: PKG_VERSION,
             informationUri: "https://github.com/Traves-Theberge/OpenLens",
             rules: [...new Set(result.issues.map((i) => i.agent))].map(
               (agent) => ({

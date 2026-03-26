@@ -10,8 +10,14 @@ import { formatText, formatJson, formatSarif, formatMarkdown } from "./output/fo
 import { getDiff, getAutoDetectedDiff, getDiffStats } from "./tool/diff.js"
 import { bus } from "./bus/index.js"
 import matter from "gray-matter"
+import { readFileSync } from "fs"
 import fs from "fs/promises"
 import path from "path"
+
+// Read version from package.json (single source of truth)
+const PKG_VERSION = JSON.parse(
+  readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), "../package.json"), "utf-8")
+).version as string
 
 const NO_COLOR = !!process.env.NO_COLOR
 const B = NO_COLOR ? "" : "\x1b[1m"
@@ -1141,7 +1147,7 @@ If no issues found, return \`[]\`
   .strict()
   .help()
   .alias("h", "help")
-  .version("0.2.0")
+  .version(PKG_VERSION)
   .alias("v", "version")
   .example("$0 run --staged", "Review only staged (git add) changes")
   .example("$0 run --branch main", "Review all changes vs main branch")

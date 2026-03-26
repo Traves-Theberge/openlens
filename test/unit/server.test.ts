@@ -1,6 +1,9 @@
 import { describe, test, expect } from "bun:test"
+import { readFileSync } from "fs"
 import { createServer } from "../../src/server/server.js"
 import { ConfigSchema } from "../../src/config/schema.js"
+
+const PKG_VERSION = JSON.parse(readFileSync("package.json", "utf-8")).version
 
 function baseConfig() {
   return ConfigSchema.parse({
@@ -17,7 +20,7 @@ describe("createServer", () => {
     const res = await app.request("/")
     const body = await res.json()
     expect(body.name).toBe("openlens")
-    expect(body.version).toBe("0.2.0")
+    expect(body.version).toBe(PKG_VERSION)
   })
 
   test("GET /health returns ok", async () => {

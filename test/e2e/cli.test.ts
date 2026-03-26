@@ -4,6 +4,8 @@ import path from "path"
 import os from "os"
 import { run, createTempGitRepo, cleanup, writeConfig } from "./helpers"
 
+const PKG_VERSION = JSON.parse(fs.readFileSync("package.json", "utf-8")).version
+
 let tmpDir: string
 
 afterEach(() => {
@@ -69,7 +71,7 @@ describe("openlens --version", () => {
     const result = run(["--version"], tmpDir)
 
     expect(result.exitCode).toBe(0)
-    expect(result.stdout.trim()).toBe("0.2.0")
+    expect(result.stdout.trim()).toBe(PKG_VERSION)
   })
 })
 

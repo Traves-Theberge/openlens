@@ -1,4 +1,5 @@
 import { describe, test, expect, afterEach } from "bun:test"
+import fs from "fs"
 import {
   run,
   createTempGitRepo,
@@ -7,6 +8,8 @@ import {
   writeAgent,
   addStagedFile,
 } from "./helpers"
+
+const PKG_VERSION = JSON.parse(fs.readFileSync("package.json", "utf-8")).version
 
 let tmpDir: string
 
@@ -96,7 +99,7 @@ describe("confidence scoring", () => {
     expect(sarif).toHaveProperty("runs")
     expect(Array.isArray(sarif.runs)).toBe(true)
     expect(sarif.runs[0].tool.driver.name).toBe("openlens")
-    expect(sarif.runs[0].tool.driver.version).toBe("0.2.0")
+    expect(sarif.runs[0].tool.driver.version).toBe(PKG_VERSION)
   })
 
   test("markdown output contains review marker", () => {
@@ -344,7 +347,7 @@ describe("version and help", () => {
     setupRepo()
     const result = run(["--version"], tmpDir)
     expect(result.exitCode).toBe(0)
-    expect(result.stdout.trim()).toBe("0.2.0")
+    expect(result.stdout.trim()).toBe(PKG_VERSION)
   })
 
   test("--help shows commands and examples", () => {
@@ -366,6 +369,6 @@ describe("version and help", () => {
 
     const versionResult = run(["-v"], tmpDir)
     expect(versionResult.exitCode).toBe(0)
-    expect(versionResult.stdout.trim()).toBe("0.2.0")
+    expect(versionResult.stdout.trim()).toBe(PKG_VERSION)
   })
 })
