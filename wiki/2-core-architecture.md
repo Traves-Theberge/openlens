@@ -316,7 +316,7 @@ Color-codes issues by severity (`CRITICAL` in red, `WARNING` in yellow, `INFO` i
 ### SARIF Format
 
 Generates a valid SARIF v2.1.0 document with:
-- Tool driver metadata including version `2.0.0` and repository URI (lines 145-155)
+- Tool driver metadata including version `0.2.0` and repository URI (lines 145-155)
 - Rule definitions derived from agent names (line 149)
 - Severity mapping: `critical` to `error`, `warning` to `warning`, `info` to `note` (lines 159-163)
 - Confidence mapped to SARIF `rank`: high=90.0, medium=50.0, low=10.0 (line 179)

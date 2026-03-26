@@ -144,7 +144,7 @@ export function formatSarif(result: ReviewResult): string {
         tool: {
           driver: {
             name: "openlens",
-            version: "2.0.0",
+            version: "0.2.0",
             informationUri: "https://github.com/Traves-Theberge/OpenLens",
             rules: [...new Set(result.issues.map((i) => i.agent))].map(
               (agent) => ({

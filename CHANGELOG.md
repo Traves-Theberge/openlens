@@ -2,7 +2,7 @@
 
 All notable changes to OpenLens will be documented in this file.
 
-## [2.0.0] - 2026-03-25
+## [0.2.0] - 2026-03-26
 
 ### Added
 - Confidence scoring: agents assess confidence per finding (high/medium/low), configurable threshold via `review.minConfidence`

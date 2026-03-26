@@ -1141,7 +1141,7 @@ If no issues found, return \`[]\`
   .strict()
   .help()
   .alias("h", "help")
-  .version("2.0.0")
+  .version("0.2.0")
   .alias("v", "version")
   .example("$0 run --staged", "Review only staged (git add) changes")
   .example("$0 run --branch main", "Review all changes vs main branch")

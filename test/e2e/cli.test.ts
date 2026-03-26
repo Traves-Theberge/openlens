@@ -69,7 +69,7 @@ describe("openlens --version", () => {
     const result = run(["--version"], tmpDir)
 
     expect(result.exitCode).toBe(0)
-    expect(result.stdout.trim()).toBe("2.0.0")
+    expect(result.stdout.trim()).toBe("0.2.0")
   })
 })
 

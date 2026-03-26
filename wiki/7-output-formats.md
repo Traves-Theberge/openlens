@@ -186,7 +186,7 @@ Source: [src/output/format.ts, lines 137-210](https://github.com/Traves-Theberge
       "tool": {
         "driver": {
           "name": "openlens",
-          "version": "2.0.0",
+          "version": "0.2.0",
           "informationUri": "https://github.com/Traves-Theberge/OpenLens",
           "rules": [
             {

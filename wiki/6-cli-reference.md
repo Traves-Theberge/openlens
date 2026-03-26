@@ -377,4 +377,4 @@ Source: [src/env.ts](https://github.com/Traves-Theberge/OpenLens/blob/main/src/e
 | Flag | Description |
 |------|-------------|
 | `-h, --help` | Show help |
-| `-v, --version` | Show version (currently `2.0.0`) |
+| `-v, --version` | Show version (currently `0.2.0`) |

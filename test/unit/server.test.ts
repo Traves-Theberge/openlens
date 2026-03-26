@@ -17,7 +17,7 @@ describe("createServer", () => {
     const res = await app.request("/")
     const body = await res.json()
     expect(body.name).toBe("openlens")
-    expect(body.version).toBe("2.0.0")
+    expect(body.version).toBe("0.2.0")
   })
 
   test("GET /health returns ok", async () => {
