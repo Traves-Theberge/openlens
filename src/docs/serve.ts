@@ -620,6 +620,62 @@ blockquote {
   line-height: 1.6;
 }
 
+/* ─── Search ───────────────────────────────────────────── */
+
+.sidebar-search {
+  padding: 0 12px 12px;
+  position: relative;
+}
+
+.sidebar-search input {
+  width: 100%;
+  padding: 8px 12px;
+  background: var(--bg-hover);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+}
+
+.sidebar-search input:focus {
+  border-color: var(--accent);
+}
+
+#search-results {
+  position: absolute;
+  top: 100%;
+  left: 12px;
+  right: 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  max-height: 300px;
+  overflow-y: auto;
+  display: none;
+  z-index: 100;
+}
+
+#search-results.visible { display: block; }
+
+#search-results a {
+  display: block;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+#search-results a:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+  text-decoration: none;
+}
+
+#search-results .result-title { color: var(--text); font-weight: 500; }
+#search-results .result-section { color: var(--text-muted); font-size: 12px; }
+
 /* ─── Misc ─────────────────────────────────────────────── */
 
 hr {
@@ -733,6 +789,10 @@ function renderPage(content: string, pages: WikiPage[], currentSlug: string): st
           OpenLens
         </a>
       </div>
+      <div class="sidebar-search">
+        <input type="text" id="wiki-search" placeholder="Search docs..." autocomplete="off">
+        <div id="search-results"></div>
+      </div>
       <nav class="sidebar-nav">
         ${renderNav(pages, currentSlug)}
       </nav>
@@ -761,6 +821,13 @@ function renderPage(content: string, pages: WikiPage[], currentSlug: string): st
         fontFamily: 'Inter, sans-serif',
         fontSize: '13px',
       },
+    });
+  </script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11/styles/github-dark.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11/highlight.min.js"></script>
+  <script>
+    document.querySelectorAll('pre code[class^="language-"]').forEach(el => {
+      if (!el.closest('.mermaid-wrapper')) hljs.highlightElement(el);
     });
   </script>
   <script>
@@ -913,6 +980,44 @@ function renderPage(content: string, pages: WikiPage[], currentSlug: string): st
         if (fs) fs.remove();
       }
     });
+
+    // Search
+    const searchInput = document.getElementById('wiki-search');
+    const searchResults = document.getElementById('search-results');
+    let searchIndex = null;
+
+    fetch('/search-index').then(r => r.json()).then(data => { searchIndex = data; });
+
+    searchInput?.addEventListener('input', () => {
+      const q = searchInput.value.toLowerCase().trim();
+      if (!q || !searchIndex) { searchResults.classList.remove('visible'); return; }
+
+      const matches = [];
+      for (const page of searchIndex) {
+        if (page.title.toLowerCase().includes(q)) {
+          matches.push({ slug: page.slug, title: page.title, section: '' });
+        }
+        for (const h of page.headings) {
+          if (h.text.toLowerCase().includes(q)) {
+            matches.push({ slug: page.slug, title: h.text, section: page.title, anchor: h.id });
+          }
+        }
+      }
+
+      if (matches.length === 0) { searchResults.classList.remove('visible'); return; }
+
+      searchResults.innerHTML = matches.slice(0, 10).map(m =>
+        '<a href="/' + m.slug + (m.anchor ? '#' + m.anchor : '') + '">' +
+          '<div class="result-title">' + m.title + '</div>' +
+          (m.section ? '<div class="result-section">' + m.section + '</div>' : '') +
+        '</a>'
+      ).join('');
+      searchResults.classList.add('visible');
+    });
+
+    searchInput?.addEventListener('blur', () => {
+      setTimeout(() => searchResults.classList.remove('visible'), 200);
+    });
   </script>
 </body>
 </html>`
@@ -924,6 +1029,25 @@ export function createDocsServer(wikiDir: string) {
   const app = new Hono()
 
   app.get("/", async (c) => c.redirect("/1-overview"))
+
+  app.get("/search-index", async (c) => {
+    const pages = await loadPages(wikiDir)
+    const index = []
+    for (const page of pages) {
+      const content = await fs.readFile(page.path, "utf-8")
+      const headings = content.match(/^#{1,3}\s+.+$/gm) || []
+      index.push({
+        slug: page.slug,
+        title: page.title,
+        headings: headings.map(h => ({
+          text: h.replace(/^#+\s+/, ""),
+          id: h.replace(/^#+\s+/, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-+$/, ""),
+          level: (h.match(/^#+/) || [""])[0].length,
+        })),
+      })
+    }
+    return c.json(index)
+  })
 
   app.get("/:slug", async (c) => {
     const slug = c.req.param("slug")
