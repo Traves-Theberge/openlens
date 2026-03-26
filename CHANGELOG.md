@@ -2,6 +2,28 @@
 
 All notable changes to OpenLens will be documented in this file.
 
+## [0.2.1] - 2026-03-26
+
+### Added
+- Published to npm — install with `npm install -g openlens`
+- Syntax highlighting in docs server (highlight.js)
+- Client-side search across all wiki pages
+- E2E tests for hooks install/remove (8 tests) and docs command (1 test)
+- `repository`, `homepage`, `bugs`, `author` fields in package.json
+
+### Changed
+- Version now read from package.json at runtime (single source of truth)
+- README installation section: npm install is now the primary method
+- Platform hooks trigger only on git commit/push (removed file-write hooks)
+- Codex hook config changed from TOML to JSON (`hooks.json`)
+
+### Fixed
+- CI lockfile mismatch (`bun.lock` out of sync with package.json)
+- CLI help text wrapping at narrow terminal widths
+- Wiki sidebar sort order (10-glossary now after 9-testing)
+- Architecture tree in README: correct hook filenames, added missing files
+- Removed self-dependency added during npm publish
+
 ## [0.2.0] - 2026-03-26
 
 ### Added

@@ -31,19 +31,19 @@ Built on [OpenCode](https://github.com/anomalyco/opencode). Free models work out
 ## Installation
 
 ```bash
-# Clone and install
+# Install from npm
+npm install -g openlens
+
+# Verify
+openlens --version
+```
+
+### From Source
+
+```bash
 git clone https://github.com/Traves-Theberge/OpenLens.git
 cd OpenLens
 bun install
-```
-
-### Running
-
-```bash
-# Direct
-bun run src/index.ts run
-
-# Or build and link globally
 bun run build
 bun link
 openlens run
