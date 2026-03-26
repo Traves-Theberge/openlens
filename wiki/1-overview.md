@@ -101,8 +101,9 @@ The four built-in agents are defined as markdown prompt files in `agents/` and l
 | Plugin | Location | Integration |
 |--------|----------|-------------|
 | Claude Code | `plugins/claude-code/SKILL.md` | `/openlens` slash command |
-| Codex | `plugins/codex/SKILL.md` | Codex CLI plugin manifest + tools |
-| Gemini | `plugins/gemini/openlens.toml` | Gemini CLI tool registration |
+| Codex | `plugins/codex/SKILL.md` | `$openlens` skill |
+| Gemini | `plugins/gemini/openlens.toml` | `/openlens` custom command |
+| OpenCode | `src/plugin.ts` | Native plugin (4 tools) |
 
 ## Repository Layout
 
@@ -136,6 +137,8 @@ OpenLens/
       review.ts                # Review orchestration (parallel agents, verification)
     tool/
       diff.ts                  # Git diff collection (staged/unstaged/branch/auto)
+    docs/
+      serve.ts                 # Local wiki server (dark theme, mermaid, search)
     env.ts                     # CI detection + base branch inference
     suppress.ts                # File-glob and text-pattern suppression
     types.ts                   # Issue and ReviewResult Zod schemas
@@ -184,7 +187,15 @@ OpenLens/
 
 ## Related Wiki Pages
 
-- [Core Architecture](./2-core-architecture.md) - Detailed walkthrough of the review pipeline: config loading, agent resolution, diff collection, review orchestration, and output formatting
+- [Core Architecture](./2-core-architecture.md) — Config loading, agent resolution, review orchestration
+- [Agent System](./3-agent-system.md) — Agent format, permissions, context strategies, confidence
+- [Configuration](./4-configuration.md) — Config files, schemas, suppression, CI detection
+- [Review Pipeline](./5-review-pipeline.md) — SSE streaming, server lifecycle, verification
+- [CLI Reference](./6-cli-reference.md) — All commands and flags
+- [Output Formats](./7-output-formats.md) — Text, JSON, SARIF, Markdown, GitHub Review
+- [Integrations](./8-integrations.md) — GitHub Actions, plugins, hooks, HTTP server, library
+- [Testing](./9-testing.md) — Test runner, tiers, CI workflow
+- [Glossary](./10-glossary.md) — Key terms
 
 ## Relevant source files
 

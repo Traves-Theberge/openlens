@@ -44,11 +44,13 @@ graph TB
         E6[init.test.ts]
         E7[serve.test.ts]
         E8[v2-features.test.ts]
+        E9[hooks.test.ts]
+        E10[docs.test.ts]
     end
 
     U1 & U2 & U3 & U4 & U5 & U6 & U7 & U8 & U9 & U10 & U11 & U12 & U13 -.->|"fast, isolated"| Core[OpenLens Core Modules]
     I1 -.->|"real orchestration"| Core
-    E1 & E2 & E3 & E4 & E5 & E6 & E7 & E8 -.->|"subprocess + temp git repos"| CLI[openlens CLI Binary]
+    E1 & E2 & E3 & E4 & E5 & E6 & E7 & E8 & E9 & E10 -.->|"subprocess + temp git repos"| CLI[openlens CLI Binary]
 ```
 
 ### Tier 1: Unit Tests
@@ -93,6 +95,8 @@ Located in `test/e2e/`. These tests run the actual `openlens` CLI as a subproces
 | `init.test.ts` | `openlens init` project scaffolding |
 | `serve.test.ts` | `openlens serve` HTTP server startup and endpoint responses |
 | `v2-features.test.ts` | Newer features: confidence filtering, context strategies, verification |
+| `hooks.test.ts` | `openlens hooks install/remove`: creates hooks, idempotent, backup/restore, errors |
+| `docs.test.ts` | `openlens docs --help`: verifies command exists with correct options |
 
 ## E2E Test Helpers
 
@@ -244,6 +248,8 @@ test/e2e/init.test.ts
 test/e2e/run.test.ts
 test/e2e/serve.test.ts
 test/e2e/v2-features.test.ts
+test/e2e/hooks.test.ts
+test/e2e/docs.test.ts
 test/e2e/helpers.ts          # shared test utilities (not a test file)
 ```
 
