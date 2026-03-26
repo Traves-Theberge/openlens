@@ -202,10 +202,11 @@ This installs two hooks:
 - **`pre-commit`** — runs security and bugs agents on staged changes (~15s). Blocks the commit if critical issues are found.
 - **`pre-push`** — runs all agents against the full branch diff (~60s). Blocks the push if critical issues are found.
 
-Skip hooks when needed:
+Customize or skip hooks:
 
 ```bash
-OPENLENS_SKIP=1 git commit -m "wip"
+OPENLENS_SKIP=1 git commit -m "wip"           # skip hooks entirely
+OPENLENS_AGENTS=security git commit -m "fix"   # run security agent only
 ```
 
 Remove hooks (restores any backed-up originals):
@@ -804,6 +805,7 @@ openlens agent enable <name>     Re-enable a disabled agent
 openlens agent disable <name>    Disable an agent
 openlens hooks install           Install git hooks (pre-commit + pre-push)
 openlens hooks remove            Remove git hooks (restores backups)
+openlens docs                    Open documentation wiki in your browser
 openlens serve                   Start HTTP server
 openlens models                  List available models from OpenCode
 openlens doctor                  Check environment and configuration

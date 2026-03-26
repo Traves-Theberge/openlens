@@ -24,6 +24,8 @@ Built on [OpenCode](https://github.com/anomalyco/opencode) with free models avai
 - **Customizable Agents**: Write your own review agents with markdown prompts and YAML frontmatter
 - **Library & Plugin API**: Use as a CLI, HTTP server, library import, or OpenCode plugin
 - **Platform Plugins**: Native integrations for Claude Code, Codex CLI, and Gemini CLI
+- **Git Hooks**: Pre-commit and pre-push hooks block critical issues before they land
+- **Built-in Docs**: `openlens docs` serves a full wiki locally with dark theme and diagrams
 - **Event Bus**: Subscribe to review lifecycle events for custom integrations
 
 ## Installation
@@ -630,10 +632,11 @@ openlens hooks remove
 | `pre-commit` | security, bugs | ~15s | Reviews staged changes, blocks on critical issues |
 | `pre-push` | all agents | ~60s | Reviews full branch diff, blocks on critical issues |
 
-Skip hooks for a single operation:
+Customize which agents run, or skip entirely:
 
 ```bash
-OPENLENS_SKIP=1 git commit -m "wip"
+OPENLENS_SKIP=1 git commit -m "wip"           # skip hooks
+OPENLENS_AGENTS=security git commit -m "fix"   # security only
 ```
 
 For global hooks across all repos:
