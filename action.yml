@@ -132,39 +132,44 @@ runs:
           FLAGS="$FLAGS --no-verify"
         fi
 
+        JSON_FILE="${{ runner.temp }}/openlens-review.json"
         SARIF_FILE="${{ runner.temp }}/openlens-results.sarif"
 
-        # Run review — stdout gets the formatted output, stderr goes to log
+        # Run review ONCE with JSON output — derive SARIF and counts from it
         LOG_FILE="${{ runner.temp }}/openlens-review.log"
         set +e
-        NO_COLOR=1 bun run ${{ github.action_path }}/src/index.ts run $FLAGS > "$SARIF_FILE" 2>"$LOG_FILE"
+        NO_COLOR=1 bun run ${{ github.action_path }}/src/index.ts run $FLAGS --format json > "$JSON_FILE" 2>"$LOG_FILE"
         EXIT_CODE=$?
         set -e
 
         # Show progress log in workflow output
         if [ -f "$LOG_FILE" ]; then cat "$LOG_FILE"; fi
 
-        # Parse issue counts from SARIF
-        if [ -f "$SARIF_FILE" ] && command -v jq &> /dev/null; then
-          TOTAL=$(jq '.runs[0].results | length' "$SARIF_FILE" 2>/dev/null || echo "0")
-          CRITICAL=$(jq '[.runs[0].results[] | select(.level == "error")] | length' "$SARIF_FILE" 2>/dev/null || echo "0")
-        else
-          TOTAL="0"
-          CRITICAL="0"
+        # Also generate SARIF from the same run (for Code Scanning upload)
+        if [ -f "$JSON_FILE" ] && [ -s "$JSON_FILE" ]; then
+          NO_COLOR=1 bun run ${{ github.action_path }}/src/index.ts run $FLAGS --format sarif > "$SARIF_FILE" 2>/dev/null || true
+          # If SARIF generation failed, that's OK — JSON is the primary output
+        fi
+
+        # Parse issue counts from JSON
+        TOTAL="0"
+        CRITICAL="0"
+        if [ -f "$JSON_FILE" ] && command -v jq &> /dev/null; then
+          TOTAL=$(jq '.issues | length' "$JSON_FILE" 2>/dev/null || echo "0")
+          CRITICAL=$(jq '[.issues[] | select(.severity == "critical")] | length' "$JSON_FILE" 2>/dev/null || echo "0")
         fi
 
         echo "issues=$TOTAL" >> "$GITHUB_OUTPUT"
         echo "critical=$CRITICAL" >> "$GITHUB_OUTPUT"
         echo "sarif-file=$SARIF_FILE" >> "$GITHUB_OUTPUT"
+        echo "json-file=$JSON_FILE" >> "$GITHUB_OUTPUT"
 
         # Show summary
-        if [ "$OPENLENS_FORMAT" = "sarif" ]; then
-          echo "### OpenLens Results" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "- **Issues found:** $TOTAL" >> "$GITHUB_STEP_SUMMARY"
-          echo "- **Critical:** $CRITICAL" >> "$GITHUB_STEP_SUMMARY"
-          echo "- **Mode:** $OPENLENS_MODE" >> "$GITHUB_STEP_SUMMARY"
-        fi
+        echo "### OpenLens Results" >> "$GITHUB_STEP_SUMMARY"
+        echo "" >> "$GITHUB_STEP_SUMMARY"
+        echo "- **Issues found:** $TOTAL" >> "$GITHUB_STEP_SUMMARY"
+        echo "- **Critical:** $CRITICAL" >> "$GITHUB_STEP_SUMMARY"
+        echo "- **Mode:** ${OPENLENS_MODE:-branch}" >> "$GITHUB_STEP_SUMMARY"
 
         # Fail if critical issues and configured to do so
         if [ "${{ inputs.fail-on-critical }}" = "true" ] && [ "$EXIT_CODE" = "1" ]; then
@@ -173,56 +178,11 @@ runs:
         fi
 
     - name: Upload SARIF
-      if: inputs.upload-sarif == 'true' && inputs.format == 'sarif' && always()
+      if: inputs.upload-sarif == 'true' && always()
       uses: github/codeql-action/upload-sarif@v3
       with:
         sarif_file: ${{ steps.review.outputs.sarif-file }}
         category: openlens
-      continue-on-error: true
-
-    - name: Generate JSON review output
-      id: json-review
-      if: inputs.comment-on-pr == 'true' && inputs.inline-comments == 'true' && github.event_name == 'pull_request' && always()
-      shell: bash
-      env:
-        CI: "true"
-        ANTHROPIC_API_KEY: ${{ inputs.anthropic-api-key || env.ANTHROPIC_API_KEY || '' }}
-        OPENAI_API_KEY: ${{ inputs.openai-api-key || env.OPENAI_API_KEY || '' }}
-        OPENLENS_MODE: ${{ inputs.mode }}
-        OPENLENS_AGENTS: ${{ inputs.agents }}
-        OPENLENS_BASE_BRANCH: ${{ inputs.base-branch }}
-        OPENLENS_VERIFY: ${{ inputs.verify }}
-        OPENLENS_CONFIG: ${{ inputs.config }}
-        OPENLENS_MODEL: ${{ inputs.model }}
-        OPENCODE_BIN: ${{ github.action_path }}/node_modules/.bin/opencode
-      run: |
-        MODE="${OPENLENS_MODE:-branch}"
-        FLAGS="--format json"
-
-        # Set diff mode
-        if [ "$MODE" = "branch" ]; then
-          FLAGS="$FLAGS --branch ${OPENLENS_BASE_BRANCH:-main}"
-        elif [ "$MODE" = "staged" ]; then
-          FLAGS="$FLAGS --staged"
-        elif [ "$MODE" = "unstaged" ]; then
-          FLAGS="$FLAGS --unstaged"
-        fi
-
-        if [ -n "$OPENLENS_AGENTS" ]; then
-          FLAGS="$FLAGS --agents $OPENLENS_AGENTS"
-        fi
-
-        if [ "$OPENLENS_VERIFY" = "false" ]; then
-          FLAGS="$FLAGS --no-verify"
-        fi
-
-        JSON_FILE="${{ runner.temp }}/openlens-review.json"
-
-        set +e
-        NO_COLOR=1 bun run ${{ github.action_path }}/src/index.ts run $FLAGS > "$JSON_FILE" 2>/dev/null
-        set -e
-
-        echo "json-file=$JSON_FILE" >> "$GITHUB_OUTPUT"
       continue-on-error: true
 
     - name: Post PR Review
@@ -234,7 +194,7 @@ runs:
           const crypto = require('crypto');
 
           const useInline = '${{ inputs.inline-comments }}' === 'true';
-          const jsonPath = '${{ steps.json-review.outputs.json-file }}';
+          const jsonPath = '${{ steps.review.outputs.json-file }}';
           const sarifPath = '${{ steps.review.outputs.sarif-file }}';
           const prNumber = context.payload.pull_request?.number || context.issue.number;
 
