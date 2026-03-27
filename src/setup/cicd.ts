@@ -21,7 +21,7 @@ const GITHUB_WORKFLOW = (options: {
   inlineComments: boolean
   uploadSarif: boolean
   failOnCritical: boolean
-}) => `name: OpenLens Code Review
+}) => `name: openlens Code Review
 
 on:
   pull_request:
@@ -44,7 +44,7 @@ jobs:
       - name: Fetch base branch
         run: git fetch origin \${{ github.base_ref }}:\${{ github.base_ref }}
 
-      - uses: Traves-Theberge/OpenLens@main
+      - uses: Traves-Theberge/openlens@main
         with:
           mode: branch
           base-branch: \${{ github.base_ref }}
@@ -166,7 +166,7 @@ async function generateWorkflow(
     try {
       content = await fs.readFile(ciPath, "utf-8")
       if (content.includes("openlens")) {
-        p.log.info("OpenLens already in .gitlab-ci.yml")
+        p.log.info("openlens already in .gitlab-ci.yml")
         return
       }
       // Append to existing
@@ -176,6 +176,6 @@ async function generateWorkflow(
     }
 
     await fs.writeFile(ciPath, content)
-    p.log.success("Added OpenLens stage to .gitlab-ci.yml")
+    p.log.success("Added openlens stage to .gitlab-ci.yml")
   }
 }

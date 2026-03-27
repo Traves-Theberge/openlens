@@ -1,6 +1,6 @@
 # Configuration
 
-OpenLens uses a layered configuration system where each layer can override values from the previous one. Configuration is validated at load time using Zod schemas, and supports JSON with comments (JSONC), environment variable substitution, and CI auto-detection.
+openlens uses a layered configuration system where each layer can override values from the previous one. Configuration is validated at load time using Zod schemas, and supports JSON with comments (JSONC), environment variable substitution, and CI auto-detection.
 
 ## Config File Locations and Layering
 
@@ -191,7 +191,7 @@ The `shouldSuppress()` function checks each issue against all rules ([src/suppre
 
 ## Rules Discovery
 
-OpenLens automatically discovers project convention files and injects them into agent prompts. This is implemented in `discoverRules()` ([src/config/rules.ts:135-211](../src/config/rules.ts)).
+openlens automatically discovers project convention files and injects them into agent prompts. This is implemented in `discoverRules()` ([src/config/rules.ts:135-211](../src/config/rules.ts)).
 
 ### Well-known Files
 

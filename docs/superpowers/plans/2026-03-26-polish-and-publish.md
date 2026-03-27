@@ -1,4 +1,4 @@
-# OpenLens Polish & Publish Plan
+# openlens Polish & Publish Plan
 
 ## Goal
 Fix all remaining issues, then publish to npm.

@@ -1,5 +1,5 @@
 /**
- * OpenCode hook plugin for OpenLens
+ * OpenCode hook plugin for openlens
  *
  * Blocks git commit/push when critical issues are found.
  * Only triggers on git commit and git push — not on file writes.
@@ -24,7 +24,7 @@ const plugin: Plugin = async ({ directory }) => ({
     } catch (err: any) {
       if (err.status === 1) {
         throw new Error(
-          "OpenLens found critical issues. Fix them before committing.\n\n" +
+          "openlens found critical issues. Fix them before committing.\n\n" +
           (err.stdout || "")
         )
       }

@@ -1,6 +1,6 @@
 # Glossary
 
-Key terms used throughout the OpenLens documentation.
+Key terms used throughout the openlens documentation.
 
 ---
 
@@ -12,29 +12,29 @@ Key terms used throughout the OpenLens documentation.
 
 **Deduplication** — Post-review step that removes duplicate findings. Issues are keyed by `file:line:endLine:title` — when two agents find the same issue, the higher-severity one wins. See [Review Pipeline](5-review-pipeline.md).
 
-**Diff Mode** — How OpenLens selects code to review: `staged` (git add), `unstaged` (working tree), `branch` (vs base branch), or `auto` (tries each in order). See [CLI Reference](6-cli-reference.md).
+**Diff Mode** — How openlens selects code to review: `staged` (git add), `unstaged` (working tree), `branch` (vs base branch), or `auto` (tries each in order). See [CLI Reference](6-cli-reference.md).
 
 **Event Bus** — Pub/sub system for review lifecycle events (`review.started`, `agent.started`, `agent.progress`, `agent.completed`, `agent.failed`, `review.completed`). See [Core Architecture](2-core-architecture.md).
 
 **Fingerprint** — A SHA-256 hash of `file + title + agent` (excluding line number) used to track issues across PR pushes. Enables incremental updates — resolved issues get marked, new ones get posted. See [Output Formats § GitHub Review](7-output-formats.md).
 
-**Hook** — A git hook (`pre-commit` or `pre-push`) that runs OpenLens automatically on commit or push. Installed via `openlens hooks install` and removed via `openlens hooks remove`. Can be skipped with `OPENLENS_SKIP=1`. See [CLI Reference](6-cli-reference.md).
+**Hook** — A git hook (`pre-commit` or `pre-push`) that runs openlens automatically on commit or push. Installed via `openlens hooks install` and removed via `openlens hooks remove`. Can be skipped with `OPENLENS_SKIP=1`. See [CLI Reference](6-cli-reference.md).
 
 **Frontmatter** — YAML metadata at the top of agent markdown files (between `---` delimiters). Configures description, mode, model, steps, permissions, and context strategy. Parsed by `gray-matter`.
 
 **Issue** — A single finding from a review. Fields: `file`, `line`, `endLine?`, `severity`, `confidence`, `agent`, `title`, `message`, `fix?`, `patch?`. Defined by `IssueSchema` in `src/types.ts`.
 
-**MCP (Model Context Protocol)** — A protocol for connecting external tool servers to AI agents. OpenLens passes MCP configuration through to OpenCode, allowing agents to access custom tools during reviews. See [Configuration](4-configuration.md).
+**MCP (Model Context Protocol)** — A protocol for connecting external tool servers to AI agents. openlens passes MCP configuration through to OpenCode, allowing agents to access custom tools during reviews. See [Configuration](4-configuration.md).
 
 **minConfidence** — Config setting (`review.minConfidence`) that filters issues below a confidence threshold. Default: `medium`. See [Configuration](4-configuration.md).
 
 **OPENLENS_AGENTS** — Environment variable that specifies a comma-separated list of agents to run. Used both as a CLI config override and by git hooks to control which agents execute during commit/push. See [CLI Reference](6-cli-reference.md).
 
-**OPENLENS_SKIP** — Environment variable that, when set to `1`, causes OpenLens git hooks to exit immediately without running a review. Useful for quick commits that don't need review (e.g., `OPENLENS_SKIP=1 git commit -m "wip"`). See [CLI Reference](6-cli-reference.md).
+**OPENLENS_SKIP** — Environment variable that, when set to `1`, causes openlens git hooks to exit immediately without running a review. Useful for quick commits that don't need review (e.g., `OPENLENS_SKIP=1 git commit -m "wip"`). See [CLI Reference](6-cli-reference.md).
 
-**OpenCode** — The open-source AI coding agent that OpenLens is built on. Provides the model provider SDK, tool execution runtime, and session management. See [github.com/anomalyco/opencode](https://github.com/anomalyco/opencode).
+**OpenCode** — The open-source AI coding agent that openlens is built on. Provides the model provider SDK, tool execution runtime, and session management. See [github.com/anomalyco/opencode](https://github.com/anomalyco/opencode).
 
-**Platform Hook** — A platform-specific configuration file (e.g., `claude-code-hooks.json`, `gemini-hooks.json`, `codex-hooks.json`, `opencode-hooks.ts`) that integrates OpenLens with AI coding assistants. Platform hooks trigger on git commit and push events only. Located in the `hooks/` directory. See [Integrations](8-integrations.md).
+**Platform Hook** — A platform-specific configuration file (e.g., `claude-code-hooks.json`, `gemini-hooks.json`, `codex-hooks.json`, `opencode-hooks.ts`) that integrates openlens with AI coding assistants. Platform hooks trigger on git commit and push events only. Located in the `hooks/` directory. See [Integrations](8-integrations.md).
 
 **Permission** — Controls what tools an agent can use during review. Values: `allow`, `deny`, `ask`. Supports granular patterns for tools like `bash`. Inherited through 4 layers: defaults → global config → frontmatter → agent config. See [Agent System § Permissions](3-agent-system.md).
 

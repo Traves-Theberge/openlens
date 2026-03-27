@@ -1,4 +1,4 @@
-# OpenLens Setup Wizard Implementation Plan
+# openlens Setup Wizard Implementation Plan
 
 > **Issue:** https://github.com/Traves-Theberge/OpenLens/issues/11
 
@@ -143,7 +143,7 @@
 - Modify: `src/setup/index.ts`
 
 **Steps:**
-- [ ] Intro banner with OpenLens branding
+- [ ] Intro banner with openlens branding
 - [ ] Run sections in order: config → agents → hooks → plugins → CI/CD
 - [ ] Each section shows a header and summary of what it did
 - [ ] Final summary: list all files created/modified

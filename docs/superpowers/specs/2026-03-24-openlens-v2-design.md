@@ -1,16 +1,16 @@
-# OpenLens v2 Design Spec
+# openlens v2 Design Spec
 
 ## Vision
 
-OpenLens becomes a universal AI code review engine that runs locally, in CI/CD, and as a native plugin for any AI coding agent (OpenCode, Claude Code, Codex, Gemini CLI). The core ethos stays: user owns the prompts, read-only by default, free models work, hackable and extensible.
+openlens becomes a universal AI code review engine that runs locally, in CI/CD, and as a native plugin for any AI coding agent (OpenCode, Claude Code, Codex, Gemini CLI). The core ethos stays: user owns the prompts, read-only by default, free models work, hackable and extensible.
 
 ## 1. Native Plugin Integrations
 
 ### Problem
-OpenLens only integrates with OpenCode today. Claude Code, Codex, and Gemini CLI users can't use it without manually running the CLI.
+openlens only integrates with OpenCode today. Claude Code, Codex, and Gemini CLI users can't use it without manually running the CLI.
 
 ### Solution
-Create thin plugin adapters for each platform that call the OpenLens library API directly — no HTTP server needed. If a target platform only supports MCP tool servers (no direct library imports), fall back to wrapping the library in a stdio MCP transport.
+Create thin plugin adapters for each platform that call the openlens library API directly — no HTTP server needed. If a target platform only supports MCP tool servers (no direct library imports), fall back to wrapping the library in a stdio MCP transport.
 
 ### Plugins
 

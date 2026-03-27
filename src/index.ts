@@ -155,7 +155,7 @@ yargs(hideBin(process.argv))
 
         const stats = diff.trim() ? getDiffStats(diff) : { filesChanged: 0, files: [] as string[] }
 
-        console.log(`\n  ${B}OpenLens${R}  ${D}dry run${R}\n`)
+        console.log(`\n  ${B}openlens${R}  ${D}dry run${R}\n`)
         console.log(`  mode:     ${mode}`)
         console.log(`  files:    ${stats.filesChanged} changed`)
         if (stats.files.length > 0) {
@@ -202,7 +202,7 @@ yargs(hideBin(process.argv))
       if (argv.format === "text") {
         bus.subscribe("review.started", (evt) => {
           console.log(
-            `\n  ${B}OpenLens${R}  Reviewing ${mode} changes (${evt.agents.length} agents)...\n`
+            `\n  ${B}openlens${R}  Reviewing ${mode} changes (${evt.agents.length} agents)...\n`
           )
         })
         bus.subscribe("agent.started", (evt) => {
@@ -270,7 +270,7 @@ yargs(hideBin(process.argv))
 
           const agents = await loadAgents(config, process.cwd())
 
-          console.log(`\n  ${B}OpenLens Agents${R}\n`)
+          console.log(`\n  ${B}openlens Agents${R}\n`)
           for (const agent of agents) {
             const allowed = Object.entries(agent.permission)
               .filter(([_, v]) => v === "allow")
@@ -507,7 +507,7 @@ If no issues found, return \`[]\`
           config = filterAgents(config, name)
 
           if (argv.verbose) {
-            console.log(`\n  ${B}OpenLens${R}  Testing agent ${B}${name}${R}`)
+            console.log(`\n  ${B}openlens${R}  Testing agent ${B}${name}${R}`)
             console.log(`  model: ${D}${agent.model}${R}`)
             console.log(`  mode: ${D}${mode}${R}`)
             console.log(`  steps: ${D}${agent.steps}${R}`)
@@ -737,7 +737,7 @@ If no issues found, return \`[]\`
 
   .command(
     "init",
-    "Set up OpenLens in your project (config + default agents)",
+    "Set up openlens in your project (config + default agents)",
     (y) => y,
     async () => {
       const cwd = process.cwd()
@@ -847,7 +847,7 @@ If no issues found, return \`[]\`
       const hostname = argv.hostname ?? config.server.hostname
 
       console.log(
-        `\n  ${B}OpenLens Server${R} listening on http://${hostname}:${port}\n`
+        `\n  ${B}openlens Server${R} listening on http://${hostname}:${port}\n`
       )
 
       // Use Hono's built-in Node.js adapter when available, fall back to Bun.serve
@@ -909,7 +909,7 @@ If no issues found, return \`[]\`
       const cwd = process.cwd()
       let hasErrors = false
 
-      console.log(`\n  ${B}OpenLens Doctor${R}\n`)
+      console.log(`\n  ${B}openlens Doctor${R}\n`)
 
       // 1. Check git
       const gitCheck = spawnSync("git", ["--version"], { encoding: "utf-8" })
@@ -1036,7 +1036,7 @@ If no issues found, return \`[]\`
               await fs.access(dst)
               // Backup existing hook
               const existing = await fs.readFile(dst, "utf-8")
-              if (existing.includes("OpenLens")) {
+              if (existing.includes("openlens")) {
                 console.log(`  ${D}exists${R} .git/hooks/${hook}`)
                 continue
               }
@@ -1051,14 +1051,14 @@ If no issues found, return \`[]\`
             console.log(`  ${G}✓${R} installed .git/hooks/${hook}`)
           }
 
-          console.log(`\n  ${B}Done.${R} OpenLens will review your code before commits and pushes.`)
+          console.log(`\n  ${B}Done.${R} openlens will review your code before commits and pushes.`)
           console.log(`  ${D}Skip with: OPENLENS_SKIP=1 git commit${R}\n`)
         }
       )
 
       .command(
         "remove",
-        "Remove OpenLens git hooks from the current repo",
+        "Remove openlens git hooks from the current repo",
         (yy) => yy,
         async () => {
           const cwd = process.cwd()
@@ -1069,8 +1069,8 @@ If no issues found, return \`[]\`
             const dst = path.join(gitDir, hook)
             try {
               const content = await fs.readFile(dst, "utf-8")
-              if (!content.includes("OpenLens")) {
-                console.log(`  ${D}skipped${R} .git/hooks/${hook} (not an OpenLens hook)`)
+              if (!content.includes("openlens")) {
+                console.log(`  ${D}skipped${R} .git/hooks/${hook} (not an openlens hook)`)
                 continue
               }
               await fs.unlink(dst)
@@ -1122,7 +1122,7 @@ If no issues found, return \`[]\`
 
   .command(
     "docs",
-    "Open the OpenLens wiki in your browser",
+    "Open the openlens wiki in your browser",
     (y) =>
       y
         .option("port", {
@@ -1154,7 +1154,7 @@ If no issues found, return \`[]\`
         const port = argv.port as number
 
         serve({ fetch: server.fetch, port })
-        console.log(`\n  ${B}OpenLens Wiki${R}  http://localhost:${port}\n`)
+        console.log(`\n  ${B}openlens Wiki${R}  http://localhost:${port}\n`)
 
         if (argv.open) {
           const { exec } = await import("child_process")

@@ -21,12 +21,12 @@ describe("openlens hooks", () => {
     expect(fs.existsSync(path.join(tmpDir, ".git", "hooks", "pre-commit"))).toBe(true)
     expect(fs.existsSync(path.join(tmpDir, ".git", "hooks", "pre-push"))).toBe(true)
 
-    // Verify they contain OpenLens marker
+    // Verify they contain openlens marker
     const preCommit = fs.readFileSync(path.join(tmpDir, ".git", "hooks", "pre-commit"), "utf-8")
-    expect(preCommit).toContain("OpenLens")
+    expect(preCommit).toContain("openlens")
 
     const prePush = fs.readFileSync(path.join(tmpDir, ".git", "hooks", "pre-push"), "utf-8")
-    expect(prePush).toContain("OpenLens")
+    expect(prePush).toContain("openlens")
   })
 
   test("hooks install is idempotent", () => {

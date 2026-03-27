@@ -1,8 +1,8 @@
-# OpenLens Overview
+# openlens Overview
 
-OpenLens is an AI-powered code review tool that runs multiple specialized agents in parallel to analyze code changes for security vulnerabilities, bugs, performance issues, and style problems. It provides five interfaces: a **CLI** built on yargs, a **programmatic library** API, an **HTTP server** built on Hono, a **GitHub Action** with inline PR comments, and **platform plugins** for Claude Code, Codex, Gemini CLI, and OpenCode. Git hooks and platform hooks automate reviews on every commit and push.
+openlens is an AI-powered code review tool that runs multiple specialized agents in parallel to analyze code changes for security vulnerabilities, bugs, performance issues, and style problems. It provides five interfaces: a **CLI** built on yargs, a **programmatic library** API, an **HTTP server** built on Hono, a **GitHub Action** with inline PR comments, and **platform plugins** for Claude Code, Codex, Gemini CLI, and OpenCode. Git hooks and platform hooks automate reviews on every commit and push.
 
-By default, OpenLens uses the `opencode/big-pickle` model via the OpenCode SDK, requiring no API keys. Agents operate in read-only mode and communicate results as structured JSON with confidence scoring, severity levels, and optional fix suggestions.
+By default, openlens uses the `opencode/big-pickle` model via the OpenCode SDK, requiring no API keys. Agents operate in read-only mode and communicate results as structured JSON with confidence scoring, severity levels, and optional fix suggestions.
 
 ## Architecture Diagram
 
@@ -81,9 +81,9 @@ graph TB
     BUS -.-> CLI
 ```
 
-## What OpenLens Does
+## What openlens Does
 
-OpenLens accepts a git diff (staged, unstaged, or branch-level) and fans it out to multiple AI review agents. Each agent specializes in a different concern -- security, bugs, performance, or style -- and returns structured issues with file locations, severity, confidence, and suggested fixes. Results are deduplicated, filtered by confidence threshold, optionally verified by a cross-checking pass, and formatted for the target output.
+openlens accepts a git diff (staged, unstaged, or branch-level) and fans it out to multiple AI review agents. Each agent specializes in a different concern -- security, bugs, performance, or style -- and returns structured issues with file locations, severity, confidence, and suggested fixes. Results are deduplicated, filtered by confidence threshold, optionally verified by a cross-checking pass, and formatted for the target output.
 
 The four built-in agents are defined as markdown prompt files in `agents/` and loaded via `{file:agents/<name>.md}` references in config ([src/config/config.ts](../src/config/config.ts), lines 8-25).
 
@@ -108,7 +108,7 @@ The four built-in agents are defined as markdown prompt files in `agents/` and l
 ## Repository Layout
 
 ```
-OpenLens/
+openlens/
   agents/
     bugs.md                    # Built-in bug detection prompt
     performance.md             # Built-in performance review prompt

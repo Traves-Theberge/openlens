@@ -1,6 +1,6 @@
 # Agent System
 
-The agent system is the core abstraction that drives OpenLens code reviews. Each agent is a specialized AI reviewer with its own prompt, permissions, context strategy, and confidence thresholds. Agents run in parallel against the same diff and produce structured issue arrays that are later deduplicated, filtered, and optionally verified.
+The agent system is the core abstraction that drives openlens code reviews. Each agent is a specialized AI reviewer with its own prompt, permissions, context strategy, and confidence thresholds. Agents run in parallel against the same diff and produce structured issue arrays that are later deduplicated, filtered, and optionally verified.
 
 ## Agent File Format
 
@@ -67,7 +67,7 @@ The prompt resolution in `resolvePrompt()` follows a three-tier fallback ([src/a
 
 ## Built-in Agents
 
-OpenLens ships with four specialized agents, each configured as a default in `loadConfig()` ([src/config/config.ts:8-25](../src/config/config.ts)):
+openlens ships with four specialized agents, each configured as a default in `loadConfig()` ([src/config/config.ts:8-25](../src/config/config.ts)):
 
 | Agent | Description | Context Strategy | Focus Areas |
 |-------|-------------|-----------------|-------------|

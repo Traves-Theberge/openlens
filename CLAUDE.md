@@ -33,7 +33,7 @@ OPENLENS_SKIP=1 git commit -m x # Skip hooks for one operation
 
 ## Architecture
 
-OpenLens is an AI-powered code review tool with four interfaces: **CLI** (yargs), **library** (programmatic API), **HTTP server** (Hono), and **OpenCode plugin**.
+openlens is an AI-powered code review tool with four interfaces: **CLI** (yargs), **library** (programmatic API), **HTTP server** (Hono), and **OpenCode plugin**.
 
 ### Core Flow
 

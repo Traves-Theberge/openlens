@@ -62,8 +62,8 @@ export function formatGitHubReview(result: ReviewResult): GitHubReview {
   }
 
   const summary = hasIssues
-    ? `OpenLens found **${result.issues.length} issue(s)** across ${result.meta?.filesChanged || "?"} files.`
-    : "OpenLens found no issues."
+    ? `openlens found **${result.issues.length} issue(s)** across ${result.meta?.filesChanged || "?"} files.`
+    : "openlens found no issues."
 
   return { event, body: summary, comments, fingerprints }
 }

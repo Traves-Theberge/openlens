@@ -1,7 +1,7 @@
-description = "Run OpenLens AI code review on current changes"
+description = "Run openlens AI code review on current changes"
 
 prompt = """
-Run an OpenLens code review. Analyze the results and present them clearly to the user.
+Run an openlens code review. Analyze the results and present them clearly to the user.
 
 {{args}}
 

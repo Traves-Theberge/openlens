@@ -1,4 +1,4 @@
-# OpenLens CLI Test Plan
+# openlens CLI Test Plan
 
 Manual and automated test plan for validating every CLI command and flag. Run this after any changes to `src/index.ts`, agent loading, config resolution, or output formatting.
 

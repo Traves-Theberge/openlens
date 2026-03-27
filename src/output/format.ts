@@ -82,14 +82,14 @@ export function formatText(result: ReviewResult): string {
     const extra = meta
       ? ` (${meta.filesChanged} files, ${meta.agentsRun} agents${meta.verified ? ", verified" : ""})`
       : ""
-    return `\n  ${BOLD}OpenLens${RESET}  No issues found.${DIM}${extra}${RESET}\n`
+    return `\n  ${BOLD}openlens${RESET}  No issues found.${DIM}${extra}${RESET}\n`
   }
 
   const lines: string[] = []
 
   lines.push("")
   lines.push(
-    `  ${BOLD}OpenLens${RESET}  ${result.issues.length} issue${result.issues.length === 1 ? "" : "s"} found`
+    `  ${BOLD}openlens${RESET}  ${result.issues.length} issue${result.issues.length === 1 ? "" : "s"} found`
   )
   lines.push(`  ${"─".repeat(50)}`)
   lines.push("")
@@ -157,7 +157,7 @@ export function formatSarif(result: ReviewResult): string {
             rules: [...new Set(result.issues.map((i) => i.agent))].map(
               (agent) => ({
                 id: `openlens/${agent}`,
-                shortDescription: { text: `OpenLens ${agent} agent` },
+                shortDescription: { text: `openlens ${agent} agent` },
               })
             ),
           },
@@ -295,7 +295,7 @@ export function formatMarkdown(
   lines.push("<!-- openlens-review -->")
 
   if (result.issues.length === 0) {
-    lines.push("## :mag: OpenLens Review")
+    lines.push("## :mag: openlens Review")
     lines.push("")
     lines.push(":white_check_mark: **No issues found.**")
     if (result.meta) {
@@ -320,7 +320,7 @@ export function formatMarkdown(
   ).length
 
   lines.push(
-    `## :mag: OpenLens Review — ${result.issues.length} issue${result.issues.length === 1 ? "" : "s"} found`
+    `## :mag: openlens Review — ${result.issues.length} issue${result.issues.length === 1 ? "" : "s"} found`
   )
   lines.push("")
 

@@ -1,6 +1,6 @@
-# OpenLens CLI Guide
+# openlens CLI Guide
 
-Practical workflows for using OpenLens from the command line. For reference docs, see the [README](../../README.md) and [USER_GUIDE](../../USER_GUIDE.md).
+Practical workflows for using openlens from the command line. For reference docs, see the [README](../../README.md) and [USER_GUIDE](../../USER_GUIDE.md).
 
 ---
 
@@ -28,7 +28,26 @@ This checks for git, the opencode binary, API keys, config validity, and agent h
 
 API keys are optional -- free models (like `opencode/big-pickle`) work without them.
 
-### Initialize a project
+### Set up a project
+
+The recommended way to set up openlens is the interactive setup wizard:
+
+```bash
+cd your-project
+openlens setup
+```
+
+The wizard walks you through config, agents, hooks, plugins, and CI/CD generation. To accept all defaults:
+
+```bash
+openlens setup --yes
+```
+
+Run individual sections with `--config`, `--agents`, `--hooks`, `--plugins`, or `--ci`.
+
+### Quick init (alternative)
+
+For a minimal setup (config + agents only):
 
 ```bash
 cd your-project
@@ -55,7 +74,7 @@ openlens run --staged
 In text mode (the default), you'll see a live progress stream:
 
 ```
-  OpenLens  Reviewing staged changes (4 agents)...
+  openlens  Reviewing staged changes (4 agents)...
 
   ● security  reviewing...
     → security  read src/auth.ts

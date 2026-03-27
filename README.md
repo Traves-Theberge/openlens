@@ -1,10 +1,10 @@
-# OpenLens
+# openlens
 
 AI-powered code review that catches security holes, bugs, and performance issues before they merge -from your terminal, CI pipeline, or AI coding agent.
 
 ## Overview
 
-OpenLens runs specialized AI agents in parallel against your git diffs. Each agent investigates your full codebase -grepping for callers, reading imports, checking related files -and only reports issues it can confirm. A verification pass cross-references findings between agents and filters false positives.
+openlens runs specialized AI agents in parallel against your git diffs. Each agent investigates your full codebase -grepping for callers, reading imports, checking related files -and only reports issues it can confirm. A verification pass cross-references findings between agents and filters false positives.
 
 It works everywhere: as a **CLI** (`openlens run`), a **library** (import into your own tools), an **HTTP server**, a **GitHub Action** with inline PR comments, and as a **native plugin** for **Claude Code**, **Codex**, **Gemini CLI**, and **OpenCode**. Git hooks and platform hooks automate reviews on every commit and push.
 
@@ -52,7 +52,10 @@ openlens run
 ## Quick Start
 
 ```bash
-# Initialize OpenLens in your project
+# Interactive project setup (config, agents, hooks, plugins, CI/CD)
+openlens setup
+
+# Or quick init (config + agents only)
 openlens init
 
 # Review staged changes
@@ -73,7 +76,7 @@ openlens run --format sarif > results.sarif
 
 ## Configuration
 
-OpenLens looks for configuration in these locations (last wins):
+openlens looks for configuration in these locations (last wins):
 
 1. Built-in defaults
 2. `~/.config/openlens/openlens.json` (global)
@@ -256,7 +259,7 @@ test/fixtures/**
 
 ## Agents
 
-OpenLens ships with four built-in agents. Each is a markdown file with YAML frontmatter in the `agents/` directory.
+openlens ships with four built-in agents. Each is a markdown file with YAML frontmatter in the `agents/` directory.
 
 ### Built-in Agents
 
@@ -360,6 +363,7 @@ openlens agent create a11y --description "Accessibility checker"
 
 ```
 openlens run                    Run code review
+openlens setup                  Interactive project setup wizard
 openlens init                   Initialize in current project
 openlens agent list             List configured agents
 openlens agent create <name>    Create a new review agent
@@ -509,7 +513,7 @@ gh api repos/{owner}/{repo}/code-scanning/sarifs \
 
 ## Library API
 
-Use OpenLens programmatically:
+Use openlens programmatically:
 
 ```typescript
 import { runReview, loadConfig, getDiff, formatSarif } from "openlens"
@@ -558,15 +562,15 @@ console.log(formatSarif(result))
 | `GitHubReview`        | type       | GitHub PR review payload type        |
 | `GitHubReviewComment` | type       | GitHub PR review comment type        |
 
-## Add OpenLens to Your Project
+## Add openlens to Your Project
 
-OpenLens integrates with all major AI coding platforms. Pick your platform:
+openlens integrates with all major AI coding platforms. Pick your platform:
 
 ### Claude Code
 
 ```bash
 # Symlink from the repo (stays in sync)
-ln -s /path/to/OpenLens/plugins/claude-code ~/.claude/skills/openlens
+ln -s /path/to/openlens/plugins/claude-code ~/.claude/skills/openlens
 
 # Or copy from npm package
 cp -r node_modules/openlens/plugins/claude-code ~/.claude/skills/openlens
@@ -578,7 +582,7 @@ Then use `/openlens` in any Claude Code session.
 
 ```bash
 # Copy the skill
-cp -r /path/to/OpenLens/plugins/codex ~/.codex/skills/openlens
+cp -r /path/to/openlens/plugins/codex ~/.codex/skills/openlens
 ```
 
 Then use `$openlens` in Codex. Requires `codex --full-auto` or approving network access.
@@ -588,10 +592,10 @@ Then use `$openlens` in Codex. Requires `codex --full-auto` or approving network
 ```bash
 # Add to your project
 mkdir -p .gemini/commands
-cp /path/to/OpenLens/plugins/gemini/openlens.toml .gemini/commands/
+cp /path/to/openlens/plugins/gemini/openlens.toml .gemini/commands/
 
 # Or add globally
-cp /path/to/OpenLens/plugins/gemini/openlens.toml ~/.gemini/commands/
+cp /path/to/openlens/plugins/gemini/openlens.toml ~/.gemini/commands/
 ```
 
 Then use `/openlens` in Gemini CLI.
@@ -617,7 +621,7 @@ This registers four tools:
 
 ## Hooks
 
-OpenLens hooks automate code review on every commit and push -both from your terminal and from AI coding agents.
+openlens hooks automate code review on every commit and push -both from your terminal and from AI coding agents.
 
 ### Git Hooks
 
@@ -690,7 +694,7 @@ bus.subscribe("review.completed", ({ issueCount, time }) => {
 
 ## MCP (Model Context Protocol)
 
-OpenLens supports MCP servers for extending agent capabilities:
+openlens supports MCP servers for extending agent capabilities:
 
 ```json
 {

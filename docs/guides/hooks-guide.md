@@ -1,4 +1,4 @@
-# OpenLens Hooks Guide
+# openlens Hooks Guide
 
 Automate code review on every commit and push — git hooks for the terminal, platform hooks for AI coding agents.
 
@@ -42,15 +42,15 @@ openlens hooks remove
 ```bash
 git config --global core.hooksPath ~/.config/openlens/hooks
 mkdir -p ~/.config/openlens/hooks
-cp /path/to/OpenLens/hooks/pre-commit ~/.config/openlens/hooks/
-cp /path/to/OpenLens/hooks/pre-push ~/.config/openlens/hooks/
+cp /path/to/openlens/hooks/pre-commit ~/.config/openlens/hooks/
+cp /path/to/openlens/hooks/pre-push ~/.config/openlens/hooks/
 ```
 
 ---
 
 ## Claude Code Hooks
 
-Intercepts `git commit` and `git push` commands. When Claude runs either, OpenLens reviews first. Critical issues block the command.
+Intercepts `git commit` and `git push` commands. When Claude runs either, openlens reviews first. Critical issues block the command.
 
 ### Setup
 
@@ -67,7 +67,7 @@ Add to `.claude/settings.json` (project) or `~/.claude/settings.json` (global):
             "type": "command",
             "command": "bash -c 'INPUT=$(cat); CMD=$(echo \"$INPUT\" | jq -r .tool_input.command 2>/dev/null); if echo \"$CMD\" | grep -qE \"^git (commit|push)\"; then openlens run --staged --agents security,bugs --no-verify --no-context --format text >&2; else exit 0; fi'",
             "timeout": 180,
-            "statusMessage": "OpenLens reviewing before commit/push..."
+            "statusMessage": "openlens reviewing before commit/push..."
           }
         ]
       }
@@ -111,7 +111,7 @@ Add to `.gemini/settings.json` (project) or `~/.gemini/settings.json` (global):
             "command": "bash -c 'INPUT=$(cat); CMD=$(echo \"$INPUT\" | jq -r .tool_input.command 2>/dev/null); if echo \"$CMD\" | grep -qE \"^git (commit|push)\"; then openlens run --staged --agents security,bugs --no-verify --no-context --format text >&2; else exit 0; fi'",
             "name": "openlens-precommit",
             "timeout": 180000,
-            "description": "Run OpenLens review before git commit/push"
+            "description": "Run openlens review before git commit/push"
           }
         ]
       }
@@ -149,7 +149,7 @@ Create `.codex/hooks.json` (project) or `~/.codex/hooks.json` (global):
             "type": "command",
             "command": "bash -c 'INPUT=$(cat); CMD=$(echo \"$INPUT\" | jq -r .tool_input.command 2>/dev/null); if echo \"$CMD\" | grep -qE \"^git (commit|push)\"; then openlens run --staged --agents security,bugs --no-verify --no-context --format text >&2; else exit 0; fi'",
             "timeoutSec": 180,
-            "statusMessage": "OpenLens reviewing before commit/push..."
+            "statusMessage": "openlens reviewing before commit/push..."
           }
         ]
       }
@@ -195,7 +195,7 @@ const plugin: Plugin = async ({ directory }) => ({
       )
     } catch (err: any) {
       if (err.status === 1) {
-        throw new Error("OpenLens found critical issues.\n\n" + (err.stdout || ""))
+        throw new Error("openlens found critical issues.\n\n" + (err.stdout || ""))
       }
     }
   },

@@ -1,10 +1,10 @@
-# OpenLens User Guide
+# openlens User Guide
 
 > AI-powered code review for your terminal.
 
-OpenLens orchestrates specialized AI agents that review your git diffs in parallel — catching security vulnerabilities, bugs, performance issues, and style violations before they land. Each agent has read-only access to your full codebase, enabling deep analysis that goes beyond surface-level pattern matching.
+openlens orchestrates specialized AI agents that review your git diffs in parallel — catching security vulnerabilities, bugs, performance issues, and style violations before they land. Each agent has read-only access to your full codebase, enabling deep analysis that goes beyond surface-level pattern matching.
 
-Built on the [OpenCode](https://github.com/anomalyco/opencode), OpenLens supports any model provider OpenCode supports: Anthropic, OpenAI, Google, AWS Bedrock, Groq, and more.
+Built on the [OpenCode](https://github.com/anomalyco/opencode), openlens supports any model provider OpenCode supports: Anthropic, OpenAI, Google, AWS Bedrock, Groq, and more.
 
 ---
 
@@ -59,7 +59,7 @@ After linking, the `openlens` command is available system-wide.
 
 ### Environment Setup
 
-OpenLens uses the [OpenCode](https://github.com/anomalyco/opencode) for model provider access. OpenCode supports multiple configuration methods:
+openlens uses the [OpenCode](https://github.com/anomalyco/opencode) for model provider access. OpenCode supports multiple configuration methods:
 
 **Option 1: Environment variables** (simplest)
 
@@ -100,9 +100,39 @@ OpenCode discovers providers automatically — see the [OpenCode documentation](
 
 ## 2. Getting Started
 
-### Initialize Your Project
+### Setup Wizard
 
-Run `openlens init` in your project root to scaffold configuration and agent templates:
+The recommended way to set up openlens in a new project is the interactive setup wizard:
+
+```bash
+cd your-project
+openlens setup
+```
+
+The wizard walks you through:
+- **Config** — model selection, review settings, suppression rules
+- **Agents** — enable/disable/create review agents
+- **Hooks** — install git pre-commit and pre-push hooks
+- **Plugins** — install platform plugins (Claude Code, Codex, Gemini, OpenCode)
+- **CI/CD** — generate GitHub Actions or GitLab CI workflow
+
+To accept all defaults without prompts:
+
+```bash
+openlens setup --yes
+```
+
+You can also run individual sections:
+
+```bash
+openlens setup --config          # just config
+openlens setup --hooks           # just git hooks
+openlens setup --ci              # just CI/CD workflow
+```
+
+### Quick Init
+
+For a minimal setup (config + agents only), use `openlens init`:
 
 ```bash
 cd your-project
@@ -129,7 +159,7 @@ git add -p                     # stage changes
 openlens run --staged          # review them
 ```
 
-OpenLens will:
+openlens will:
 
 1. Collect the git diff for your staged changes
 2. Launch all enabled agents in parallel (up to `maxConcurrency`)
@@ -139,7 +169,7 @@ OpenLens will:
 
 ### Diff Modes
 
-OpenLens supports four ways to select what code gets reviewed:
+openlens supports four ways to select what code gets reviewed:
 
 | Mode        | Flag            | What It Reviews                          |
 | ----------- | --------------- | ---------------------------------------- |
@@ -155,7 +185,7 @@ openlens run --unstaged
 # Review everything on your feature branch vs. main
 openlens run --branch main
 
-# Let OpenLens pick the first non-empty mode
+# Let openlens pick the first non-empty mode
 openlens run
 ```
 
@@ -229,7 +259,7 @@ Install is idempotent — safe to run multiple times.
 
 ### Config File Locations
 
-OpenLens loads configuration from multiple sources, merged in order (last wins):
+openlens loads configuration from multiple sources, merged in order (last wins):
 
 | Priority | Source                                  | Scope   |
 | -------- | --------------------------------------- | ------- |
@@ -356,7 +386,7 @@ Config values support two template patterns:
 | `GROQ_API_KEY`        | Groq API key                             |
 | `GITHUB_TOKEN`        | GitHub Copilot token                     |
 
-**OpenLens overrides:**
+**openlens overrides:**
 
 | Variable              | Description                              |
 | --------------------- | ---------------------------------------- |
@@ -458,11 +488,11 @@ test/fixtures/**
 
 ## 4. Agents
 
-Agents are the core of OpenLens. Each agent is a specialist reviewer with its own prompt, model configuration, and tool permissions.
+Agents are the core of openlens. Each agent is a specialist reviewer with its own prompt, model configuration, and tool permissions.
 
 ### Built-in Agents
 
-OpenLens ships with four agents, copied to your `agents/` directory on `openlens init`:
+openlens ships with four agents, copied to your `agents/` directory on `openlens init`:
 
 | Agent         | Focus                                  |
 | ------------- | -------------------------------------- |
@@ -501,7 +531,7 @@ permission:
   bash: deny
 ---
 
-> **Context strategies:** The `context` field tells OpenLens to auto-gather relevant files before the agent runs. Supported strategies: `security` (dependency manifests, auth modules), `bugs` (callers, related modules), `performance` (route handlers, database queries), `style` (linter configs, existing conventions). Capped at 10 files / 5000 lines.
+> **Context strategies:** The `context` field tells openlens to auto-gather relevant files before the agent runs. Supported strategies: `security` (dependency manifests, auth modules), `bugs` (callers, related modules), `performance` (route handlers, database queries), `style` (linter configs, existing conventions). Capped at 10 files / 5000 lines.
 
 You are an accessibility-focused code reviewer with access to the full codebase.
 
@@ -662,7 +692,7 @@ Every agent must return issues in this JSON format:
 
 ### Verification Pass
 
-When `verify: true` (the default), OpenLens runs a second pass after all agents complete. A verifier agent re-examines every flagged issue against the actual code to filter out false positives. Only confirmed issues make it to the final output.
+When `verify: true` (the default), openlens runs a second pass after all agents complete. A verifier agent re-examines every flagged issue against the actual code to filter out false positives. Only confirmed issues make it to the final output.
 
 Disable verification for faster (but noisier) results:
 
@@ -674,9 +704,9 @@ openlens run --no-verify
 
 ## 5. Skills
 
-OpenLens is built on [OpenCode](https://github.com/anomalyco/opencode), which includes a **skills** system. Skills are reusable instruction sets that agents can discover and load on-demand, keeping context efficient through lazy-loading.
+openlens is built on [OpenCode](https://github.com/anomalyco/opencode), which includes a **skills** system. Skills are reusable instruction sets that agents can discover and load on-demand, keeping context efficient through lazy-loading.
 
-While OpenLens focuses on its agent-based review system, skills from the underlying OpenCode platform are available and can extend agent capabilities.
+While openlens focuses on its agent-based review system, skills from the underlying OpenCode platform are available and can extend agent capabilities.
 
 ### What Are Skills?
 
@@ -846,7 +876,7 @@ openlens run --no-verify --no-context
 
 ### `openlens init`
 
-Scaffold OpenLens in the current project. Creates `openlens.json` and the `agents/` directory with four built-in agent templates. Idempotent — won't overwrite existing files.
+Scaffold openlens in the current project. Creates `openlens.json` and the `agents/` directory with four built-in agent templates. Idempotent — won't overwrite existing files.
 
 ### `openlens agent create <name>`
 
@@ -916,7 +946,7 @@ Run a comprehensive environment check: git, OpenCode binary, API keys, config fi
 
 ## 7. Output Formats & SARIF
 
-OpenLens supports four output formats, selected with `--format` or `-f`.
+openlens supports four output formats, selected with `--format` or `-f`.
 
 ### Text (default)
 
@@ -975,7 +1005,7 @@ openlens run --format sarif > results.sarif
 
 **Severity mapping:**
 
-| OpenLens   | SARIF       |
+| openlens   | SARIF       |
 | ---------- | ----------- |
 | `critical` | `error`     |
 | `warning`  | `warning`   |
@@ -1020,7 +1050,7 @@ formatMarkdown(result, {
 
 ## 8. HTTP Server API
 
-OpenLens includes a built-in HTTP server for programmatic access and integration with other tools.
+openlens includes a built-in HTTP server for programmatic access and integration with other tools.
 
 ### Starting the Server
 
@@ -1114,7 +1144,7 @@ curl "http://localhost:4096/diff?mode=staged"
 
 ## 9. CI/CD Integration
 
-OpenLens is designed for CI/CD pipelines. It auto-detects CI environments and adjusts defaults accordingly.
+openlens is designed for CI/CD pipelines. It auto-detects CI environments and adjusts defaults accordingly.
 
 ### Auto-detected CI Systems
 
@@ -1129,7 +1159,7 @@ OpenLens is designed for CI/CD pipelines. It auto-detects CI environments and ad
 
 ### Auto-detected Base Branches
 
-In CI, OpenLens infers the base branch from environment variables:
+In CI, openlens infers the base branch from environment variables:
 
 - **GitHub Actions**: `GITHUB_BASE_REF` (set on pull request events)
 - **GitLab CI**: `CI_MERGE_REQUEST_TARGET_BRANCH_NAME` (set on merge requests)
@@ -1139,10 +1169,10 @@ In CI, OpenLens infers the base branch from environment variables:
 
 #### Using the Composite Action (Recommended)
 
-OpenLens ships with a ready-to-use GitHub Action (`action.yml`) that handles setup, review, SARIF upload, and optional PR commenting:
+openlens ships with a ready-to-use GitHub Action (`action.yml`) that handles setup, review, SARIF upload, and optional PR commenting:
 
 ```yaml
-name: OpenLens Code Review
+name: openlens Code Review
 on:
   pull_request:
     types: [opened, synchronize, reopened]
@@ -1160,7 +1190,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: Traves-Theberge/OpenLens@main
+      - uses: Traves-Theberge/openlens@main
         with:
           mode: branch
           base-branch: ${{ github.base_ref }}
@@ -1171,7 +1201,7 @@ jobs:
           fail-on-critical: "true"
 ```
 
-> **Provider setup:** OpenLens uses [OpenCode](https://github.com/anomalyco/opencode) for model access. Configure your provider by either:
+> **Provider setup:** openlens uses [OpenCode](https://github.com/anomalyco/opencode) for model access. Configure your provider by either:
 > - Setting a secret as an env var (e.g. `ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}`)
 > - Passing it via the `anthropic-api-key` or `openai-api-key` inputs
 > - Committing an `opencode.json` config file to your repo (see [OpenCode docs](https://github.com/anomalyco/opencode))
@@ -1207,7 +1237,7 @@ jobs:
 
 **PR Comments:**
 
-When `comment-on-pr: "true"` is set, OpenLens submits a GitHub PR review with **inline comments on specific lines**. On subsequent pushes, resolved issues are marked with ~~strikethrough~~ and progress is shown ("3 resolved, 1 new, 2 remaining"). State is tracked via fingerprints (sha256 of file+title+agent). Enable `inline-comments: "true"` (default) for line-level annotations, or set to `"false"` for the legacy summary comment.
+When `comment-on-pr: "true"` is set, openlens submits a GitHub PR review with **inline comments on specific lines**. On subsequent pushes, resolved issues are marked with ~~strikethrough~~ and progress is shown ("3 resolved, 1 new, 2 remaining"). State is tracked via fingerprints (sha256 of file+title+agent). Enable `inline-comments: "true"` (default) for line-level annotations, or set to `"false"` for the legacy summary comment.
 
 > **Note:** PR commenting requires `pull-requests: write` permission and only works on `pull_request` events.
 
@@ -1216,7 +1246,7 @@ When `comment-on-pr: "true"` is set, OpenLens submits a GitHub PR review with **
 If you prefer not to use the composite action:
 
 ```yaml
-name: OpenLens Code Review
+name: openlens Code Review
 on: [pull_request]
 
 jobs:
@@ -1229,7 +1259,7 @@ jobs:
 
       - uses: oven-sh/setup-bun@v2
 
-      - name: Install OpenLens
+      - name: Install openlens
         run: |
           git clone https://github.com/Traves-Theberge/OpenLens.git /tmp/openlens
           cd /tmp/openlens && bun install && bun run build && bun link
@@ -1259,7 +1289,7 @@ openlens-review:
 
 ### Fail on Critical Issues
 
-OpenLens exits with code `1` when critical issues are found. Use this in CI to gate merges:
+openlens exits with code `1` when critical issues are found. Use this in CI to gate merges:
 
 ```bash
 openlens run --branch main --format text
@@ -1278,9 +1308,9 @@ openlens run --branch main --format text
 
 ## 10. Library & Plugin API
 
-### Using OpenLens as a Library
+### Using openlens as a Library
 
-Import OpenLens functions directly into your TypeScript/JavaScript project:
+Import openlens functions directly into your TypeScript/JavaScript project:
 
 ```typescript
 import {
@@ -1392,7 +1422,7 @@ console.log(`${filtered.length} issues after suppression`)
 
 ### OpenCode Plugin
 
-OpenLens can run as a plugin inside [OpenCode](https://github.com/anomalyco/opencode) sessions, making review tools available to the AI assistant.
+openlens can run as a plugin inside [OpenCode](https://github.com/anomalyco/opencode) sessions, making review tools available to the AI assistant.
 
 **Enable in your OpenCode config:**
 
@@ -1413,35 +1443,35 @@ OpenLens can run as a plugin inside [OpenCode](https://github.com/anomalyco/open
 
 **Plugin behavior:**
 
-- Auto-approves read-only tools (`read`, `grep`, `glob`, `list`) for OpenLens sessions
+- Auto-approves read-only tools (`read`, `grep`, `glob`, `list`) for openlens sessions
 - Sets temperature to `0` (deterministic) for review sessions
 - Sessions are named with `openlens-` prefix for identification
 
 ### Platform Plugins
 
-OpenLens ships with plugins for popular AI coding platforms:
+openlens ships with plugins for popular AI coding platforms:
 
 **Claude Code** — Add `/openlens` as a slash command:
 ```bash
 # Symlink the skill directory
-ln -s /path/to/OpenLens/plugins/claude-code ~/.claude/skills/openlens
+ln -s /path/to/openlens/plugins/claude-code ~/.claude/skills/openlens
 ```
 Then type `/openlens` in Claude Code to run a review.
 
 **Codex CLI** — Add `$openlens` as a skill:
 ```bash
 # Copy the skill directory
-cp -r /path/to/OpenLens/plugins/codex ~/.codex/skills/openlens
+cp -r /path/to/openlens/plugins/codex ~/.codex/skills/openlens
 ```
 Then type `$openlens` in Codex to run a review. Requires `--full-auto` or approving network access.
 
 **Gemini CLI** — Add `/openlens` as a custom command:
 ```bash
 # Copy the command file to your project
-cp -r /path/to/OpenLens/plugins/gemini/.gemini/commands/ .gemini/commands/
+cp -r /path/to/openlens/plugins/gemini/.gemini/commands/ .gemini/commands/
 # Or copy just the file
 mkdir -p .gemini/commands
-cp /path/to/OpenLens/plugins/gemini/openlens.toml .gemini/commands/openlens.toml
+cp /path/to/openlens/plugins/gemini/openlens.toml .gemini/commands/openlens.toml
 ```
 Then type `/openlens` in Gemini CLI to run a review.
 
@@ -1558,7 +1588,7 @@ Extend agent capabilities by connecting MCP servers. These provide additional to
 
 ### Review Instructions & Rules Discovery
 
-OpenLens has two ways to provide project-specific guidance to review agents:
+openlens has two ways to provide project-specific guidance to review agents:
 
 1. **Automatic rules discovery** — walks your directory tree for well-known files
 2. **Explicit instruction files** — configured in `openlens.json`
@@ -1567,7 +1597,7 @@ Both are combined and injected into every agent's context. Discovered rules are 
 
 #### Automatic Rules Discovery
 
-OpenLens automatically discovers rules files by walking from your working directory up to the repository root. This follows the same convention used by OpenCode and Claude Code (`AGENTS.md`, `CLAUDE.md`).
+openlens automatically discovers rules files by walking from your working directory up to the repository root. This follows the same convention used by OpenCode and Claude Code (`AGENTS.md`, `CLAUDE.md`).
 
 **Well-known files** (discovered automatically):
 
@@ -1575,7 +1605,7 @@ OpenLens automatically discovers rules files by walking from your working direct
 | ---- | ------- |
 | `AGENTS.md` | OpenCode-style agent instructions — conventions, architecture notes, review focus areas |
 | `CLAUDE.md` | Claude Code-style project rules — coding standards, patterns to follow/avoid |
-| `.openlens/rules.md` | OpenLens-specific rules |
+| `.openlens/rules.md` | openlens-specific rules |
 
 **How directory walking works:**
 
@@ -1663,7 +1693,7 @@ These are loaded after discovered rules, so they have the highest priority.
 
 ### Full File Context
 
-When `fullFileContext: true` (the default), OpenLens includes the complete source of every changed file in each agent's prompt. This allows agents to understand the surrounding code, not just the diff.
+When `fullFileContext: true` (the default), openlens includes the complete source of every changed file in each agent's prompt. This allows agents to understand the surrounding code, not just the diff.
 
 - Files over 500 lines are truncated with a note
 - Disable per-agent with `fullFileContext: false` in the agent config
@@ -1722,13 +1752,13 @@ It checks:
 
 **"No diff found"**
 
-OpenLens couldn't find any changes to review. Make sure you have:
+openlens couldn't find any changes to review. Make sure you have:
 - Staged changes (`git add`) when using `--staged`
 - Uncommitted changes when using `--unstaged`
 - Commits ahead of the base branch when using `--branch`
 
 ```bash
-# Check what OpenLens sees
+# Check what openlens sees
 git diff --cached --stat          # staged
 git diff --stat                   # unstaged
 git diff main...HEAD --stat       # branch
@@ -1736,7 +1766,7 @@ git diff main...HEAD --stat       # branch
 
 **"OpenCode binary not found"**
 
-OpenLens requires the OpenCode binary. Either:
+openlens requires the OpenCode binary. Either:
 - Install OpenCode globally
 - Set `OPENCODE_BIN` to the explicit path
 

@@ -22,7 +22,7 @@ export async function runSetup(cwd: string, options: SetupOptions = {}) {
     !options.ci &&
     !options.agents
 
-  p.intro("OpenLens Setup")
+  p.intro("openlens Setup")
 
   const config =
     runAll || options.config ? await setupConfig(cwd, options) : null

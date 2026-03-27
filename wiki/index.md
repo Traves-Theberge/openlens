@@ -1,10 +1,10 @@
-# OpenLens Wiki
+# openlens Wiki
 
 > AI-powered code review that runs anywhere — your terminal, your CI pipeline, or inside your AI coding agent.
 
 ## Pages
 
-1. [Overview](1-overview.md) — What OpenLens is, architecture diagram, repository layout
+1. [Overview](1-overview.md) — What openlens is, architecture diagram, repository layout
 2. [Core Architecture](2-core-architecture.md) — Config loading, agent resolution, diff collection, review orchestration
 3. [Agent System](3-agent-system.md) — Agent format, built-in agents, permissions, context strategies, confidence scoring
 4. [Configuration](4-configuration.md) — Config files, schemas, suppression, rules discovery, environment variables, CI detection

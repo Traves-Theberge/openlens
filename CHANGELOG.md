@@ -1,6 +1,18 @@
 # Changelog
 
-All notable changes to OpenLens will be documented in this file.
+All notable changes to openlens will be documented in this file.
+
+## [0.2.2] - 2026-03-26
+
+### Added
+- `openlens setup` interactive wizard with @clack/prompts for polished terminal UI
+- Setup wizard tests (`test/e2e/setup.test.ts`)
+- `skills/using-openlens/SKILL.md` CLI usage reference for AI agents
+
+### Changed
+- Updated all packages to latest: zod 4, hono 4.12, typescript 6, yargs 18, opencode SDK 1.3.3
+- Fixed "OpenLens" casing to "openlens" lowercase throughout all docs, source, hooks, and plugins
+- Node engine requirement updated to >=20.19
 
 ## [0.2.1] - 2026-03-26
 

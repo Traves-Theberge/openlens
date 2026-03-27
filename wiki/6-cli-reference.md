@@ -15,7 +15,8 @@ This page documents every command, flag, environment variable, and exit code for
 | `openlens agent disable <name>` | Disable an agent so it will not run during reviews |
 | `openlens hooks install` | Install git hooks (pre-commit + pre-push) for automatic review |
 | `openlens hooks remove` | Remove git hooks and restore backups |
-| `openlens init` | Set up OpenLens in your project (creates openlens.json and agents/ directory) |
+| `openlens setup` | Interactive project setup wizard (config, agents, hooks, plugins, CI/CD) |
+| `openlens init` | Set up openlens in your project (creates openlens.json and agents/ directory) |
 | `openlens serve` | Start an HTTP API server for running reviews programmatically |
 | `openlens models` | List all available AI models from OpenCode (free and paid) |
 | `openlens docs` | Serve the wiki locally with dark theme and mermaid diagram support |
@@ -25,6 +26,7 @@ This page documents every command, flag, environment variable, and exit code for
 graph TD
     CLI[openlens CLI]
     CLI --> run[run]
+    CLI --> setup[setup]
     CLI --> agent[agent]
     CLI --> hooks[hooks]
     CLI --> init[init]
@@ -226,9 +228,31 @@ Remove installed hooks and restore any backups.
 openlens hooks remove
 ```
 
+## openlens setup
+
+Interactive project setup wizard. Walks through configuration, agents, hooks, plugins, and CI/CD generation with a polished terminal UI powered by @clack/prompts.
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--config` | boolean | — | Configure model and review settings |
+| `--agents` | boolean | — | Enable, disable, or create agents |
+| `--hooks` | boolean | — | Install git hooks |
+| `--plugins` | boolean | — | Install platform plugins |
+| `--ci` | boolean | — | Generate CI/CD workflow |
+| `--yes` / `-y` | boolean | — | Accept all defaults (no prompts) |
+
+When no section flags are given, all sections are run interactively. With `--yes`, all sections run with default values.
+
+```bash
+openlens setup                    # full interactive wizard
+openlens setup --yes              # accept all defaults
+openlens setup --config           # just config section
+openlens setup --hooks --ci       # just hooks and CI/CD
+```
+
 ## openlens init
 
-Set up OpenLens in a project. Creates:
+Set up openlens in a project. Creates:
 
 1. An `agents/` directory with four default agent prompts: `security.md`, `bugs.md`, `performance.md`, `style.md` (copied from the bundled templates)
 2. An `openlens.json` config file with default settings
@@ -275,7 +299,7 @@ Source: [src/index.ts, lines 876-908](https://github.com/Traves-Theberge/OpenLen
 
 ## openlens docs
 
-Serve the OpenLens wiki locally. Launches a local HTTP server with dark theme styling and mermaid diagram rendering.
+Serve the openlens wiki locally. Launches a local HTTP server with dark theme styling and mermaid diagram rendering.
 
 ```bash
 openlens docs
@@ -323,7 +347,7 @@ These are consumed during config loading and override corresponding config file 
 |----------|-------------|
 | `OPENLENS_MODE` | Override default review mode (`staged`, `unstaged`, `branch`, `auto`) |
 | `OPENLENS_AGENTS` | Comma-separated agent whitelist (also used by git hooks to select agents) |
-| `OPENLENS_SKIP` | Set to `1` to skip OpenLens git hooks for a single operation |
+| `OPENLENS_SKIP` | Set to `1` to skip openlens git hooks for a single operation |
 | `OPENLENS_FORMAT` | Override output format |
 | `OPENLENS_BASE_BRANCH` | Override base branch for branch mode |
 | `OPENLENS_VERIFY` | Set to `"false"` to skip verification |

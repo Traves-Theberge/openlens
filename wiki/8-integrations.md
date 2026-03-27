@@ -1,10 +1,10 @@
 # Integrations
 
-OpenLens integrates with CI/CD systems, AI coding assistants, and programmatic consumers through multiple interfaces. This page covers every integration point.
+openlens integrates with CI/CD systems, AI coding assistants, and programmatic consumers through multiple interfaces. This page covers every integration point.
 
 ```mermaid
 graph TB
-    OpenLens[OpenLens Core]
+    openlens[openlens Core]
 
     subgraph "CI/CD"
         GHA[GitHub Actions]
@@ -28,24 +28,24 @@ graph TB
         PH[Platform Hooks<br/>PreToolUse / BeforeTool]
     end
 
-    GHA --> OpenLens
-    OpenLens --> SARIF
+    GHA --> openlens
+    openlens --> SARIF
 
-    CC -->|"shell out"| OpenLens
-    CX -->|"shell out"| OpenLens
-    GM -->|"shell out"| OpenLens
-    OC -->|"library API"| OpenLens
+    CC -->|"shell out"| openlens
+    CX -->|"shell out"| openlens
+    GM -->|"shell out"| openlens
+    OC -->|"library API"| openlens
 
-    GH -->|"on commit/push"| OpenLens
-    PH -->|"on git commit/push"| OpenLens
+    GH -->|"on commit/push"| openlens
+    PH -->|"on git commit/push"| openlens
 
-    HTTP --> OpenLens
-    LIB --> OpenLens
+    HTTP --> openlens
+    LIB --> openlens
 ```
 
 ## GitHub Actions
 
-OpenLens ships as a composite GitHub Action defined in [action.yml](https://github.com/Traves-Theberge/OpenLens/blob/main/action.yml).
+openlens ships as a composite GitHub Action defined in [action.yml](https://github.com/Traves-Theberge/OpenLens/blob/main/action.yml).
 
 ### Inputs
 
@@ -79,9 +79,9 @@ OpenLens ships as a composite GitHub Action defined in [action.yml](https://gith
 The action runs as a composite action with these steps:
 
 1. **Setup Bun** -- installs Bun runtime via `oven-sh/setup-bun@v2`
-2. **Install OpenLens** -- runs `bun install --frozen-lockfile`
+2. **Install openlens** -- runs `bun install --frozen-lockfile`
 3. **Verify OpenCode binary** -- checks `node_modules/.bin/opencode` exists
-4. **Run OpenLens** -- executes the review with configured flags, writes SARIF and step summary
+4. **Run openlens** -- executes the review with configured flags, writes SARIF and step summary
 5. **Upload SARIF** -- uploads to GitHub Code Scanning via `github/codeql-action/upload-sarif@v3`
 6. **Generate JSON review** -- (conditional) re-runs with `--format json` when inline comments are enabled
 7. **Post PR Review** -- (conditional) posts inline review comments via GitHub API
@@ -101,7 +101,7 @@ When `comment-on-pr` and `inline-comments` are both enabled, the action:
 7. **Post new review:** submits a PR review with up to 50 inline comments
 8. **Save state:** updates the fingerprint state comment for the next run
 
-The progress summary in the review body shows: `OpenLens found 5 issue(s) across 3 files. (2 resolved, 1 new, 2 remaining)`
+The progress summary in the review body shows: `openlens found 5 issue(s) across 3 files. (2 resolved, 1 new, 2 remaining)`
 
 ### Required Permissions
 
@@ -117,7 +117,7 @@ permissions:
 Minimal setup (from [.github/workflows/pr-review.yml](https://github.com/Traves-Theberge/OpenLens/blob/main/.github/workflows/pr-review.yml)):
 
 ```yaml
-name: OpenLens PR Review
+name: openlens PR Review
 
 on:
   pull_request:
@@ -154,7 +154,7 @@ jobs:
 
 **File:** [plugins/claude-code/SKILL.md](https://github.com/Traves-Theberge/OpenLens/blob/main/plugins/claude-code/SKILL.md)
 
-A Claude Code slash command that runs OpenLens from within a Claude Code session. It shells out to the `openlens` CLI.
+A Claude Code slash command that runs openlens from within a Claude Code session. It shells out to the `openlens` CLI.
 
 ### Usage
 
@@ -208,15 +208,15 @@ The SKILL.md provides severity guidance:
 
 **File:** [plugins/gemini/openlens.toml](https://github.com/Traves-Theberge/OpenLens/blob/main/plugins/gemini/openlens.toml)
 
-A Gemini CLI tool registration file in TOML format. Uses shell command interpolation to run OpenLens.
+A Gemini CLI tool registration file in TOML format. Uses shell command interpolation to run openlens.
 
 ### Configuration
 
 ```toml
-description = "Run OpenLens AI code review on current changes"
+description = "Run openlens AI code review on current changes"
 
 prompt = """
-Run an OpenLens code review. Analyze the results and present them clearly to the user.
+Run an openlens code review. Analyze the results and present them clearly to the user.
 
 {{args}}
 
@@ -472,7 +472,7 @@ graph TB
         LIB[Library API]
     end
 
-    subgraph "OpenLens Core"
+    subgraph "openlens Core"
         Config[Config Loading]
         Agents[Agent Resolution]
         Diff[Diff Collection]
@@ -510,7 +510,7 @@ graph TB
 
 ## Platform Hooks
 
-OpenLens ships platform-specific hook configurations in the `hooks/` directory. These hooks trigger OpenLens reviews automatically on **git commit and push only** (not on file writes or other tool events).
+openlens ships platform-specific hook configurations in the `hooks/` directory. These hooks trigger openlens reviews automatically on **git commit and push only** (not on file writes or other tool events).
 
 | File | Platform | Trigger |
 |------|----------|---------|
@@ -521,7 +521,7 @@ OpenLens ships platform-specific hook configurations in the `hooks/` directory. 
 
 ### Claude Code Hooks
 
-Install by copying or symlinking `hooks/claude-code-hooks.json` to your project. Claude Code will run OpenLens automatically when you commit or push.
+Install by copying or symlinking `hooks/claude-code-hooks.json` to your project. Claude Code will run openlens automatically when you commit or push.
 
 ### Codex CLI Hooks
 

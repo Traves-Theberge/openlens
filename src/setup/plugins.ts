@@ -184,7 +184,7 @@ export async function setupPlugins(cwd: string, options: SetupOptions) {
   const hasOpenCode = await exists(path.join(cwd, "opencode.json"))
   if (hasOpenCode && !options.yes) {
     const addPlugin = (await p.confirm({
-      message: "Add OpenLens plugin to opencode.json?",
+      message: "Add openlens plugin to opencode.json?",
       initialValue: true,
     })) as boolean
     if (!p.isCancel(addPlugin) && addPlugin) {

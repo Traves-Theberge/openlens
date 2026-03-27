@@ -1,4 +1,4 @@
-name: "OpenLens-AI-Reviewer"
+name: "openlens-AI-Reviewer"
 description: "AI-powered code review using specialized agents."
 branding:
   icon: "eye"
@@ -76,7 +76,7 @@ runs:
       with:
         bun-version: latest
 
-    - name: Install OpenLens
+    - name: Install openlens
       shell: bash
       run: |
         cd ${{ github.action_path }}
@@ -92,7 +92,7 @@ runs:
         fi
         echo "OpenCode version: $($OPENCODE_BIN --version)"
 
-    - name: Run OpenLens
+    - name: Run openlens
       id: review
       shell: bash
       env:
@@ -101,7 +101,7 @@ runs:
         # API keys — only needed when using paid provider models
         ANTHROPIC_API_KEY: ${{ inputs.anthropic-api-key || env.ANTHROPIC_API_KEY || '' }}
         OPENAI_API_KEY: ${{ inputs.openai-api-key || env.OPENAI_API_KEY || '' }}
-        # OpenLens config overrides
+        # openlens config overrides
         OPENLENS_MODE: ${{ inputs.mode }}
         OPENLENS_AGENTS: ${{ inputs.agents }}
         OPENLENS_FORMAT: ${{ inputs.format }}
@@ -165,7 +165,7 @@ runs:
         echo "json-file=$JSON_FILE" >> "$GITHUB_OUTPUT"
 
         # Show summary
-        echo "### OpenLens Results" >> "$GITHUB_STEP_SUMMARY"
+        echo "### openlens Results" >> "$GITHUB_STEP_SUMMARY"
         echo "" >> "$GITHUB_STEP_SUMMARY"
         echo "- **Issues found:** $TOTAL" >> "$GITHUB_STEP_SUMMARY"
         echo "- **Critical:** $CRITICAL" >> "$GITHUB_STEP_SUMMARY"
@@ -173,7 +173,7 @@ runs:
 
         # Fail if critical issues and configured to do so
         if [ "${{ inputs.fail-on-critical }}" = "true" ] && [ "$EXIT_CODE" = "1" ]; then
-          echo "::error::OpenLens found $CRITICAL critical issue(s)"
+          echo "::error::openlens found $CRITICAL critical issue(s)"
           exit 1
         fi
 
@@ -266,7 +266,7 @@ runs:
                 cachedReviews = existingReviews;
 
                 for (const rev of existingReviews) {
-                  if (!rev.body?.includes('OpenLens found')) continue;
+                  if (!rev.body?.includes('openlens found')) continue;
 
                   const { data: reviewComments } = await github.rest.pulls.listCommentsForReview({
                     ...context.repo,
@@ -334,12 +334,12 @@ runs:
             const event = hasCritical ? 'REQUEST_CHANGES' : 'COMMENT';
 
             const summary = hasIssues
-              ? `OpenLens found **${issues.length} issue(s)** across ${reviewData.meta?.filesChanged || '?'} files.${progress}`
-              : `OpenLens found no issues.${progress}`;
+              ? `openlens found **${issues.length} issue(s)** across ${reviewData.meta?.filesChanged || '?'} files.${progress}`
+              : `openlens found no issues.${progress}`;
 
             // Submit review
             try {
-              // Dismiss previous OpenLens reviews to avoid stale REQUEST_CHANGES blocks
+              // Dismiss previous openlens reviews to avoid stale REQUEST_CHANGES blocks
               // Re-use reviews list if already fetched during auto-resolve, otherwise fetch now
               const allReviews = cachedReviews || (await github.rest.pulls.listReviews({
                 ...context.repo,
@@ -347,13 +347,13 @@ runs:
               })).data;
 
               for (const rev of allReviews) {
-                if (rev.body?.includes('OpenLens found') && rev.state === 'CHANGES_REQUESTED') {
+                if (rev.body?.includes('openlens found') && rev.state === 'CHANGES_REQUESTED') {
                   try {
                     await github.rest.pulls.dismissReview({
                       ...context.repo,
                       pull_number: prNumber,
                       review_id: rev.id,
-                      message: 'Superseded by new OpenLens review.',
+                      message: 'Superseded by new openlens review.',
                     });
                   } catch {
                     // May not have permission to dismiss — continue
@@ -375,7 +375,7 @@ runs:
 
             // --- Save fingerprint state as a comment ---
             const statePayload = Buffer.from(JSON.stringify(fingerprints)).toString('base64');
-            const stateBody = `${stateMarker}${statePayload} -->\n_OpenLens review fingerprints — do not edit._`;
+            const stateBody = `${stateMarker}${statePayload} -->\n_openlens review fingerprints — do not edit._`;
 
             const existingState = stateComment;
 
@@ -412,7 +412,7 @@ runs:
 
           const marker = '<!-- openlens-review -->';
           let body = marker + '\n';
-          body += '## :mag: OpenLens Review\n\n';
+          body += '## :mag: openlens Review\n\n';
 
           if (issueCount === 0) {
             body += ':white_check_mark: **No issues found.**\n';

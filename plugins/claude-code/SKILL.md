@@ -1,9 +1,9 @@
 ---
 name: openlens
-description: Run OpenLens AI code review on current changes
+description: Run openlens AI code review on current changes
 ---
 
-Run an OpenLens code review on your current git changes.
+Run an openlens code review on your current git changes.
 
 ## Usage
 

@@ -1,8 +1,8 @@
-# Using OpenLens in CI/CD Pipelines
+# Using openlens in CI/CD Pipelines
 
 ## Overview
 
-OpenLens auto-detects CI environments and adjusts its behavior accordingly. When running inside a CI pipeline, it:
+openlens auto-detects CI environments and adjusts its behavior accordingly. When running inside a CI pipeline, it:
 
 - **Defaults to `branch` mode** — diffs against the base branch rather than staged/unstaged changes
 - **Auto-infers the base branch** from provider-specific environment variables (`GITHUB_BASE_REF`, `CI_MERGE_REQUEST_TARGET_BRANCH_NAME`, `BUILDKITE_PULL_REQUEST_BASE_BRANCH`)
@@ -27,10 +27,10 @@ Any environment with `CI=true` or `CI=1` is also recognized as CI, even if the s
 
 ### Quick Start
 
-The minimal workflow to run OpenLens on every pull request:
+The minimal workflow to run openlens on every pull request:
 
 ```yaml
-name: OpenLens PR Review
+name: openlens PR Review
 
 on:
   pull_request:
@@ -50,7 +50,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: Traves-Theberge/OpenLens@main
+      - uses: Traves-Theberge/openlens@main
         with:
           mode: branch
           base-branch: ${{ github.base_ref }}
@@ -60,16 +60,16 @@ jobs:
           fail-on-critical: "true"
 ```
 
-> **Important:** `fetch-depth: 0` is required so OpenLens can diff against the base branch.
+> **Important:** `fetch-depth: 0` is required so openlens can diff against the base branch.
 
 ### What the Composite Action Does
 
 The `action.yml` runs these steps in order:
 
 1. **Setup Bun** — installs the Bun runtime via `oven-sh/setup-bun@v2`
-2. **Install OpenLens** — runs `bun install --frozen-lockfile` in the action directory
+2. **Install openlens** — runs `bun install --frozen-lockfile` in the action directory
 3. **Verify OpenCode binary** — confirms the `opencode` binary exists in `node_modules/.bin/`
-4. **Run OpenLens** — executes the review with your configured flags, writes SARIF output, parses issue counts with `jq`, and writes a GitHub Step Summary
+4. **Run openlens** — executes the review with your configured flags, writes SARIF output, parses issue counts with `jq`, and writes a GitHub Step Summary
 5. **Upload SARIF** — sends results to GitHub Code Scanning via `github/codeql-action/upload-sarif@v3`
 6. **Generate JSON review** — (if inline comments enabled) re-runs the review in JSON format for structured comment data
 7. **Post PR Review** — submits a GitHub pull request review with inline comments, handles auto-resolve of previously fixed issues
@@ -104,7 +104,7 @@ The `action.yml` runs these steps in order:
 You can use these outputs in downstream steps:
 
 ```yaml
-- uses: Traves-Theberge/OpenLens@main
+- uses: Traves-Theberge/openlens@main
   id: lens
   with:
     mode: branch
@@ -120,7 +120,7 @@ You can use these outputs in downstream steps:
 ### Enabling
 
 ```yaml
-- uses: Traves-Theberge/OpenLens@main
+- uses: Traves-Theberge/openlens@main
   with:
     comment-on-pr: "true"
     inline-comments: "true"
@@ -131,7 +131,7 @@ Both `comment-on-pr` and `inline-comments` must be `"true"`. The workflow must h
 
 ### What Happens
 
-When inline comments are enabled, OpenLens submits a **GitHub pull request review** with comments attached to specific lines in the diff. Each comment includes:
+When inline comments are enabled, openlens submits a **GitHub pull request review** with comments attached to specific lines in the diff. Each comment includes:
 
 - Severity level (CRITICAL, WARNING, INFO)
 - Issue title and description
@@ -149,7 +149,7 @@ The review event type is determined by the highest severity found:
 | Warning only | `COMMENT` | Informational, does not block |
 | No issues | `APPROVE` | Approves the PR |
 
-Previous `REQUEST_CHANGES` reviews from OpenLens are automatically dismissed when a new review is submitted, preventing stale blocks.
+Previous `REQUEST_CHANGES` reviews from openlens are automatically dismissed when a new review is submitted, preventing stale blocks.
 
 ---
 
@@ -158,7 +158,7 @@ Previous `REQUEST_CHANGES` reviews from OpenLens are automatically dismissed whe
 ### Enabling
 
 ```yaml
-- uses: Traves-Theberge/OpenLens@main
+- uses: Traves-Theberge/openlens@main
   with:
     comment-on-pr: "true"
     inline-comments: "true"
@@ -173,7 +173,7 @@ When a developer pushes new commits to the PR:
 1. **Resolved issues** get their comments updated with ~~strikethrough~~ text and a "Resolved in latest push." note
 2. **New issues** are posted as fresh inline comments
 3. **Remaining issues** stay as-is
-4. The review summary shows progress: e.g., "OpenLens found **3 issue(s)** (2 resolved, 1 new, 2 remaining)"
+4. The review summary shows progress: e.g., "openlens found **3 issue(s)** (2 resolved, 1 new, 2 remaining)"
 
 ### How Fingerprinting Works
 
@@ -202,7 +202,7 @@ This comment is created automatically and updated on each run. Do not edit or de
 ### Enabling
 
 ```yaml
-- uses: Traves-Theberge/OpenLens@main
+- uses: Traves-Theberge/openlens@main
   with:
     upload-sarif: "true"    # this is the default
     format: sarif           # this is the default
@@ -212,7 +212,7 @@ The workflow must have `security-events: write` permission.
 
 ### What Happens
 
-OpenLens generates a SARIF file and uploads it to GitHub Code Scanning via `github/codeql-action/upload-sarif@v3` with the category `openlens`. The upload step uses `continue-on-error: true`, so a failed upload will not break your workflow.
+openlens generates a SARIF file and uploads it to GitHub Code Scanning via `github/codeql-action/upload-sarif@v3` with the category `openlens`. The upload step uses `continue-on-error: true`, so a failed upload will not break your workflow.
 
 ### Viewing Results
 
@@ -254,7 +254,7 @@ openlens:
     - if: $CI_MERGE_REQUEST_IID
 ```
 
-OpenLens auto-detects GitLab CI and reads `CI_MERGE_REQUEST_TARGET_BRANCH_NAME` for the base branch.
+openlens auto-detects GitLab CI and reads `CI_MERGE_REQUEST_TARGET_BRANCH_NAME` for the base branch.
 
 ### Text Output Alternative
 
@@ -277,14 +277,14 @@ openlens:
 
 ### Generic Approach
 
-Any CI system that can run shell commands can use OpenLens:
+Any CI system that can run shell commands can use openlens:
 
 ```bash
 # 1. Install Bun (if not already available)
 curl -fsSL https://bun.sh/install | bash
 export PATH="$HOME/.bun/bin:$PATH"
 
-# 2. Install OpenLens
+# 2. Install openlens
 bun install -g openlens
 
 # 3. Run the review
@@ -297,7 +297,7 @@ openlens run --branch --format json > results.json
 |------|---------|
 | `0`  | Clean — no critical issues found |
 | `1`  | Critical issues found |
-| `2`  | Error — OpenLens failed to run |
+| `2`  | Error — openlens failed to run |
 
 Use exit codes to gate deployments:
 
@@ -321,7 +321,7 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Run OpenLens
+          name: Run openlens
           command: |
             bun install -g openlens
             openlens run --branch --format text
@@ -336,7 +336,7 @@ workflows:
 
 ```yaml
 steps:
-  - label: ":mag: OpenLens Review"
+  - label: ":mag: openlens Review"
     command: |
       curl -fsSL https://bun.sh/install | bash
       export PATH="$$HOME/.bun/bin:$$PATH"
@@ -344,7 +344,7 @@ steps:
       openlens run --branch --format text
 ```
 
-OpenLens reads `BUILDKITE_PULL_REQUEST_BASE_BRANCH` automatically for the base branch.
+openlens reads `BUILDKITE_PULL_REQUEST_BASE_BRANCH` automatically for the base branch.
 
 ---
 
@@ -352,11 +352,11 @@ OpenLens reads `BUILDKITE_PULL_REQUEST_BASE_BRANCH` automatically for the base b
 
 ### Model Selection
 
-By default, OpenLens uses free models (`opencode/big-pickle`) that require no API keys. To use a paid provider model:
+By default, openlens uses free models (`opencode/big-pickle`) that require no API keys. To use a paid provider model:
 
 ```yaml
 # GitHub Actions
-- uses: Traves-Theberge/OpenLens@main
+- uses: Traves-Theberge/openlens@main
   with:
     model: claude-sonnet-4-20250514
     anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -373,7 +373,7 @@ openlens run --branch --model claude-sonnet-4-20250514
 For faster CI runs, disable the verification pass and context gathering:
 
 ```yaml
-- uses: Traves-Theberge/OpenLens@main
+- uses: Traves-Theberge/openlens@main
   with:
     verify: "false"
 ```
@@ -391,7 +391,7 @@ Run only specific agents to focus on what matters for your gate:
 
 ```yaml
 # Security-only gate
-- uses: Traves-Theberge/OpenLens@main
+- uses: Traves-Theberge/openlens@main
   with:
     agents: security
     fail-on-critical: "true"
@@ -448,13 +448,13 @@ openlens run --branch --format json | jq -c '.issues[] | select(.severity == "cr
     curl -X POST "$JIRA_URL/rest/api/2/issue" \
       -H "Authorization: Bearer $JIRA_TOKEN" \
       -H "Content-Type: application/json" \
-      -d "{\"fields\":{\"project\":{\"key\":\"$JIRA_PROJECT\"},\"summary\":\"[OpenLens] $TITLE in $FILE\",\"issuetype\":{\"name\":\"Bug\"}}}"
+      -d "{\"fields\":{\"project\":{\"key\":\"$JIRA_PROJECT\"},\"summary\":\"[openlens] $TITLE in $FILE\",\"issuetype\":{\"name\":\"Bug\"}}}"
   done
 ```
 
 ### Library API in Node.js
 
-For fully custom pipelines, use OpenLens as a library:
+For fully custom pipelines, use openlens as a library:
 
 ```typescript
 import { run } from "openlens";
@@ -478,7 +478,7 @@ process.exit(results.issues.some(i => i.severity === "critical") ? 1 : 0);
 
 ### Combine with Other SARIF Tools
 
-OpenLens SARIF output is standard and can be merged with other tools:
+openlens SARIF output is standard and can be merged with other tools:
 
 ```yaml
 steps:
@@ -486,8 +486,8 @@ steps:
     with:
       fetch-depth: 0
 
-  # Run OpenLens
-  - uses: Traves-Theberge/OpenLens@main
+  # Run openlens
+  - uses: Traves-Theberge/openlens@main
     id: lens
     with:
       upload-sarif: "false"  # we'll upload manually after merging

@@ -44,7 +44,7 @@ export function createBus<
   }
 }
 
-// OpenLens event types
+// openlens event types
 export type ReviewEvents = {
   "review.started": { agents: string[] }
   "agent.started": { name: string }

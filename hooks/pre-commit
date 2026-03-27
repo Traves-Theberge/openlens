@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# OpenLens pre-commit hook
+# openlens pre-commit hook
 # Runs a quick review on staged changes. Blocks commit if critical issues found.
 # Install: cp hooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
 # Or: openlens hooks install
@@ -23,7 +23,7 @@ if git diff --cached --quiet; then
 fi
 
 echo ""
-echo "  OpenLens  reviewing staged changes..."
+echo "  openlens  reviewing staged changes..."
 echo ""
 
 # Run quick review: security + bugs only, no verification, no full context

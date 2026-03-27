@@ -1,10 +1,10 @@
 # Testing
 
-This page covers OpenLens's testing strategy, the three test tiers, helper utilities, CI workflow, and how to run tests locally.
+This page covers openlens's testing strategy, the three test tiers, helper utilities, CI workflow, and how to run tests locally.
 
 ## Test Runner
 
-OpenLens uses [Bun's built-in test runner](https://bun.sh/docs/cli/test) (`bun:test`). No additional test frameworks are needed.
+openlens uses [Bun's built-in test runner](https://bun.sh/docs/cli/test) (`bun:test`). No additional test frameworks are needed.
 
 ```bash
 bun test                              # Run all tests
@@ -48,7 +48,7 @@ graph TB
         E10[docs.test.ts]
     end
 
-    U1 & U2 & U3 & U4 & U5 & U6 & U7 & U8 & U9 & U10 & U11 & U12 & U13 -.->|"fast, isolated"| Core[OpenLens Core Modules]
+    U1 & U2 & U3 & U4 & U5 & U6 & U7 & U8 & U9 & U10 & U11 & U12 & U13 -.->|"fast, isolated"| Core[openlens Core Modules]
     I1 -.->|"real orchestration"| Core
     E1 & E2 & E3 & E4 & E5 & E6 & E7 & E8 & E9 & E10 -.->|"subprocess + temp git repos"| CLI[openlens CLI Binary]
 ```

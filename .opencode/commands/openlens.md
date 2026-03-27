@@ -1,8 +1,8 @@
 ---
-description: Run local code review with OpenLens
+description: Run local code review with openlens
 ---
 
-Run a local code review using the OpenLens plugin tool. Call the `openlens` tool directly.
+Run a local code review using the openlens plugin tool. Call the `openlens` tool directly.
 
 If the user specified flags, pass them as arguments:
 - "review against main" → `openlens({ mode: "branch", branch: "main" })`

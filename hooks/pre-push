@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# OpenLens pre-push hook
+# openlens pre-push hook
 # Runs a full review on branch diff before push. Blocks push if critical issues found.
 # Install: cp hooks/pre-push .git/hooks/pre-push && chmod +x .git/hooks/pre-push
 # Or: openlens hooks install
@@ -26,7 +26,7 @@ if git diff --quiet "$BASE_BRANCH"...HEAD 2>/dev/null; then
 fi
 
 echo ""
-echo "  OpenLens  reviewing branch diff against $BASE_BRANCH..."
+echo "  openlens  reviewing branch diff against $BASE_BRANCH..."
 echo ""
 
 # Run review — override agents with OPENLENS_AGENTS env var

@@ -753,7 +753,7 @@ function renderNav(pages: WikiPage[], currentSlug: string): string {
       html += `<div class="sidebar-section">${p.section}</div>`
       lastSection = p.section
     }
-    html += `<a href="/${p.slug}" class="${p.slug === currentSlug ? "active" : ""}">${p.title.replace(/^OpenLens\s*/, "")}</a>\n`
+    html += `<a href="/${p.slug}" class="${p.slug === currentSlug ? "active" : ""}">${p.title.replace(/^openlens\s*/, "")}</a>\n`
   }
   return html
 }
@@ -777,7 +777,7 @@ function renderPage(content: string, pages: WikiPage[], currentSlug: string): st
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>OpenLens Docs</title>
+  <title>openlens Docs</title>
   <style>${CSS}</style>
 </head>
 <body>
@@ -786,7 +786,7 @@ function renderPage(content: string, pages: WikiPage[], currentSlug: string): st
       <div class="sidebar-header">
         <a href="/1-overview">
           <div class="logo">O</div>
-          OpenLens
+          openlens
         </a>
       </div>
       <div class="sidebar-search">
@@ -1063,7 +1063,7 @@ export function createDocsServer(wikiDir: string) {
     } catch (err: any) {
       if (err?.code === "ENOENT") {
         return c.html(
-          `<!DOCTYPE html><html><head><title>OpenLens Docs</title><style>${CSS}</style></head>` +
+          `<!DOCTYPE html><html><head><title>openlens Docs</title><style>${CSS}</style></head>` +
           `<body style="display:flex;align-items:center;justify-content:center;min-height:100vh">` +
           `<div style="text-align:center;max-width:500px"><h1>Wiki not found</h1>` +
           `<p style="color:#888;margin-top:16px">The wiki directory was not found at:<br>` +

@@ -1,6 +1,6 @@
 # Output Formats
 
-OpenLens supports five output formats, each designed for a different consumption context. This page covers the structure, features, and usage of each format.
+openlens supports five output formats, each designed for a different consumption context. This page covers the structure, features, and usage of each format.
 
 ```mermaid
 graph LR
@@ -94,7 +94,7 @@ The footer shows a summary of issue counts by severity, timing per agent, suppre
 When no issues are found, the output is:
 
 ```
-  OpenLens  No issues found. (3 files, 4 agents, verified)
+  openlens  No issues found. (3 files, 4 agents, verified)
 ```
 
 ### Progress Streaming
@@ -159,7 +159,7 @@ Source: [src/output/format.ts, lines 137-210](https://github.com/Traves-Theberge
 
 ### Schema Mapping
 
-| OpenLens Field | SARIF Field | Notes |
+| openlens Field | SARIF Field | Notes |
 |----------------|-------------|-------|
 | `issue.severity` | `result.level` | `critical` -> `error`, `warning` -> `warning`, `info` -> `note` |
 | `issue.confidence` | `result.rank` | `high` -> `90.0`, `medium` -> `50.0`, `low` -> `10.0` |
@@ -186,7 +186,7 @@ Source: [src/output/format.ts, lines 137-210](https://github.com/Traves-Theberge
           "rules": [
             {
               "id": "openlens/security",
-              "shortDescription": { "text": "OpenLens security agent" }
+              "shortDescription": { "text": "openlens security agent" }
             }
           ]
         }
@@ -255,7 +255,7 @@ When run in GitHub Actions, the CLI automatically passes `GITHUB_REPOSITORY` and
 
 ```markdown
 <!-- openlens-review -->
-## :mag: OpenLens Review -- 3 issues found
+## :mag: openlens Review -- 3 issues found
 
 | Severity | Count |
 |----------|-------|
@@ -363,7 +363,7 @@ Source: [action.yml, Post PR Review step](https://github.com/Traves-Theberge/Ope
 
 ```mermaid
 graph TD
-    Start{Where are you using OpenLens?}
+    Start{Where are you using openlens?}
     Start -->|Terminal| Text["--format text<br/>(default)"]
     Start -->|CI/CD pipeline| SARIF["--format sarif"]
     Start -->|PR automation| MD["--format markdown<br/>or GitHub Review"]

@@ -1,6 +1,6 @@
-# Using OpenLens as a Plugin in AI Coding Platforms
+# Using openlens as a Plugin in AI Coding Platforms
 
-OpenLens integrates with four AI coding platforms as a plugin:
+openlens integrates with four AI coding platforms as a plugin:
 
 - **OpenCode** -- built-in plugin via `src/plugin.ts`
 - **Claude Code** -- slash command skill via `plugins/claude-code/SKILL.md`
@@ -90,7 +90,7 @@ Or just ask naturally — Codex auto-matches the skill when you say "review my c
 
 ### Note
 
-Codex runs commands in a sandbox by default. OpenLens needs network access to call AI models. Use `codex --full-auto` or approve network access when prompted.
+Codex runs commands in a sandbox by default. openlens needs network access to call AI models. Use `codex --full-auto` or approve network access when prompted.
 
 ---
 
@@ -142,7 +142,7 @@ The wrapper at `plugins/gemini/tool.ts` exports a `review` function that is func
 
 ## OpenCode (Built-in)
 
-OpenLens ships as a native OpenCode plugin. No separate installation is needed -- just enable it in your config.
+openlens ships as a native OpenCode plugin. No separate installation is needed -- just enable it in your config.
 
 ### Enable the plugin
 
@@ -305,7 +305,7 @@ The full list of public exports from `src/lib.ts`:
 | `shouldSuppress` | function | Check if an issue should be suppressed |
 | `createBus` | function | Create an event bus |
 | `bus` | instance | Default event bus |
-| `createServer` | function | Create the OpenLens server |
+| `createServer` | function | Create the openlens server |
 | `detectCI` | function | Detect CI environment |
 | `resolveOpencodeBin` | function | Resolve OpenCode binary path |
 | `inferBaseBranch` | function | Infer the base branch name |
@@ -314,4 +314,4 @@ The full list of public exports from `src/lib.ts`:
 
 ## Hooks
 
-OpenLens also supports automatic code review via git hooks and platform-specific hooks (Claude Code, Gemini CLI, Codex CLI). For setup instructions, see the [Hooks Guide](./hooks-guide.md).
+openlens also supports automatic code review via git hooks and platform-specific hooks (Claude Code, Gemini CLI, Codex CLI). For setup instructions, see the [Hooks Guide](./hooks-guide.md).

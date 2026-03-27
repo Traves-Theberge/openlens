@@ -1,12 +1,12 @@
 # GitHub Actions Test Plan
 
-Test plan for validating the OpenLens GitHub Action (`action.yml`) and PR review workflow (`.github/workflows/pr-review.yml`).
+Test plan for validating the openlens GitHub Action (`action.yml`) and PR review workflow (`.github/workflows/pr-review.yml`).
 
 ---
 
 ## Prerequisites
 
-- A test repository with OpenLens configured
+- A test repository with openlens configured
 - A PR with code changes to trigger the workflow
 - GitHub Actions enabled on the repo
 - `pull-requests: write` and `security-events: write` permissions
@@ -124,7 +124,7 @@ Push a fix to an existing PR that had issues.
 For fast iteration, use this minimal workflow:
 
 ```yaml
-name: OpenLens Quick Test
+name: openlens Quick Test
 on: [pull_request]
 
 permissions:
@@ -139,7 +139,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: Traves-Theberge/OpenLens@main
+      - uses: Traves-Theberge/openlens@main
         with:
           mode: branch
           base-branch: ${{ github.base_ref }}

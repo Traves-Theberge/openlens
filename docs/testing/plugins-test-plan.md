@@ -1,6 +1,6 @@
 # Plugins Test Plan
 
-Test plan for validating OpenLens platform plugins (Claude Code, Codex CLI, Gemini CLI).
+Test plan for validating openlens platform plugins (Claude Code, Codex CLI, Gemini CLI).
 
 ---
 
@@ -10,7 +10,7 @@ Test plan for validating OpenLens platform plugins (Claude Code, Codex CLI, Gemi
 
 ```bash
 # Option A: Symlink from repo
-ln -s /path/to/OpenLens/plugins/claude-code/ ~/.claude/skills/openlens/
+ln -s /path/to/openlens/plugins/claude-code/ ~/.claude/skills/openlens/
 
 # Option B: Copy from npm package
 cp -r node_modules/openlens/plugins/claude-code/ ~/.claude/skills/openlens/
@@ -20,7 +20,7 @@ cp -r node_modules/openlens/plugins/claude-code/ ~/.claude/skills/openlens/
 
 | # | Test | Expected | Pass? |
 |---|------|----------|-------|
-| 1.1 | Skill file has valid YAML frontmatter | `name: openlens`, `description: Run OpenLens AI code review on current changes` | |
+| 1.1 | Skill file has valid YAML frontmatter | `name: openlens`, `description: Run openlens AI code review on current changes` | |
 | 1.2 | `/openlens` in Claude Code | Triggers the skill, runs `openlens run --staged --format text` | |
 | 1.3 | `/openlens --unstaged` | Passes `--unstaged` flag to CLI | |
 | 1.4 | `/openlens --branch main` | Passes `--branch main` to CLI | |
@@ -37,7 +37,7 @@ head -4 plugins/claude-code/SKILL.md
 # Should show:
 # ---
 # name: openlens
-# description: Run OpenLens AI code review on current changes
+# description: Run openlens AI code review on current changes
 # ---
 ```
 

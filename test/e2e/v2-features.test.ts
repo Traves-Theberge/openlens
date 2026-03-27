@@ -107,7 +107,7 @@ describe("confidence scoring", () => {
     const result = run(["run", "--staged", "--format", "markdown"], tmpDir)
     expect(result.exitCode).toBe(0)
     expect(result.stdout).toContain("<!-- openlens-review -->")
-    expect(result.stdout).toContain("OpenLens Review")
+    expect(result.stdout).toContain("openlens Review")
   })
 
   test("minConfidence is accepted in config without error", () => {

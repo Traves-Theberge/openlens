@@ -60,7 +60,7 @@ export async function setupHooks(cwd: string, options: SetupOptions) {
 
     try {
       const existing = await fs.readFile(dst, "utf-8")
-      if (existing.includes("OpenLens")) {
+      if (existing.includes("openlens")) {
         p.log.info(`.git/hooks/${hook} already installed`)
         continue
       }
