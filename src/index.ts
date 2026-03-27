@@ -1097,6 +1097,30 @@ If no issues found, return \`[]\`
   )
 
   .command(
+    "setup",
+    "Interactive project setup wizard (config, agents, hooks, plugins, CI/CD)",
+    (y) =>
+      y
+        .option("config", { type: "boolean", describe: "Configure model and review settings" })
+        .option("agents", { type: "boolean", describe: "Enable, disable, or create agents" })
+        .option("hooks", { type: "boolean", describe: "Install git hooks" })
+        .option("plugins", { type: "boolean", describe: "Install platform plugins" })
+        .option("ci", { type: "boolean", describe: "Generate CI/CD workflow" })
+        .option("yes", { alias: "y", type: "boolean", describe: "Accept all defaults (no prompts)" }),
+    async (argv) => {
+      const { runSetup } = await import("./setup/index.js")
+      await runSetup(process.cwd(), {
+        config: argv.config as boolean | undefined,
+        agents: argv.agents as boolean | undefined,
+        hooks: argv.hooks as boolean | undefined,
+        plugins: argv.plugins as boolean | undefined,
+        ci: argv.ci as boolean | undefined,
+        yes: argv.yes as boolean | undefined,
+      })
+    }
+  )
+
+  .command(
     "docs",
     "Open the OpenLens wiki in your browser",
     (y) =>
