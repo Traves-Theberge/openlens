@@ -10,6 +10,7 @@ Open-source AI code review. agents review your git diffs in parallel for securit
 
 - **Terminal**: `openlens run --staged` before you commit
 - **Git hooks**: `openlens hooks install` adds pre-commit and pre-push hooks that block on critical issues
+- **Platform hooks**: intercept `git commit`/`git push` inside Claude Code, Codex, Gemini CLI, and OpenCode before they execute
 - **GitHub Actions**: posts inline review comments on the exact lines, resolves them when you push fixes
 - **AI coding agents**: `/openlens` in Claude Code, `$openlens` in Codex, `/openlens` in Gemini CLI, native plugin in OpenCode
 - **Your own tools**: TypeScript library API with 30+ exports, HTTP server, SARIF output
