@@ -49,7 +49,7 @@ export const ConfigSchema = z.object({
       port: z.number().default(4096),
       hostname: z.string().default("localhost"),
     })
-    .default({}),
+    .default({ port: 4096, hostname: "localhost" }),
   review: z
     .object({
       defaultMode: z
@@ -70,15 +70,25 @@ export const ConfigSchema = z.object({
           exclude: z.array(z.string()).default([]),
           maxDepth: z.number().int().min(1).default(20),
         })
-        .default({}),
+        .default({ enabled: true, extraFiles: [], include: [], exclude: [], maxDepth: 20 }),
     })
-    .default({}),
+    .default({
+      defaultMode: "staged" as const,
+      instructions: ["REVIEW.md"],
+      baseBranch: "main",
+      fullFileContext: true,
+      verify: true,
+      timeoutMs: 180_000,
+      maxConcurrency: 4,
+      minConfidence: "medium" as const,
+      rules: { enabled: true, extraFiles: [], include: [], exclude: [], maxDepth: 20 },
+    }),
   suppress: z
     .object({
       files: z.array(z.string()).default([]),
       patterns: z.array(z.string()).default([]),
     })
-    .default({}),
+    .default({ files: [], patterns: [] }),
   mcp: z.record(z.string(), McpServerSchema).default({}),
   disabled_agents: z.array(z.string()).default([]),
 })
