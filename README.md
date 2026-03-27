@@ -32,6 +32,7 @@ Built on [OpenCode](https://github.com/anomalyco/opencode). Agents are markdown 
 - **Library & Plugin API**: Use as a CLI, HTTP server, library import, or OpenCode plugin
 - **Platform Plugins**: Native integrations for Claude Code, Codex CLI, and Gemini CLI
 - **Git Hooks**: Pre-commit and pre-push hooks block critical issues before they land
+- **Platform Hooks**: Intercept `git commit`/`git push` inside Claude Code, Codex, Gemini CLI, and OpenCode
 - **Built-in Docs**: `openlens docs` serves a full wiki locally with dark theme and diagrams
 - **Event Bus**: Subscribe to review lifecycle events for custom integrations
 
