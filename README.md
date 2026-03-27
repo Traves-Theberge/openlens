@@ -1,16 +1,10 @@
 <p align="center">
-  <img src="Openlens.png" alt="openlens" width="200">
+  <img src="Openlens.png" alt="openlens" width="600">
 </p>
 
 # openlens
 
 Open-source AI code review. agents review your git diffs in parallel for security, bugs, performance, and style issues.
-
-## What it does
-
-You run `openlens` and the configured AI agents get a copy of your diff. The security agent greps for hardcoded secrets, checks auth middleware, and traces user input through your code. The bug agent reads callers of changed functions to find null derefs and missing error handling. The performance agent checks if the changed code runs inside loops or request handlers. The style agent compares your naming with what the rest of the codebase uses, or you can configure your own custom agents.
-
-Each agent has read-only access to your full codebase via `read`, `grep`, and `glob`. They don't just pattern-match the diff. They investigate, then report what they find as structured JSON with file, line, severity, confidence, and a suggested fix.
 
 ## Where it runs
 
