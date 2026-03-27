@@ -4,20 +4,42 @@
 
 # openlens
 
-AI-powered code review for your terminal, CI pipeline, and AI coding agents. Catches security vulnerabilities, bugs, performance issues, and style problems before they merge.
+Open-source AI code review. Four agents review your git diffs in parallel for security, bugs, performance, and style issues.
 
-## Overview
+## What it does
 
-openlens runs four specialized AI agents in parallel against your git diffs. Unlike simple linters, each agent has **full read access to your codebase**. They grep for callers, read related files, follow imports, and only report issues they can verify. A cross-agent verification pass filters out false positives.
+You run `openlens run --staged` and four AI agents each get a copy of your diff. The security agent greps for hardcoded secrets, checks auth middleware, and traces user input through your code. The bugs agent reads callers of changed functions to find null derefs and missing error handling. The performance agent checks if changed code runs inside loops or request handlers. The style agent compares your naming against what the rest of the codebase uses.
 
-**Run it anywhere:**
-- **CLI**: `openlens run --staged` from your terminal
-- **CI/CD**: GitHub Action with inline PR comments on exact lines
-- **AI agents**: native plugins for Claude Code, Codex, Gemini CLI, and OpenCode
-- **Programmatic**: library API, HTTP server, SARIF output
-- **Automated**: git hooks and platform hooks review every commit and push
+Each agent has read-only access to your full codebase through `read`, `grep`, and `glob` tools. They don't just pattern-match the diff. They investigate, then report what they find as structured JSON with file, line, severity, confidence, and a suggested fix.
 
-Built on [OpenCode](https://github.com/anomalyco/opencode). Free models included, no API keys required.
+A verification pass re-examines all findings, cross-references between agents, and removes false positives. Issues below your confidence threshold are filtered out.
+
+## Where it runs
+
+- **Terminal**: `openlens run --staged` before you commit
+- **Git hooks**: `openlens hooks install` adds pre-commit and pre-push hooks that block on critical issues
+- **GitHub Actions**: posts inline review comments on the exact lines, resolves them when you push fixes
+- **AI coding agents**: `/openlens` in Claude Code, `$openlens` in Codex, `/openlens` in Gemini CLI, native plugin in OpenCode
+- **Your own tools**: TypeScript library API with 30+ exports, HTTP server, SARIF output
+
+## How it works
+
+```
+git diff --staged
+    |
+    v
+┌─────────────────────────────────┐
+│  4 agents run in parallel       │
+│  security | bugs | perf | style │
+│  each gets: diff + full codebase│
+│  each uses: read, grep, glob    │
+└─────────────────────────────────┘
+    |
+    v
+dedup -> confidence filter -> verification pass -> output
+```
+
+Built on [OpenCode](https://github.com/anomalyco/opencode). Free models included, no API keys required. Agents are markdown files you can read and edit.
 
 ## Features
 
