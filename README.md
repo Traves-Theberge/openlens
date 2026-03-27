@@ -4,7 +4,7 @@
 
 # openlens
 
-Open-source AI code review. agents review your git diffs in parallel for security, bugs, performance, and style issues.
+An open source AI code reviewer. agents review your git diffs in parallel for security, bugs, performance, and style issues.
 
 ## Where it runs
 
