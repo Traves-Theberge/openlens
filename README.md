@@ -15,7 +15,7 @@ Open-source AI code review. agents review your git diffs in parallel for securit
 - **AI coding agents**: `/openlens` in Claude Code, `$openlens` in Codex, `/openlens` in Gemini CLI, native plugin in OpenCode
 - **Your own tools**: TypeScript library API with 30+ exports, HTTP server, SARIF output
 
-Built on [OpenCode](https://github.com/anomalyco/opencode). Free models included, no API keys required. Agents are markdown files you can read and edit.
+Built on [OpenCode](https://github.com/anomalyco/opencode). Agents are markdown files you can read and edit.
 
 ## Features
 
