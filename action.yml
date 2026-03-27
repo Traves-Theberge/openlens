@@ -1,5 +1,5 @@
-name: "OpenLens"
-description: "AI-powered code review using specialized agents"
+name: "OpenLens-AI-Reviewer"
+description: "AI-powered code review using specialized agents."
 branding:
   icon: "eye"
   color: "blue"
