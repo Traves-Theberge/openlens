@@ -63,113 +63,93 @@ echo "x" > README.md && git add . && git commit -m "init"
 openlens init
 ```
 
-Create multi-file test with known issues:
+Create multi-file test with issues across all domains. **No hint comments in the code** — the agents must find issues through investigation, not by reading labels.
 
 ```bash
 cat > auth.ts << 'EOF'
 import { createHash } from "crypto"
 
-// SECURITY: hardcoded secret
 const JWT_SECRET = "super-secret-jwt-key-2024"
 const DB_URL = "postgres://admin:password123@db.internal:5432/users"
 
-// SECURITY: weak crypto for passwords
 export function hashPassword(password: string): string {
   return createHash("md5").update(password).digest("hex")
 }
 
-// SECURITY: SQL injection + BUGS: no null check on result
 export async function login(db: any, email: string, password: string) {
   const hash = hashPassword(password)
   const result = await db.query(
     `SELECT * FROM users WHERE email = '${email}' AND password_hash = '${hash}'`
   )
-  return result.rows[0].token  // null deref if no rows
+  return result.rows[0].token
 }
 
-// SECURITY: eval with user input
 export function processTemplate(input: string) {
   return eval(input)
 }
 
-// SECURITY: path traversal
 import path from "path"
 export function readUserFile(filename: string) {
   return require("fs").readFileSync(path.join("/uploads", filename))
 }
 
-// SECURITY: loose equality in auth check
 export function verifyToken(token: string, expected: string) {
-  if (token == expected) return true  // timing attack + type coercion
+  if (token == expected) return true
   return false
 }
 
-// SECURITY: SSRF
 export async function fetchUrl(url: string) {
-  return fetch(url)  // user-controlled URL, no validation
+  return fetch(url)
 }
 EOF
 
 cat > api.ts << 'EOF'
 import { login, readUserFile, fetchUrl } from "./auth"
 
-// BUGS: missing error handling
 export async function handleLogin(req: any, res: any) {
   const { email, password } = req.body
-  const token = await login(req.db, email, password)  // unhandled if login throws
+  const token = await login(req.db, email, password)
   res.json({ token })
 }
 
-// BUGS: resource leak - stream not closed on error
 export async function streamFile(req: any, res: any) {
   const stream = require("fs").createReadStream(req.params.path)
   stream.pipe(res)
-  // no error handler - if pipe fails, stream leaks
 }
 
-// BUGS: race condition - read-modify-write without lock
 let requestCount = 0
 export function countRequest() {
-  const current = requestCount  // read
-  requestCount = current + 1    // write - another request can interleave
+  const current = requestCount
+  requestCount = current + 1
   return requestCount
 }
 
-// BUGS: floating promise
 export function logAccess(userId: string) {
-  saveToDatabase(userId)  // missing await - errors silently lost
+  saveToDatabase(userId)
 }
-async function saveToDatabase(id: string) {
-  // simulated async
-}
+async function saveToDatabase(id: string) {}
 
-// BUGS: error swallowed
 export async function getProfile(db: any, id: string) {
   try {
     return await db.query(`SELECT * FROM profiles WHERE id = ${id}`)
   } catch (e) {
-    console.log(e)  // swallowed - caller thinks profile is undefined, not errored
+    console.log(e)
   }
 }
 
-// SECURITY: BOLA/IDOR - no ownership check
 export async function getOrder(db: any, req: any) {
   return db.query(`SELECT * FROM orders WHERE id = ${req.params.id}`)
-  // does NOT verify req.user owns this order
 }
 
-// SECURITY: mass assignment
 export async function updateUser(db: any, req: any) {
   const fields = Object.keys(req.body)
     .map(k => `${k} = '${req.body[k]}'`)
     .join(", ")
   await db.query(`UPDATE users SET ${fields} WHERE id = ${req.user.id}`)
-  // user can set isAdmin, role, etc via request body
 }
 
-// BUGS: off-by-one in pagination
 export async function listItems(db: any, page: number, size: number) {
-  const offset = page * size  // should be (page - 1) * size for 1-based pages
+  const offset = page * size
   return db.query(`SELECT * FROM items LIMIT ${size} OFFSET ${offset}`)
 }
 EOF
@@ -177,7 +157,6 @@ EOF
 cat > routes.ts << 'EOF'
 import { handleLogin, streamFile, getOrder, updateUser, listItems } from "./api"
 
-// PERFORMANCE: N+1 query
 export async function listUsersWithProfiles(db: any) {
   const users = await db.query("SELECT * FROM users")
   for (const user of users.rows) {
@@ -188,30 +167,25 @@ export async function listUsersWithProfiles(db: any) {
   return users.rows
 }
 
-// PERFORMANCE: unbounded cache - grows forever
 const cache: Record<string, any> = {}
 export function cachedLookup(key: string, compute: () => any) {
   if (!cache[key]) cache[key] = compute()
   return cache[key]
 }
 
-// PERFORMANCE: synchronous blocking in async context
 export async function handleUpload(req: any) {
-  const data = require("fs").readFileSync(req.file.path)  // blocks event loop
+  const data = require("fs").readFileSync(req.file.path)
   return processData(data)
 }
 function processData(data: Buffer) { return data }
 
-// PERFORMANCE: sequential awaits that could be parallel
 export async function getDashboard(db: any, userId: string) {
   const user = await db.query(`SELECT * FROM users WHERE id = ${userId}`)
   const orders = await db.query(`SELECT * FROM orders WHERE user_id = ${userId}`)
   const notifications = await db.query(`SELECT * FROM notifications WHERE user_id = ${userId}`)
-  // these 3 queries are independent - should use Promise.all
   return { user, orders, notifications }
 }
 
-// PERFORMANCE: O(n^2) - includes inside loop
 export function findDuplicates(items: string[]) {
   const dupes: string[] = []
   for (const item of items) {
@@ -222,34 +196,25 @@ export function findDuplicates(items: string[]) {
   return dupes
 }
 
-// STYLE: inconsistent naming (rest of codebase uses camelCase)
 export function get_user_by_id(db: any, user_id: string) {
   return db.query(`SELECT * FROM users WHERE id = ${user_id}`)
 }
 
-// STYLE: god function - does too many things
 export async function processRequest(req: any, res: any, db: any) {
-  // validate
   if (!req.body.email) { res.status(400).json({ error: "email required" }); return }
   if (!req.body.password) { res.status(400).json({ error: "password required" }); return }
-  // authenticate
   const user = await db.query(`SELECT * FROM users WHERE email = '${req.body.email}'`)
   if (!user.rows[0]) { res.status(401).json({ error: "not found" }); return }
-  // hash and compare
   const hash = require("crypto").createHash("md5").update(req.body.password).digest("hex")
   if (user.rows[0].password_hash !== hash) { res.status(401).json({ error: "wrong password" }); return }
-  // create session
   const session = await db.query(`INSERT INTO sessions (user_id) VALUES (${user.rows[0].id}) RETURNING *`)
-  // send response
   res.json({ session: session.rows[0], user: user.rows[0] })
 }
 
-// STYLE: dead code
 export function unusedHelper() {
   return "this function is never called anywhere"
 }
 
-// STYLE: magic numbers
 export function calculateDiscount(total: number) {
   if (total > 100) return total * 0.15
   if (total > 50) return total * 0.10
@@ -260,39 +225,17 @@ EOF
 git add auth.ts api.ts routes.ts
 ```
 
-### 2.2 Expected findings per agent
+### 2.2 Run each agent and score against answer key
 
-| # | Agent | Expected Findings | Pass? |
-|---|-------|-------------------|-------|
-| **Security** | | |
-| 2.2.1 | security | Hardcoded JWT_SECRET and DB_URL | |
-| 2.2.2 | security | SQL injection in login, getOrder, updateUser, listItems, get_user_by_id, processRequest | |
-| 2.2.3 | security | eval() in processTemplate | |
-| 2.2.4 | security | Path traversal in readUserFile (path.join not safe for absolute paths) | |
-| 2.2.5 | security | Loose equality in verifyToken (timing attack) | |
-| 2.2.6 | security | SSRF in fetchUrl (no URL validation) | |
-| 2.2.7 | security | BOLA/IDOR in getOrder (no ownership check) | |
-| 2.2.8 | security | Mass assignment in updateUser | |
-| 2.2.9 | security | MD5 for password hashing | |
-| **Bugs** | | |
-| 2.2.10 | bugs | Null dereference in login (result.rows[0].token when no rows) | |
-| 2.2.11 | bugs | Missing error handling in handleLogin (unhandled rejection) | |
-| 2.2.12 | bugs | Resource leak in streamFile (stream not closed on error) | |
-| 2.2.13 | bugs | Race condition in countRequest (read-modify-write) | |
-| 2.2.14 | bugs | Floating promise in logAccess (missing await) | |
-| 2.2.15 | bugs | Swallowed error in getProfile (catch logs but doesn't re-throw) | |
-| 2.2.16 | bugs | Off-by-one in listItems pagination | |
-| **Performance** | | |
-| 2.2.17 | performance | N+1 query in listUsersWithProfiles | |
-| 2.2.18 | performance | Unbounded cache in cachedLookup | |
-| 2.2.19 | performance | Synchronous readFileSync in async handleUpload | |
-| 2.2.20 | performance | Sequential awaits in getDashboard (should be Promise.all) | |
-| 2.2.21 | performance | O(n^2) in findDuplicates (filter + includes inside loop) | |
-| **Style** | | |
-| 2.2.22 | style | Inconsistent naming: get_user_by_id (snake_case vs camelCase) | |
-| 2.2.23 | style | God function: processRequest (validate + auth + hash + session + response) | |
-| 2.2.24 | style | Dead code: unusedHelper (never imported/called) | |
-| 2.2.25 | style | Magic numbers in calculateDiscount (100, 50, 0.15, 0.10, 0.05) | |
+The expected findings are in `~/.config/openlens/test-answer-key.md` (NOT in this repo).
+
+| # | Command | What to Check | Pass? |
+|---|---------|---------------|-------|
+| 2.2.1 | `openlens run --staged --agents security --no-verify` | Compare findings against answer key security section | |
+| 2.2.2 | `openlens run --staged --agents bugs --no-verify` | Compare against answer key bugs section | |
+| 2.2.3 | `openlens run --staged --agents performance --no-verify` | Compare against answer key performance section | |
+| 2.2.4 | `openlens run --staged --agents style --no-verify` | Compare against answer key style section | |
+| 2.2.5 | `openlens run --staged` | All agents, dedup, verification — compare total against answer key | |
 
 ### 2.3 Review with each agent individually
 
