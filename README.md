@@ -8,7 +8,7 @@ Open-source AI code review. agents review your git diffs in parallel for securit
 
 ## What it does
 
-You run `openlens run --staged` and four AI agents each get a copy of your diff. The security agent greps for hardcoded secrets, checks auth middleware, and traces user input through your code. The bugs agent reads callers of changed functions to find null derefs and missing error handling. The performance agent checks if changed code runs inside loops or request handlers. The style agent compares your naming against what the rest of the codebase uses.
+You run `openlens` and the configured AI agents get a copy of your diff. The security agent greps for hardcoded secrets, checks auth middleware, and traces user input through your code. The bugs agent reads callers of changed functions to find null derefs and missing error handling. The performance agent checks if changed code runs inside loops or request handlers. The style agent compares your naming against what the rest of the codebase uses, or configure your own custom agents.
 
 Each agent has read-only access to your full codebase through `read`, `grep`, and `glob` tools. They don't just pattern-match the diff. They investigate, then report what they find as structured JSON with file, line, severity, confidence, and a suggested fix.
 
