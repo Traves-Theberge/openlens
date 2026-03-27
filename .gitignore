@@ -3,3 +3,4 @@ dist/
 *.tsbuildinfo
 .DS_Store
 openlens.json
+package-lock.json

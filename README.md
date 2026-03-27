@@ -1,6 +1,10 @@
+<p align="center">
+  <img src="Openlens.png" alt="openlens" width="200">
+</p>
+
 # openlens
 
-AI-powered code review that catches security holes, bugs, and performance issues before they merge -from your terminal, CI pipeline, or AI coding agent.
+AI-powered code review that catches security holes, bugs, and performance issues before they merge - from your terminal, CI pipeline, or AI coding agent.
 
 ## Overview
 
