@@ -24,9 +24,8 @@ Built on [OpenCode](https://github.com/anomalyco/opencode).
 - **Confidence Scoring**: Agents assess confidence per finding -filter noise with configurable thresholds
 - **Smart Context**: Per-agent context strategies auto-gather relevant files (auth modules, callers, linter configs)
 - **Multiple AI Providers**: Any model supported by OpenCode (Anthropic, OpenAI, Google, AWS Bedrock, Groq, and more)
-- **SARIF Output**: First-class CI/CD integration with GitHub Actions, GitLab CI, and other tools
+- **CI/CD**: First-class CI/CD integration with GitHub Actions, GitLab CI, and other tools
 - **Inline PR Comments**: GitHub Action posts review comments on exact lines, not just a summary
-- **Verification Pass**: Built-in false positive filter that re-examines flagged issues
 - **Suppression Rules**: Glob patterns and `.openlensignore` to silence known noise
 - **Customizable Agents**: Write your own review agents with markdown prompts and YAML frontmatter
 - **Library & Plugin API**: Use as a CLI, HTTP server, library import, or OpenCode plugin
