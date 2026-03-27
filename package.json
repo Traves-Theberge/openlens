@@ -24,7 +24,8 @@
     "action.yml",
     "plugins",
     "wiki",
-    "hooks"
+    "hooks",
+    "skills"
   ],
   "scripts": {
     "dev": "bun run src/index.ts",

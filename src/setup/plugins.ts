@@ -87,6 +87,36 @@ export async function setupPlugins(cwd: string, options: SetupOptions) {
     )
   }
 
+  // Install the "using-openlens" skill (teaches agents how to use the CLI)
+  const usageSkillSrc = path.join(srcDir, "skills/using-openlens")
+  const usageSkillDsts: { name: string; dst: string }[] = []
+
+  for (const platform of selectedPlatforms) {
+    if (platform.name === "Claude Code") {
+      usageSkillDsts.push({ name: "Claude Code", dst: path.join(home, ".claude/skills/using-openlens") })
+    } else if (platform.name === "Codex CLI") {
+      usageSkillDsts.push({ name: "Codex CLI", dst: path.join(home, ".codex/skills/using-openlens") })
+    }
+  }
+
+  for (const { name, dst } of usageSkillDsts) {
+    try {
+      if (await exists(dst)) {
+        p.log.info(`${name}: using-openlens skill already installed`)
+      } else {
+        await fs.mkdir(dst, { recursive: true })
+        const files = await fs.readdir(usageSkillSrc)
+        for (const file of files) {
+          const content = await fs.readFile(path.join(usageSkillSrc, file), "utf-8")
+          await fs.writeFile(path.join(dst, file), content)
+        }
+        p.log.success(`${name}: installed using-openlens skill (CLI usage guide)`)
+      }
+    } catch (err: any) {
+      p.log.warn(`${name}: could not install usage skill - ${err.message}`)
+    }
+  }
+
   for (const platform of selectedPlatforms) {
     // Install slash command / skill
     try {
