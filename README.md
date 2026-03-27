@@ -4,7 +4,7 @@
 
 # openlens
 
-Open-source AI code review. Four agents review your git diffs in parallel for security, bugs, performance, and style issues.
+Open-source AI code review. agents review your git diffs in parallel for security, bugs, performance, and style issues.
 
 ## What it does
 
@@ -21,23 +21,6 @@ A verification pass re-examines all findings, cross-references between agents, a
 - **GitHub Actions**: posts inline review comments on the exact lines, resolves them when you push fixes
 - **AI coding agents**: `/openlens` in Claude Code, `$openlens` in Codex, `/openlens` in Gemini CLI, native plugin in OpenCode
 - **Your own tools**: TypeScript library API with 30+ exports, HTTP server, SARIF output
-
-## How it works
-
-```
-git diff --staged
-    |
-    v
-┌─────────────────────────────────┐
-│  4 agents run in parallel       │
-│  security | bugs | perf | style │
-│  each gets: diff + full codebase│
-│  each uses: read, grep, glob    │
-└─────────────────────────────────┘
-    |
-    v
-dedup -> confidence filter -> verification pass -> output
-```
 
 Built on [OpenCode](https://github.com/anomalyco/opencode). Free models included, no API keys required. Agents are markdown files you can read and edit.
 
