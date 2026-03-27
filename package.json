@@ -47,11 +47,11 @@
   "author": "Traves Theberge",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Traves-Theberge/OpenLens.git"
+    "url": "https://github.com/Traves-Theberge/openlens.git"
   },
-  "homepage": "https://github.com/Traves-Theberge/OpenLens",
+  "homepage": "https://github.com/Traves-Theberge/openlens",
   "bugs": {
-    "url": "https://github.com/Traves-Theberge/OpenLens/issues"
+    "url": "https://github.com/Traves-Theberge/openlens/issues"
   },
   "engines": {
     "node": ">=20.19"
