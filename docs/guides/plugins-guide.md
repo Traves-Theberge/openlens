@@ -312,6 +312,32 @@ The full list of public exports from `src/lib.ts`:
 
 ---
 
+## The `using-openlens` Skill
+
+In addition to the platform-specific slash commands, openlens ships a `using-openlens` skill that teaches AI agents how to use the CLI effectively. It covers when to use each command, how to read output, and what to do with results.
+
+### What it does
+
+The skill provides workflow guidance and decision logic so that AI agents know:
+
+- Which `openlens` commands to run and when (e.g., `run --staged` before committing, `run --branch main` for PR review)
+- How to interpret severity levels and confidence scores in output
+- What to do with results: fix critical issues, triage warnings, note informational findings
+- How to use `openlens agent test <name>` for targeted specialist reviews
+
+### Where it gets installed
+
+| Platform    | Install path                          |
+|-------------|---------------------------------------|
+| Claude Code | `~/.claude/skills/using-openlens/`    |
+| Codex CLI   | `~/.codex/skills/using-openlens/`     |
+
+### Automatic installation
+
+`openlens setup` (or `openlens setup --plugins`) installs the `using-openlens` skill automatically alongside the platform slash command. No separate steps needed.
+
+---
+
 ## Hooks
 
 openlens also supports automatic code review via git hooks and platform-specific hooks (Claude Code, Gemini CLI, Codex CLI). For setup instructions, see the [Hooks Guide](./hooks-guide.md).

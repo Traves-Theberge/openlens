@@ -1477,6 +1477,8 @@ Then type `/openlens` in Gemini CLI to run a review.
 
 All plugins invoke the `openlens` CLI directly. Ensure `openlens` is installed and in your PATH.
 
+**Usage guide skill** — `openlens setup --plugins` also installs a `using-openlens` skill alongside each platform plugin. This skill teaches the AI agent how to use the openlens CLI effectively: when to use each command, how to read output, and what to do with results. It is installed to `~/.claude/skills/using-openlens/` for Claude Code and `~/.codex/skills/using-openlens/` for Codex.
+
 ---
 
 ## 11. Advanced Topics

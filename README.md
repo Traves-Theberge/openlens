@@ -29,7 +29,7 @@ Built on [OpenCode](https://github.com/anomalyco/opencode).
 - **Suppression Rules**: Glob patterns and `.openlensignore` to silence known noise
 - **Customizable Agents**: Write your own review agents with markdown prompts and YAML frontmatter
 - **Library & Plugin API**: Use as a CLI, HTTP server, library import, or OpenCode plugin
-- **Platform Plugins**: Native integrations for Claude Code, Codex CLI, and Gemini CLI
+- **Platform Plugins**: Native integrations for Claude Code, Codex CLI, and Gemini CLI — `openlens setup` installs both the slash command and a `using-openlens` usage guide skill
 - **Git Hooks**: Pre-commit and pre-push hooks block critical issues before they land
 - **Platform Hooks**: Intercept `git commit`/`git push` inside Claude Code, Codex, Gemini CLI, and OpenCode
 - **Built-in Docs**: `openlens docs` serves a full wiki locally with dark theme and diagrams
@@ -585,6 +585,8 @@ cp -r node_modules/openlens/plugins/claude-code ~/.claude/skills/openlens
 
 Then use `/openlens` in any Claude Code session.
 
+The setup wizard also installs a `using-openlens` skill that teaches Claude Code how to use the CLI effectively.
+
 ### Codex CLI
 
 ```bash
@@ -593,6 +595,8 @@ cp -r /path/to/openlens/plugins/codex ~/.codex/skills/openlens
 ```
 
 Then use `$openlens` in Codex. Requires `codex --full-auto` or approving network access.
+
+The setup wizard also installs a `using-openlens` skill that teaches Codex how to use the CLI effectively.
 
 ### Gemini CLI
 
@@ -663,6 +667,8 @@ mkdir -p .codex && cp hooks/codex-hooks.json .codex/hooks.json
 
 # OpenCode -copy hooks/opencode-hooks.ts into your plugin
 ```
+
+`openlens setup` installs both the platform slash command and the `using-openlens` usage guide skill for Claude Code and Codex.
 
 See the [Hooks Guide](docs/guides/hooks-guide.md) for full details on each platform.
 

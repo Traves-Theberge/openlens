@@ -65,6 +65,16 @@ describe("openlens setup", () => {
     expect(fs.existsSync(path.join(tmpDir, ".github", "workflows", "openlens-review.yml"))).toBe(true)
   })
 
+  test("setup --plugins --yes installs using-openlens skill", () => {
+    tmpDir = createTempGitRepo()
+    // Need config first
+    run(["setup", "--config", "--yes"], tmpDir)
+    const result = run(["setup", "--plugins", "--yes"], tmpDir)
+    expect(result.exitCode).toBe(0)
+    // Check that the skill was installed (output mentions it)
+    expect(result.stdout).toContain("using-openlens")
+  })
+
   test("setup --yes runs all sections", () => {
     tmpDir = createTempGitRepo()
     const result = run(["setup", "--yes"], tmpDir)

@@ -550,6 +550,26 @@ Use `OPENLENS_AGENTS` to control which agents run during hook execution:
 OPENLENS_AGENTS=security,bugs git commit -m "quick check"
 ```
 
+## The `using-openlens` Skill
+
+openlens ships a `using-openlens` skill that teaches AI agents how to use the CLI effectively. It is installed automatically by `openlens setup --plugins` alongside the platform slash command.
+
+### What it provides
+
+- Workflow guidance: which commands to run and when
+- Output interpretation: severity levels, confidence scores, exit codes
+- Decision logic: fix critical issues, triage warnings, note informational findings
+- Targeted reviews: when to use `openlens agent test <name>`
+
+### Install locations
+
+| Platform    | Path                                  |
+|-------------|---------------------------------------|
+| Claude Code | `~/.claude/skills/using-openlens/`    |
+| Codex CLI   | `~/.codex/skills/using-openlens/`     |
+
+The skill source lives in `skills/using-openlens/SKILL.md` and is included in the npm package.
+
 ## Cross-references
 
 - [CLI Reference](6-cli-reference.md) for all command flags

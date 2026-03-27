@@ -2,6 +2,17 @@
 
 All notable changes to openlens will be documented in this file.
 
+## [0.2.3] - 2026-03-27
+
+### Added
+- `openlens setup` now installs the `using-openlens` skill for Claude Code and Codex
+- The skill teaches AI agents how to use the CLI: when to use each command, how to read output, what to do with results
+- `skills/` directory included in npm package
+
+### Changed
+- Rewrote SKILL.md from command reference to workflow guide with patterns and decision logic
+- README overview rewritten for clarity
+
 ## [0.2.2] - 2026-03-26
 
 ### Added
