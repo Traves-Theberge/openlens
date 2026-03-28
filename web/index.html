@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OpenLens - AI Code Review</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+      .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+      .header { border-bottom: 1px solid #e1e5e9; padding-bottom: 20px; margin-bottom: 30px; }
+      .card { border: 1px solid #e1e5e9; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
+      .button { background: #0969da; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; }
+      .button:hover { background: #0860ca; }
+      .input { border: 1px solid #d1d9e0; padding: 8px 12px; border-radius: 6px; width: 100%; }
+      .status-pending { color: #bf8700; }
+      .status-running { color: #0969da; }
+      .status-completed { color: #1a7f37; }
+      .status-failed { color: #d1242f; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
