@@ -10,8 +10,6 @@ import type {
   ReviewResult,
   Agent,
   DiffStats,
-  HealthStatus,
-  ServerInfo,
 } from '../types'
 
 export class OpenLensAPI {
@@ -24,21 +22,10 @@ export class OpenLensAPI {
   /**
    * Check server health status
    */
-  async health(): Promise<HealthStatus> {
+  async health(): Promise<{ status: string }> {
     const response = await fetch(`${this.baseUrl}/health`)
     if (!response.ok) {
       throw new Error(`Health check failed: ${response.statusText}`)
-    }
-    return response.json()
-  }
-
-  /**
-   * Get server information (name and version)
-   */
-  async getServerInfo(): Promise<ServerInfo> {
-    const response = await fetch(`${this.baseUrl}/`)
-    if (!response.ok) {
-      throw new Error(`Failed to fetch server info: ${response.statusText}`)
     }
     return response.json()
   }

@@ -11,29 +11,27 @@ export interface ReviewRequest {
 }
 
 export interface Issue {
-  file: string
-  line: number
-  endLine?: number
-  severity: 'critical' | 'warning' | 'info'
-  agent: string
   title: string
-  message: string
-  fix?: string
-  patch?: string
+  description: string
+  severity: 'critical' | 'high' | 'medium' | 'low'
   confidence: 'high' | 'medium' | 'low'
+  file?: string
+  line?: number
+  agent: string
+  fingerprint: string
 }
 
 export interface ReviewResult {
   issues: Issue[]
-  timing: Record<string, number>
-  meta?: {
-    mode: string
-    filesChanged: number
-    agentsRun: number
-    agentsFailed: number
-    suppressed: number
-    verified: boolean
+  summary: {
+    total: number
+    critical: number
+    high: number
+    medium: number
+    low: number
   }
+  agents: string[]
+  timestamp: string
 }
 
 export interface Agent {
@@ -55,11 +53,3 @@ export interface DiffStats {
   }
 }
 
-export interface HealthStatus {
-  status: string
-}
-
-export interface ServerInfo {
-  name: string
-  version: string
-}
