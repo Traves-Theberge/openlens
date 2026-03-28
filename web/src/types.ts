@@ -11,37 +11,39 @@ export interface ReviewRequest {
 }
 
 export interface Issue {
-  title: string
-  description: string
-  severity: 'critical' | 'high' | 'medium' | 'low'
-  confidence: 'high' | 'medium' | 'low'
-  file?: string
-  line?: number
+  file: string
+  line: number
+  endLine?: number
+  severity: 'critical' | 'warning' | 'info'
   agent: string
-  fingerprint: string
+  title: string
+  message: string
+  fix?: string
+  patch?: string
+  confidence: 'high' | 'medium' | 'low'
 }
 
 export interface ReviewResult {
   issues: Issue[]
-  summary: {
-    total: number
-    critical: number
-    high: number
-    medium: number
-    low: number
+  timing: Record<string, number>
+  meta?: {
+    mode: string
+    filesChanged: number
+    agentsRun: number
+    agentsFailed: number
+    suppressed: number
+    verified: boolean
   }
-  agents: string[]
-  timestamp: string
 }
 
 export interface Agent {
   name: string
-  description: string
+  description?: string
   model: string
-  mode: string[]
+  mode: 'primary' | 'subagent' | 'all'
   steps: number
-  fullFileContext: boolean
-  permission: Record<string, boolean>
+  fullFileContext?: boolean
+  permission: Record<string, any>
 }
 
 export interface DiffStats {
@@ -51,5 +53,14 @@ export interface DiffStats {
     insertions: number
     deletions: number
   }
+}
+
+export interface HealthResponse {
+  status: string
+}
+
+export interface ServerInfo {
+  name: string
+  version: string
 }
 
