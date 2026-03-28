@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import { api } from '../api/client'
 import { useReview } from '../hooks/useReview'
 import type { Agent, DiffStats } from '../types'
@@ -8,40 +8,47 @@ export function ReviewDashboard() {
   const [diffStats, setDiffStats] = useState<DiffStats | null>(null)
   const [selectedAgents, setSelectedAgents] = useState<string[]>([])
   const [mode, setMode] = useState<'staged' | 'unstaged' | 'branch'>('staged')
+  const [initialLoading, setInitialLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
 
   const { isLoading, result, error, runReview, clearResult } = useReview()
 
-  useEffect(() => {
-    loadAgents()
-    loadDiffStats()
-  }, [mode])
-
-  const loadAgents = async () => {
+  const loadAgents = useCallback(async () => {
     try {
+      setLoadError(null)
       const agentList = await api.getAgents()
       setAgents(agentList)
     } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Failed to load agents'
+      setLoadError(errorMsg)
       console.error('Failed to load agents:', err)
     }
-  }
+  }, [])
 
-  const loadDiffStats = async () => {
+  const loadDiffStats = useCallback(async () => {
     try {
       const stats = await api.getDiff(mode)
       setDiffStats(stats)
     } catch (err) {
       console.error('Failed to load diff stats:', err)
+    } finally {
+      setInitialLoading(false)
     }
-  }
+  }, [mode])
 
-  const handleRunReview = async () => {
+  useEffect(() => {
+    loadAgents()
+    loadDiffStats()
+  }, [mode, loadAgents, loadDiffStats])
+
+  const handleRunReview = useCallback(async () => {
     await runReview({
       mode,
       agents: selectedAgents.length > 0 ? selectedAgents : undefined,
       verify: true,
       fullFileContext: true,
     })
-  }
+  }, [mode, selectedAgents, runReview])
 
   // Count issues by severity using the ACTUAL server response structure
   const getIssueSummary = () => {
@@ -65,16 +72,33 @@ export function ReviewDashboard() {
         <p>AI-powered code review using specialized agents</p>
       </div>
 
+      {loadError && (
+        <div style={{ marginBottom: '16px', padding: '12px', backgroundColor: '#ffeaea', color: '#d1242f', borderRadius: '6px' }} role="alert">
+          Error loading data: {loadError}
+        </div>
+      )}
+
+      {initialLoading && (
+        <div style={{ marginBottom: '16px', padding: '12px', backgroundColor: '#f6f8fa', borderRadius: '6px' }} role="status">
+          Loading agents and diff stats...
+        </div>
+      )}
+
       <div className="card">
         <h2>Review Configuration</h2>
 
         <div style={{ marginBottom: '16px' }}>
-          <label>Review Mode:</label>
+          <label htmlFor="review-mode-select">Review Mode:</label>
           <select
+            id="review-mode-select"
             className="input"
             value={mode}
-            onChange={(e) => setMode(e.target.value as any)}
+            onChange={(e) => {
+              const newMode = e.target.value as 'staged' | 'unstaged' | 'branch'
+              setMode(newMode)
+            }}
             style={{ marginTop: '4px' }}
+            aria-label="Select diff mode for code review"
           >
             <option value="staged">Staged Changes</option>
             <option value="unstaged">Unstaged Changes</option>
@@ -91,32 +115,35 @@ export function ReviewDashboard() {
         )}
 
         <div style={{ marginBottom: '16px' }}>
-          <label>Agents (leave empty for all):</label>
-          <div style={{ marginTop: '8px' }}>
-            {agents.map(agent => (
-              <label key={agent.name} style={{ display: 'block', marginBottom: '4px' }}>
-                <input
-                  type="checkbox"
-                  checked={selectedAgents.includes(agent.name)}
-                  onChange={(e) => {
-                    if (e.target.checked) {
-                      setSelectedAgents([...selectedAgents, agent.name])
-                    } else {
-                      setSelectedAgents(selectedAgents.filter(a => a !== agent.name))
-                    }
-                  }}
-                  style={{ marginRight: '8px' }}
-                />
-                {agent.name} - {agent.description || 'No description'}
-              </label>
-            ))}
-          </div>
+          <fieldset style={{ border: 'none', padding: 0, margin: 0 }}>
+            <legend style={{ fontSize: '1rem', fontWeight: 'normal', marginBottom: '8px' }}>Agents (leave empty for all):</legend>
+            <div style={{ marginTop: '8px' }}>
+              {agents.map(agent => (
+                <label key={agent.name} style={{ display: 'block', marginBottom: '4px' }}>
+                  <input
+                    type="checkbox"
+                    checked={selectedAgents.includes(agent.name)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedAgents([...selectedAgents, agent.name])
+                      } else {
+                        setSelectedAgents(selectedAgents.filter(a => a !== agent.name))
+                      }
+                    }}
+                    style={{ marginRight: '8px' }}
+                    aria-label={`Select ${agent.name} agent`}
+                  />
+                  {agent.name} - {agent.description || 'No description'}
+                </label>
+              ))}
+            </div>
+          </fieldset>
         </div>
 
         <button
           className="button"
           onClick={handleRunReview}
-          disabled={isLoading || (diffStats && diffStats.stats.filesChanged === 0)}
+          disabled={isLoading || (diffStats?.stats.filesChanged === 0)}
           data-testid="run-review-button"
         >
           {isLoading ? 'Running Review...' : 'Run Review'}
