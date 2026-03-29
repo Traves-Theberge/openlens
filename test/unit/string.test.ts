@@ -1,5 +1,5 @@
 import { describe, test, expect } from "bun:test"
-import { capitalize, slugify, truncate } from "../../src/utils/string.js"
+import { capitalize, slugify, truncate, reverse } from "../../src/utils/string.js"
 
 describe("capitalize", () => {
   test("capitalizes first letter and lowercases the rest", () => {
@@ -133,5 +133,71 @@ describe("truncate", () => {
     const truncated = truncate(longString, 50)
     expect(truncated.length).toBe(50)
     expect(truncated.endsWith("...")).toBe(true)
+  })
+})
+
+describe("reverse", () => {
+  test("reverses basic ASCII strings", () => {
+    expect(reverse("hello")).toBe("olleh")
+    expect(reverse("world")).toBe("dlrow")
+    expect(reverse("Hello World")).toBe("dlroW olleH")
+    expect(reverse("12345")).toBe("54321")
+  })
+
+  test("reverses strings with special characters", () => {
+    expect(reverse("hello, world!")).toBe("!dlrow ,olleh")
+    expect(reverse("test@email.com")).toBe("moc.liame@tset")
+    expect(reverse("$19.99")).toBe("99.91$")
+  })
+
+  test("handles single character strings", () => {
+    expect(reverse("a")).toBe("a")
+    expect(reverse("Z")).toBe("Z")
+    expect(reverse("1")).toBe("1")
+    expect(reverse("@")).toBe("@")
+  })
+
+  test("handles empty and invalid inputs", () => {
+    expect(reverse("")).toBe("")
+    expect(reverse("   ")).toBe("   ")
+  })
+
+  test("preserves Unicode characters correctly", () => {
+    expect(reverse("café")).toBe("éfac")
+    expect(reverse("niño")).toBe("oñin")
+    expect(reverse("résumé")).toBe("émusér")
+  })
+
+  test("handles emojis and complex Unicode", () => {
+    expect(reverse("🚀rocket")).toBe("tekcor🚀")
+    expect(reverse("hello👋world")).toBe("dlrow👋olleh")
+    expect(reverse("🎉🎊🎈")).toBe("🎈🎊🎉")
+    expect(reverse("👨‍👩‍👧‍👦")).toBe("👦‍👧‍👩‍👨") // Family emoji code points are reversed
+  })
+
+  test("handles palindromes", () => {
+    expect(reverse("racecar")).toBe("racecar")
+    expect(reverse("level")).toBe("level")
+    expect(reverse("A man a plan a canal Panama")).toBe("amanaP lanac a nalp a nam A")
+  })
+
+  test("handles mixed content", () => {
+    expect(reverse("The Quick Brown Fox 123")).toBe("321 xoF nworB kciuQ ehT")
+    expect(reverse("API v2.1: User Auth")).toBe("htuA resU :1.2v IPA")
+  })
+
+  test("handles very long strings", () => {
+    const longString = "a".repeat(1000) + "b"
+    const reversed = reverse(longString)
+    expect(reversed.length).toBe(1001)
+    expect(reversed.charAt(0)).toBe("b")
+    expect(reversed.charAt(1000)).toBe("a")
+    expect(reversed.endsWith("a".repeat(1000))).toBe(true)
+  })
+
+  test("handles strings with whitespace", () => {
+    expect(reverse("  hello  ")).toBe("  olleh  ")
+    expect(reverse("\n\t")).toBe("\t\n")
+    expect(reverse("line1\nline2")).toBe("2enil\n1enil")
   })
 })

@@ -67,3 +67,17 @@ export function truncate(str: string, length: number, ellipsis: boolean = true):
 
   return str.slice(0, length - 3) + '...';
 }
+
+/**
+ * Reverses a string while preserving Unicode characters
+ * @param str The string to reverse
+ * @returns The reversed string
+ */
+export function reverse(str: string): string {
+  if (!str || typeof str !== 'string') {
+    return '';
+  }
+
+  // Use Array.from() to properly handle Unicode surrogate pairs
+  return Array.from(str).reverse().join('');
+}
