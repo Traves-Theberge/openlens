@@ -1,5 +1,5 @@
 import { describe, test, expect } from "bun:test"
-import { ConfigSchema, AgentConfigSchema } from "../../src/config/schema.js"
+import { ConfigSchema, AgentConfigSchema, McpServerSchema } from "../../src/config/schema.js"
 
 describe("ConfigSchema", () => {
   test("parses minimal config with defaults", () => {
@@ -119,5 +119,68 @@ describe("AgentConfigSchema", () => {
 
   test("rejects invalid mode", () => {
     expect(() => AgentConfigSchema.parse({ mode: "invalid" })).toThrow()
+  })
+})
+
+describe("McpServerSchema", () => {
+  test("accepts valid remote MCP with URL", () => {
+    const mcp = McpServerSchema.parse({
+      type: "remote",
+      url: "https://mcp.example.com/api",
+    })
+    expect(mcp.type).toBe("remote")
+    expect(mcp.url).toBe("https://mcp.example.com/api")
+  })
+
+  test("rejects remote MCP without URL", () => {
+    expect(() =>
+      McpServerSchema.parse({ type: "remote" })
+    ).toThrow("Remote MCP servers require a valid url")
+  })
+
+  test("rejects invalid URL format", () => {
+    expect(() =>
+      McpServerSchema.parse({ type: "remote", url: "not-a-url" })
+    ).toThrow()
+  })
+
+  test("accepts valid local MCP with command", () => {
+    const mcp = McpServerSchema.parse({
+      type: "local",
+      command: "node",
+      args: ["server.js"],
+    })
+    expect(mcp.type).toBe("local")
+    expect(mcp.command).toBe("node")
+  })
+
+  test("accepts local MCP without URL", () => {
+    const mcp = McpServerSchema.parse({
+      type: "local",
+      command: "node",
+    })
+    expect(mcp.type).toBe("local")
+  })
+})
+
+describe("ConfigSchema server validation", () => {
+  test("rejects invalid port number", () => {
+    expect(() =>
+      ConfigSchema.parse({ server: { port: 0 } })
+    ).toThrow()
+    expect(() =>
+      ConfigSchema.parse({ server: { port: 70000 } })
+    ).toThrow()
+  })
+
+  test("rejects empty hostname", () => {
+    expect(() =>
+      ConfigSchema.parse({ server: { hostname: "" } })
+    ).toThrow()
+  })
+
+  test("accepts valid port range", () => {
+    const config = ConfigSchema.parse({ server: { port: 8080 } })
+    expect(config.server.port).toBe(8080)
   })
 })

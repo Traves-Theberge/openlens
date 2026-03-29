@@ -196,6 +196,6 @@ describe("MCP configuration", () => {
     const result = run(["agent", "validate"], tmpDir)
 
     expect(result.exitCode).toBe(1)
-    expect(result.stdout).toContain("missing url")
+    expect(result.stdout).toContain("Remote MCP servers require a valid url")
   })
 })

@@ -4,10 +4,16 @@ export const McpServerSchema = z.object({
   type: z.enum(["local", "remote"]).default("local"),
   command: z.string().optional(),
   args: z.array(z.string()).optional(),
-  url: z.string().optional(),
+  url: z.string().url("Invalid URL format — must start with http:// or https://").optional(),
   environment: z.record(z.string(), z.string()).optional(),
   enabled: z.boolean().default(true),
-})
+}).refine(
+  (mcp) => mcp.type !== "remote" || (mcp.url && mcp.url.length > 0),
+  { message: "Remote MCP servers require a valid url", path: ["url"] },
+).refine(
+  (mcp) => mcp.type !== "local" || !mcp.url || mcp.command,
+  { message: "Local MCP servers require a command", path: ["command"] },
+)
 
 // Permission value: "allow" | "deny" | "ask" OR { pattern: value } for granular control
 const PermissionValueSchema = z.union([
@@ -46,8 +52,8 @@ export const ConfigSchema = z.object({
   permission: z.record(z.string(), PermissionValueSchema).optional(),
   server: z
     .object({
-      port: z.number().default(4096),
-      hostname: z.string().default("localhost"),
+      port: z.number().int().min(1).max(65535).default(4096),
+      hostname: z.string().min(1, "Hostname must not be empty").default("localhost"),
     })
     .default({ port: 4096, hostname: "localhost" }),
   review: z

@@ -95,6 +95,11 @@ export async function setupAgents(
       const desc = await p.text({
         message: "What does this agent review?",
         placeholder: "API design and REST conventions",
+        validate: (v) => {
+          if (!v || !v.trim()) {
+            return "Description must not be empty"
+          }
+        },
       })
       if (p.isCancel(desc)) {
         p.cancel("Setup cancelled.")

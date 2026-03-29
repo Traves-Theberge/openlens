@@ -68,6 +68,14 @@ export async function setupConfig(cwd: string, options: SetupOptions) {
       const custom = await p.text({
         message: "Enter model ID (provider/model):",
         placeholder: "anthropic/claude-sonnet-4-20250514",
+        validate: (v) => {
+          if (!v || !v.trim()) {
+            return "Model ID must not be empty"
+          }
+          if (!v.includes("/")) {
+            return "Model ID must be in provider/model format (e.g. anthropic/claude-sonnet-4-20250514)"
+          }
+        },
       })
       if (p.isCancel(custom)) {
         p.cancel("Setup cancelled.")
