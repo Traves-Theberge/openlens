@@ -14,6 +14,8 @@ export { loadSuppressRules, shouldSuppress } from "./suppress.js"
 export { createBus, bus } from "./bus/index.js"
 export { createServer } from "./server/server.js"
 export { detectCI, resolveOpencodeBin, inferBaseBranch } from "./env.js"
+export { deepMerge, deepMergeConcat, deepMergeArrays } from "./utils/index.js"
+export type { DeepMergeOptions } from "./utils/index.js"
 
 export type { Issue, ReviewResult } from "./types.js"
 export type { Config, AgentConfig } from "./config/schema.js"
