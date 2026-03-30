@@ -5,6 +5,7 @@
     "moduleResolution": "bundler",
     "esModuleInterop": true,
     "strict": true,
+    "jsx": "react-jsx",
     "skipLibCheck": true,
     "outDir": "./dist",
     "rootDir": "./src",
@@ -12,6 +13,6 @@
     "resolveJsonModule": true,
     "types": ["node", "bun-types"]
   },
-  "include": ["src/**/*.ts"],
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
   "exclude": ["node_modules", "dist"]
 }
