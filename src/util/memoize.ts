@@ -12,9 +12,20 @@ interface CacheEntry<V> {
 
 type AnyFunction = (...args: any[]) => any;
 
+export interface CacheStats {
+  /** Number of cache hits. */
+  hits: number;
+  /** Number of cache misses. */
+  misses: number;
+  /** Current number of entries in the cache. */
+  size: number;
+}
+
 export type MemoizedFunction<F extends AnyFunction> = F & {
   /** Remove all cached entries. */
   clear(): void;
+  /** Return hit/miss counts and current cache size. */
+  stats(): CacheStats;
 };
 
 export function memoize<F extends AnyFunction>(
@@ -23,6 +34,8 @@ export function memoize<F extends AnyFunction>(
 ): MemoizedFunction<F> {
   const { maxSize, ttl } = options;
   const cache = new Map<string, CacheEntry<ReturnType<F>>>();
+  let hits = 0;
+  let misses = 0;
 
   const memoized = function (this: unknown, ...args: Parameters<F>): ReturnType<F> {
     const key = JSON.stringify(args);
@@ -35,9 +48,12 @@ export function memoize<F extends AnyFunction>(
         // Move to end for LRU freshness
         cache.delete(key);
         cache.set(key, entry);
+        hits++;
         return entry.value;
       }
     }
+
+    misses++;
 
     const result = fn.apply(this, args) as ReturnType<F>;
 
@@ -57,7 +73,15 @@ export function memoize<F extends AnyFunction>(
 
   memoized.clear = () => {
     cache.clear();
+    hits = 0;
+    misses = 0;
   };
+
+  memoized.stats = (): CacheStats => ({
+    hits,
+    misses,
+    size: cache.size,
+  });
 
   return memoized;
 }

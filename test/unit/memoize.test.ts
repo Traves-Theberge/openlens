@@ -127,6 +127,37 @@ describe("memoize", () => {
     });
   });
 
+  describe("stats", () => {
+    it("tracks hits, misses, and cache size", () => {
+      const fn = memoize((x: number) => x * 2);
+
+      expect(fn.stats()).toEqual({ hits: 0, misses: 0, size: 0 });
+
+      fn(1); // miss
+      expect(fn.stats()).toEqual({ hits: 0, misses: 1, size: 1 });
+
+      fn(1); // hit
+      expect(fn.stats()).toEqual({ hits: 1, misses: 1, size: 1 });
+
+      fn(2); // miss
+      expect(fn.stats()).toEqual({ hits: 1, misses: 2, size: 2 });
+
+      fn(1); // hit
+      fn(2); // hit
+      expect(fn.stats()).toEqual({ hits: 3, misses: 2, size: 2 });
+    });
+
+    it("resets stats on clear", () => {
+      const fn = memoize((x: number) => x);
+
+      fn(1);
+      fn(1);
+      fn.clear();
+
+      expect(fn.stats()).toEqual({ hits: 0, misses: 0, size: 0 });
+    });
+  });
+
   describe("TypeScript generics", () => {
     it("preserves input and output types", () => {
       const fn = memoize((a: string, b: number): boolean => {
