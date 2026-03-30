@@ -81,6 +81,21 @@ describe("deepClone", () => {
     expect(clone.self).toBe(clone);
   });
 
+  test("freeze option makes cloned object immutable", () => {
+    const obj = { a: 1, b: { c: 2 }, arr: [1, 2] };
+    const clone = deepClone(obj, { freeze: true });
+    expect(clone).toEqual(obj);
+    expect(Object.isFrozen(clone)).toBe(true);
+    expect(Object.isFrozen(clone.b)).toBe(true);
+    expect(Object.isFrozen(clone.arr)).toBe(true);
+
+    // Mutations should throw in strict mode or silently fail
+    expect(() => {
+      (clone as Record<string, unknown>).a = 99;
+    }).toThrow();
+    expect(clone.a).toBe(1);
+  });
+
   test("nested mixed types", () => {
     const value = {
       arr: [1, new Date("2025-06-01")],
