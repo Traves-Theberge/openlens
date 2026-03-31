@@ -45,4 +45,50 @@ describe("slug", () => {
   test("handles tabs and newlines", () => {
     expect(slug("hello\tworld\nfoo")).toBe("hello-world-foo");
   });
+
+  describe("camelCase option", () => {
+    test("splits simple camelCase", () => {
+      expect(slug("myVariableName", { camelCase: true })).toBe(
+        "my-variable-name",
+      );
+    });
+
+    test("splits PascalCase", () => {
+      expect(slug("MyVariableName", { camelCase: true })).toBe(
+        "my-variable-name",
+      );
+    });
+
+    test("splits uppercase acronyms followed by lowercase", () => {
+      expect(slug("XMLParser", { camelCase: true })).toBe("xml-parser");
+      expect(slug("getHTTPResponse", { camelCase: true })).toBe(
+        "get-http-response",
+      );
+    });
+
+    test("handles single word", () => {
+      expect(slug("hello", { camelCase: true })).toBe("hello");
+      expect(slug("Hello", { camelCase: true })).toBe("hello");
+    });
+
+    test("handles camelCase with numbers", () => {
+      expect(slug("version2Release", { camelCase: true })).toBe(
+        "version2-release",
+      );
+      expect(slug("v2Release", { camelCase: true })).toBe("v2-release");
+    });
+
+    test("does not split when camelCase option is false or omitted", () => {
+      expect(slug("myVariableName")).toBe("myvariablename");
+      expect(slug("myVariableName", { camelCase: false })).toBe(
+        "myvariablename",
+      );
+    });
+
+    test("handles mixed camelCase and spaces", () => {
+      expect(slug("myVariable Name here", { camelCase: true })).toBe(
+        "my-variable-name-here",
+      );
+    });
+  });
 });
