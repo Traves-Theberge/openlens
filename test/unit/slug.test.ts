@@ -33,8 +33,15 @@ describe("slug", () => {
     expect(slug("already-valid-slug")).toBe("already-valid-slug");
   });
 
-  test("handles mixed case", () => {
-    expect(slug("FooBarBaz")).toBe("foobarbaz");
+  test("handles camelCase", () => {
+    expect(slug("myVariableName")).toBe("my-variable-name");
+    expect(slug("innerHTML")).toBe("inner-html");
+    expect(slug("getHTTPResponse")).toBe("get-http-response");
+  });
+
+  test("handles PascalCase", () => {
+    expect(slug("FooBarBaz")).toBe("foo-bar-baz");
+    expect(slug("MyComponent")).toBe("my-component");
   });
 
   test("handles numbers", () => {
