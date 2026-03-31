@@ -11,6 +11,8 @@ export function slug(input: string): string {
   return input
     .normalize("NFKD")
     .replace(/[\u0300-\u036f]/g, "") // strip combining diacritical marks
+    .replace(/([a-z0-9])([A-Z])/g, "$1-$2") // split camelCase boundaries
+    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1-$2") // split ACRONYMWord boundaries
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-") // non-alphanumeric → hyphen
     .replace(/-+/g, "-") // collapse consecutive hyphens

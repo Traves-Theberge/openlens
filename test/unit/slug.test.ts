@@ -43,7 +43,27 @@ describe("slug", () => {
   });
 
   test("handles mixed case", () => {
-    expect(slug("FooBarBAZ")).toBe("foobarbaz");
+    expect(slug("FooBarBAZ")).toBe("foo-bar-baz");
+  });
+
+  test("splits camelCase input", () => {
+    expect(slug("myVariableName")).toBe("my-variable-name");
+  });
+
+  test("splits PascalCase input", () => {
+    expect(slug("MyVariableName")).toBe("my-variable-name");
+  });
+
+  test("splits acronym followed by word", () => {
+    expect(slug("parseHTMLDocument")).toBe("parse-html-document");
+  });
+
+  test("splits consecutive uppercase with trailing lowercase", () => {
+    expect(slug("XMLHttpRequest")).toBe("xml-http-request");
+  });
+
+  test("handles camelCase with numbers", () => {
+    expect(slug("getV2ApiResponse")).toBe("get-v2-api-response");
   });
 
   test("handles numbers", () => {
