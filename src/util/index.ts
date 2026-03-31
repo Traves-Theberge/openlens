@@ -1,1 +1,1 @@
-export { truncate } from "./truncate.js";
+export { truncate, truncateWords } from "./truncate.js";
