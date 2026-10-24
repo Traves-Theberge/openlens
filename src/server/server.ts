@@ -16,6 +16,10 @@ const VALID_MODES = new Set(["staged", "unstaged", "branch", "auto"])
 
 export function createServer(config: Config) {
   const app = new Hono()
+  app.onError((err, c) => {
+    return c.json({ error: err.message || "Internal server error" }, 500)
+  })
+
 
   app.get("/", (c) => {
     return c.json({ name: "openlens", version: PKG_VERSION })

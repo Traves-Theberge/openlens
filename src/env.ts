@@ -58,6 +58,10 @@ export function resolveOpencodeBin(cwd?: string): string {
     if (existsSync(binPath)) {
       return binPath
     }
+    const bin2Path = join(dir, "node_modules", ".bin", "opencode2")
+    if (existsSync(bin2Path)) {
+      return bin2Path
+    }
   }
 
   // 3. Fallback to global PATH

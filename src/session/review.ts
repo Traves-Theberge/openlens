@@ -638,7 +638,7 @@ async function connectMcpServers(
 async function spawnOpencodeServer(
   config: Config,
   cwd?: string
-): Promise<{ url: string; close: () => void }> {
+): Promise<{ url: string; password?: string; close: () => void }> {
   const bin = resolveOpencodeBin(cwd)
   const hostname = config.server.hostname
   const port = config.server.port
@@ -646,15 +646,16 @@ async function spawnOpencodeServer(
 
   const ci = detectCI()
   const serverTimeout = ci.isCI ? 15_000 : 5_000
+  const serverPassword = process.env.OPENCODE_SERVER_PASSWORD || "openlens-session"
 
   const proc = spawn(bin, args, {
     env: {
       ...process.env,
+      OPENCODE_SERVER_PASSWORD: serverPassword,
       OPENCODE_CONFIG_CONTENT: JSON.stringify({}),
     },
     stdio: ["ignore", "pipe", "pipe"],
   })
-
   const url = await new Promise<string>((resolve, reject) => {
     const id = setTimeout(() => {
       proc.kill()
@@ -672,7 +673,7 @@ async function spawnOpencodeServer(
       output += chunk.toString()
       const lines = output.split("\n")
       for (const line of lines) {
-        if (line.startsWith("opencode server listening")) {
+        if (line.includes("server listening")) {
           const match = line.match(/on\s+(https?:\/\/[^\s]+)/)
           if (match) {
             clearTimeout(id)
@@ -711,6 +712,7 @@ async function spawnOpencodeServer(
 
   return {
     url,
+    password: serverPassword,
     close() {
       proc.kill()
     },
@@ -723,9 +725,13 @@ async function getClient(
   cwd?: string
 ): Promise<{ client: OpencodeClient; cleanup?: () => void }> {
   const baseUrl = `http://${config.server.hostname}:${config.server.port}`
+  const envPassword = process.env.OPENCODE_SERVER_PASSWORD
+  const defaultHeaders = envPassword
+    ? { Authorization: `Basic ${Buffer.from(`opencode:${envPassword}`).toString("base64")}` }
+    : undefined
 
   // Try connecting to an existing server first
-  const existingClient = createOpencodeClient({ baseUrl })
+  const existingClient = createOpencodeClient({ baseUrl, headers: defaultHeaders })
   try {
     const res = await existingClient.app.agents()
     if (res.data) {
@@ -742,7 +748,10 @@ async function getClient(
   // Start bundled server
   try {
     const server = await spawnOpencodeServer(config, cwd)
-    const client = createOpencodeClient({ baseUrl: server.url })
+    const serverAuthHeader = server.password
+      ? { Authorization: `Basic ${Buffer.from(`opencode:${server.password}`).toString("base64")}` }
+      : undefined
+    const client = createOpencodeClient({ baseUrl: server.url, headers: serverAuthHeader })
 
     // Connect MCP servers to new instance
     if (Object.keys(config.mcp).length > 0) {

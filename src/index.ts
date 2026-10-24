@@ -925,10 +925,12 @@ If no issues found, return \`[]\`
       const bin = resolveOpencodeBin(cwd)
       const ocCheck = spawnSync(bin, ["--version"], { encoding: "utf-8" })
       if (ocCheck.status === 0) {
-        console.log(`  ${G}✓${R} opencode  ${D}v${ocCheck.stdout.trim()} (${bin})${R}`)
+        const rawVersion = ocCheck.stdout.trim()
+        const versionStr = rawVersion.replace(/^(?:opencode\s+)?v?/, "v")
+        console.log(`  ${G}✓${R} opencode  ${D}${versionStr} (${bin})${R}`)
       } else {
         console.log(`  ${RD}✗${R} opencode binary not found at ${D}${bin}${R}`)
-        console.log(`    ${D}Install with: npm install opencode-ai${R}`)
+        console.log(`    ${D}Install with: npm install @opencode/cli${R}`)
         hasErrors = true
       }
 
