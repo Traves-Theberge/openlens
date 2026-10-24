@@ -1,8 +1,7 @@
 # openlens Overview
 
 openlens is an AI-powered code review tool that runs multiple specialized agents in parallel to analyze code changes for security vulnerabilities, bugs, performance issues, and style problems. It provides five interfaces: a **CLI** built on yargs, a **programmatic library** API, an **HTTP server** built on Hono, a **GitHub Action** with inline PR comments, and **platform plugins** for Claude Code, Codex, Gemini CLI, and OpenCode. Git hooks and platform hooks automate reviews on every commit and push.
-
-By default, openlens uses the `opencode/big-pickle` model via the OpenCode SDK, requiring no API keys. Agents operate in read-only mode and communicate results as structured JSON with confidence scoring, severity levels, and optional fix suggestions.
+By default, openlens uses the `opencode/big-pickle` model via the OpenCode SDK (compatible with OpenCode 1 and OpenCode 2), requiring no API keys. Agents operate in read-only mode and communicate results as structured JSON with confidence scoring, severity levels, and optional fix suggestions.
 
 ## Architecture Diagram
 
@@ -48,7 +47,7 @@ graph TB
     subgraph Support
         BUS["Event Bus<br/>(lifecycle events)"]
         SUP["Suppression<br/>(.openlensignore)"]
-        RULES["Rules Discovery<br/>(AGENTS.md, CLAUDE.md)"]
+        RULES["Rules Discovery<br/>(AGENTS.md, CLAUDE.md, GEMINI.md)"]
     end
 
     CLI --> CFG

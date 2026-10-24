@@ -156,24 +156,23 @@ The diff module (`src/tool/diff.ts`) provides three functions for collecting git
 
 ### getDiff() (lines 3-18)
 
-Accepts a mode and optional base branch. Maps directly to git commands:
+Accepts a mode, optional base branch, and optional working directory. Automatically injects `--no-ext-diff --src-prefix=a/ --dst-prefix=b/` to guarantee standardized `a/` and `b/` diff headers regardless of local git configuration (such as `diff.mnemonicprefix = true` which otherwise emits `c/` and `i/` prefixes):
 
 | Mode | Git Command |
 |------|------------|
-| `staged` | `git diff --cached` |
-| `unstaged` | `git diff` |
-| `branch` | `git diff <baseBranch>...HEAD` |
+| `staged` | `git diff --cached --no-ext-diff --src-prefix=a/ --dst-prefix=b/` |
+| `unstaged` | `git diff --no-ext-diff --src-prefix=a/ --dst-prefix=b/` |
+| `branch` | `git diff --no-ext-diff --src-prefix=a/ --dst-prefix=b/ <baseBranch>...HEAD` |
 
-Uses `spawnSync` with a 50 MB buffer limit (line 13).
+Uses `spawnSync` with a 50 MB buffer limit (line 14).
 
-### getAutoDetectedDiff() (lines 20-31)
+### getAutoDetectedDiff() (lines 21-33)
 
 Implements the `auto` mode by trying each diff type in order: staged, then unstaged, then branch. Returns the first non-empty result along with the detected mode.
 
-### getDiffStats() (lines 33-60)
+### getDiffStats() (lines 35-64)
 
-Parses a raw diff string to extract file names, insertion count, and deletion count. Used to populate `meta.filesChanged` in review results and to determine which files to read for full file context.
-
+Parses a raw diff string to extract file names, insertion count, and deletion count. Robustly handles quoted paths (for file names with spaces or special characters) and custom diff prefixes. Used to populate `meta.filesChanged` in review results and to determine which files to read for full file context.
 ## 4. Review Orchestration
 
 The `runReview()` function in `src/session/review.ts` (lines 828-1039) coordinates the entire review pipeline.
@@ -239,12 +238,12 @@ When primary agents exist, only they run directly. They receive the subagent lis
 
 ### OpenCode Server Management
 
-The `getClient()` function (lines 721-757) first tries to connect to an existing OpenCode server at the configured address. If none is running, it spawns one via `spawnOpencodeServer()` (lines 638-718), which:
-- Resolves the `opencode` binary path
+The `getClient()` function (lines 723-766) first tries to connect to an existing OpenCode server at the configured address (supporting both OpenCode 1 and OpenCode 2). If none is running, it spawns one via `spawnOpencodeServer()` (lines 638-720), which:
+- Resolves the binary path checking for `opencode2` and `opencode`
 - Starts it with `serve --hostname=<host> --port=<port>`
-- Waits for the "listening" message on stdout (5s timeout, 15s in CI)
+- Handles server authentication via `OPENCODE_SERVER_PASSWORD` and Basic Authentication headers
+- Waits for the "server listening on" message on stdout (5s timeout, 15s in CI)
 - Returns a cleanup function to kill the process
-
 ### Verification Pass
 
 When `config.review.verify` is `true` (default), the `verifyIssues()` function (lines 469-557) runs after all agents complete. It creates a dedicated verification session that:

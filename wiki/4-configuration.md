@@ -199,6 +199,7 @@ The following files are searched in every directory from `cwd` up to the git rep
 
 - `AGENTS.md`
 - `CLAUDE.md`
+- `GEMINI.md`
 - `.openlens/rules.md`
 
 ### Discovery Algorithm

@@ -32,7 +32,7 @@ Key terms used throughout the openlens documentation.
 
 **OPENLENS_SKIP** — Environment variable that, when set to `1`, causes openlens git hooks to exit immediately without running a review. Useful for quick commits that don't need review (e.g., `OPENLENS_SKIP=1 git commit -m "wip"`). See [CLI Reference](6-cli-reference.md).
 
-**OpenCode** — The open-source AI coding agent that openlens is built on. Provides the model provider SDK, tool execution runtime, and session management. See [github.com/anomalyco/opencode](https://github.com/anomalyco/opencode).
+**OpenCode** — The open-source AI coding agent that openlens is built on. Supports both OpenCode 1 and OpenCode 2 (`@opencode/cli`, `@opencode/client`, `@opencode/plugin`, `@opencode/sdk`). Provides the model provider SDK, tool execution runtime, and session management. See [github.com/anomalyco/opencode](https://github.com/anomalyco/opencode).
 
 **Platform Hook** — A platform-specific configuration file (e.g., `claude-code-hooks.json`, `gemini-hooks.json`, `codex-hooks.json`, `opencode-hooks.ts`) that integrates openlens with AI coding assistants. Platform hooks trigger on git commit and push events only. Located in the `hooks/` directory. See [Integrations](8-integrations.md).
 
@@ -42,7 +42,7 @@ Key terms used throughout the openlens documentation.
 
 **ReviewResult** — The structured output of a review. Contains `issues` (array), `timing` (per-agent milliseconds), and `meta` (mode, filesChanged, agentsRun, agentsFailed, suppressed, verified). Defined by `ReviewResultSchema` in `src/types.ts`.
 
-**Rules Discovery** — The system that walks from working directory to git root looking for `AGENTS.md`, `CLAUDE.md`, `.openlens/rules.md` and other instruction files. These get injected into agent prompts. See [Configuration § Rules Discovery](4-configuration.md).
+**Rules Discovery** — The system that walks from working directory to git root looking for `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.openlens/rules.md` and other instruction files. These get injected into agent prompts. See [Configuration § Rules Discovery](4-configuration.md).
 
 **SARIF** — Static Analysis Results Interchange Format v2.1.0. An industry-standard JSON format for static analysis results. Used for GitHub Code Scanning and GitLab SAST integration. See [Output Formats § SARIF](7-output-formats.md).
 

@@ -234,7 +234,7 @@ The `!{...}` syntax executes the command and injects its output into the prompt.
 
 **File:** [src/plugin.ts](https://github.com/Traves-Theberge/OpenLens/blob/main/src/plugin.ts)
 
-A native [OpenCode](https://opencode.ai) plugin that registers four tools and two hooks. Unlike the other plugins, this one uses the library API directly rather than shelling out to the CLI.
+A native [OpenCode](https://opencode.ai) plugin that registers four tools and two hooks. Dual-compatible with both **OpenCode 1** and **OpenCode 2** (`@opencode/plugin` `Plugin.define` API with `setup(ctx)`). Unlike the other plugins, this one uses the library API directly rather than shelling out to the CLI.
 
 ### Registered Tools
 
@@ -242,9 +242,8 @@ A native [OpenCode](https://opencode.ai) plugin that registers four tools and tw
 |------|-------------|
 | `openlens` | Run a full code review on current changes with all agents |
 | `openlens-delegate` | Delegate a focused review question to a specific specialist agent |
-| `openlens-conventions` | Get project review conventions from AGENTS.md, CLAUDE.md, etc. |
+| `openlens-conventions` | Get project review conventions from AGENTS.md, CLAUDE.md, GEMINI.md, etc. |
 | `openlens-agents` | List all available agents and their capabilities |
-
 ### openlens Tool
 
 ```typescript
@@ -280,10 +279,28 @@ No arguments. Lists all agents with their description, model, allowed tools, and
 
 ### Hooks
 
-| Hook | Behavior |
-|------|----------|
-| `permission.ask` | Auto-approves read-only tools (`read`, `grep`, `glob`, `list`, `lsp`, `skill`, `view`, `find`, `diagnostics`) for sessions with titles starting with `openlens-` |
-| `chat.params` | Sets temperature to `0` for deterministic results on sessions with `openlens-` prefixed titles |
+Supports both OpenCode 1 hook names and OpenCode 2 domain hooks:
+
+| Hook (V1 / V2) | Behavior |
+|----------------|----------|
+| `permission.ask` / `permission.hook("evaluate")` | Auto-approves read-only tools (`read`, `grep`, `glob`, `list`, `lsp`, `skill`, `view`, `find`, `diagnostics`) for sessions with titles starting with `openlens-` |
+| `chat.params` / `session.hook("context")` | Sets temperature to `0` for deterministic results on sessions with `openlens-` prefixed titles |
+
+### Configuration
+
+In `opencode.json`:
+
+```json
+// OpenCode 2
+{
+  "plugins": ["openlens"]
+}
+
+// OpenCode 1
+{
+  "plugin": ["openlens"]
+}
+```
 
 ### Package Export
 
@@ -294,7 +311,6 @@ import plugin from "openlens/plugin"
 ```
 
 Source: [src/plugin.ts](https://github.com/Traves-Theberge/OpenLens/blob/main/src/plugin.ts)
-
 ## HTTP Server
 
 **File:** [src/server/server.ts](https://github.com/Traves-Theberge/OpenLens/blob/main/src/server/server.ts)

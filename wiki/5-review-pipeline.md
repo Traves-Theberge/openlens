@@ -34,13 +34,13 @@ flowchart TD
 
 The pipeline requires a running OpenCode server to create sessions and run LLM prompts. The `getClient()` function handles this ([src/session/review.ts:721-757](../src/session/review.ts)):
 
-1. **Try existing server** -- Attempts to connect to `http://{hostname}:{port}` and calls `client.app.agents()` as a health check
-2. **Spawn new server** -- If no server is running, spawns `opencode serve --hostname=... --port=...` as a child process
-3. **Wait for ready** -- Reads stdout line by line looking for `"opencode server listening on <url>"`. Times out after 5 seconds (15 seconds in CI)
-4. **Connect MCP servers** -- If `config.mcp` has entries, connects them to the running server via `client.mcp.add()` and `client.mcp.connect()`
+1. **Try existing server** -- Attempts to connect to `http://{hostname}:{port}` and calls `client.app.agents()` (OpenCode 1) or `client.agent.list()` (OpenCode 2) as a health check
+2. **Spawn new server** -- If no server is running, spawns `opencode serve --hostname=... --port=...` as a child process with `OPENCODE_SERVER_PASSWORD` configured
+3. **Wait for ready** -- Reads stdout line by line looking for `"server listening on <url>"`. Times out after 5 seconds (15 seconds in CI)
+4. **Authenticate & connect MCP servers** -- Authenticates client sessions via Basic Auth headers, and connects configured MCP servers via `client.mcp.add()` and `client.mcp.connect()`
 5. **Return cleanup function** -- If a server was spawned, the cleanup function kills the process when the review completes
 
-The binary is resolved via `resolveOpencodeBin()` ([src/env.ts:42-65](../src/env.ts)) with priority: `OPENCODE_BIN` env var > bundled `node_modules/.bin/opencode` > global PATH.
+The binary is resolved via `resolveOpencodeBin()` ([src/env.ts:42-65](../src/env.ts)) with priority: `OPENCODE_BIN` env var > bundled `node_modules/.bin/opencode` or `node_modules/.bin/opencode2` > global PATH.
 
 ## Single Agent Execution
 
