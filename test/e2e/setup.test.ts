@@ -67,12 +67,18 @@ describe("openlens setup", () => {
 
   test("setup --plugins --yes installs using-openlens skill", () => {
     tmpDir = createTempGitRepo()
-    // Need config first
-    run(["setup", "--config", "--yes"], tmpDir)
-    const result = run(["setup", "--plugins", "--yes"], tmpDir)
-    expect(result.exitCode).toBe(0)
-    // Check that the skill was installed (output mentions it)
-    expect(result.stdout).toContain("using-openlens")
+    const fakeHome = fs.mkdtempSync(path.join(path.dirname(tmpDir), "openlens-home-"))
+    fs.mkdirSync(path.join(fakeHome, ".claude"), { recursive: true })
+    try {
+      // Need config first
+      run(["setup", "--config", "--yes"], tmpDir)
+      const result = run(["setup", "--plugins", "--yes"], tmpDir, { HOME: fakeHome })
+      expect(result.exitCode).toBe(0)
+      // Check that the skill was installed (output mentions it)
+      expect(result.stdout).toContain("using-openlens")
+    } finally {
+      cleanup(fakeHome)
+    }
   })
 
   test("setup --yes runs all sections", () => {
