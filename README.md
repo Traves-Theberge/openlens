@@ -15,7 +15,7 @@ An open source AI code reviewer. agents review your git diffs in parallel for se
 - **AI coding agents**: `/openlens` in Claude Code, `$openlens` in Codex, `/openlens` in Gemini CLI, native plugin in OpenCode
 - **Your own tools**: TypeScript library API with 30+ exports, HTTP server, SARIF output
 
-Built on [OpenCode](https://github.com/anomalyco/opencode).
+Built on [OpenCode](https://github.com/anomalyco/opencode) (supports OpenCode 1 & OpenCode 2).
 
 ## Features
 
@@ -48,8 +48,8 @@ openlens --version
 ### From Source
 
 ```bash
-git clone https://github.com/Traves-Theberge/OpenLens.git
-cd OpenLens
+git clone https://github.com/Traves-Theberge/openlens.git
+cd openlens
 bun install
 bun run build
 bun link
@@ -613,14 +613,13 @@ Then use `/openlens` in Gemini CLI.
 
 ### OpenCode
 
-Add to your `opencode.json`:
+Add to your `opencode.json` (OpenCode 2 `plugins` or OpenCode 1 `plugin`):
 
 ```json
 {
-  "plugin": ["openlens"]
+  "plugins": ["openlens"]
 }
 ```
-
 This registers four tools:
 
 | Tool                    | Description                          |

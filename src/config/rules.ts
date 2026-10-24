@@ -13,6 +13,7 @@ import fs from "fs/promises"
 const WELL_KNOWN_FILES = [
   "AGENTS.md",
   "CLAUDE.md",
+  "GEMINI.md",
   ".openlens/rules.md",
 ]
 

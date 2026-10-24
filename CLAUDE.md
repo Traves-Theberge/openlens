@@ -1,6 +1,8 @@
-# CLAUDE.md
+# Repository Guidelines & AI Assistant Instructions
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance for AI coding assistants (Claude Code, OpenCode / AI agents, and Gemini CLI) when working with code in this repository.
+
+> **Note**: `CLAUDE.md`, `AGENTS.md`, and `GEMINI.md` are maintained at strict parity. Any update to one must be mirrored across all three.
 
 ## Build & Development Commands
 
@@ -31,6 +33,24 @@ OPENLENS_SKIP=1 git commit -m x # Skip hooks for one operation
 - `hooks/pre-push` — runs all agents on full branch diff (~60s), blocks on critical
 - Idempotent install; backs up existing hooks; remove restores them
 
+## Repository Rules & Standards
+
+### 1. Mandatory Documentation Updates & Parity
+Whenever you make notable changes, add features, fix bugs, modify architecture, or update packages/dependencies, you **MUST** update documentation in the same change:
+- **`CHANGELOG.md`**: Add an entry under the appropriate version section following Keep a Changelog standards (`Added`, `Changed`, `Fixed`, `Deprecated`, `Removed`, `Security`).
+- **`README.md`**: Keep installation, usage instructions, feature lists, supported platforms, and configuration examples accurate and up to date.
+- **`docs/` & `wiki/`**: Update relevant how-to guides and architecture docs when behaviors, flags, or interfaces change.
+- **`CLAUDE.md`, `AGENTS.md`, and `GEMINI.md`**: **MUST be kept at complete parity at all times.** Any rule, command, architecture update, or workflow guidance added to one must be mirrored across all three.
+
+### 2. Code Quality & Typing
+- TypeScript strict mode is the primary code quality gate (`bun run typecheck`).
+- Avoid bare `any` or `as any` casts. Prefer `unknown`, type guards, or domain interfaces.
+- Validate external and unvalidated inputs with Zod schemas (`src/types.ts`, `src/config/schema.ts`).
+- Use static `Record<string, true>` for small, static string-keyed lookup tables instead of dynamic `Set` instantiations.
+
+### 3. Testing & Test Isolation
+- All tests must pass cleanly (`bun test`).
+- E2E tests must be hermetic and isolated from the host environment: use temporary git repositories (`createTempGitRepo()`) and isolated test homes (`HOME: fakeHome`) to avoid relying on host files or polluting developer home directories.
 ## Architecture
 
 openlens is an AI-powered code review tool with four interfaces: **CLI** (yargs), **library** (programmatic API), **HTTP server** (Hono), and **OpenCode plugin**.
@@ -47,7 +67,7 @@ openlens is an AI-powered code review tool with four interfaces: **CLI** (yargs)
 
 - **Read-only by default**: Agent permissions default to allowing only read/grep/glob/list/lsp/skill. Write/edit/bash are denied unless explicitly configured per-agent.
 - **Suppression system** (`src/suppress.ts`): File-glob and text-pattern matching from config or `.openlensignore`.
-- **Rules discovery** (`src/config/rules.ts`): Walks from working directory up to git root looking for `AGENTS.md`, `CLAUDE.md`, `.openlens/rules.md` to inject project conventions into agent prompts.
+- **Rules discovery** (`src/config/rules.ts`): Walks from working directory up to git root looking for `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.openlens/rules.md` to inject project conventions into agent prompts.
 - **CI detection** (`src/env.ts`): Auto-detects GitHub Actions, GitLab CI, CircleCI, Buildkite, Jenkins, Travis and infers base branches from their env vars.
 - **Event bus** (`src/bus/index.ts`): Lifecycle events (agent.started/completed/failed, review.completed) for programmatic consumers.
 - **Default model**: `opencode/big-pickle` — free model, no API keys required.
@@ -84,7 +104,7 @@ All plugins invoke the `openlens` CLI. Claude Code and Codex use SKILL.md files,
 ### Package Exports
 
 - `openlens` (main): Library API from `src/lib.ts`
-- `openlens/plugin`: OpenCode plugin from `src/plugin.ts` registering tools: `openlens`, `openlens-delegate`, `openlens-conventions`, `openlens-agents`
+- `openlens/plugin`: OpenCode plugin from `src/plugin.ts` registering tools: `openlens`, `openlens-delegate`, `openlens-conventions`, `openlens-agents` (compatible with both OpenCode 1 and OpenCode 2)
 
 ## Testing
 

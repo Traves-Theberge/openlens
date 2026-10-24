@@ -2,6 +2,33 @@
 
 All notable changes to openlens will be documented in this file.
 
+## [0.2.4] - 2026-10-24
+
+### Added
+- OpenCode 2 compatibility: added `@opencode/cli`, `@opencode/client`, `@opencode/plugin`, and `@opencode/sdk` v2 packages
+- OpenCode 2 server authentication: `spawnOpencodeServer` and `getClient` now handle `OPENCODE_SERVER_PASSWORD` and Basic Authentication headers
+- OpenCode 2 binary discovery: `resolveOpencodeBin` checks for `opencode2` alongside `opencode`
+- OpenCode 2 plugin interface: `src/plugin.ts` implements `Plugin.define` with `id: "openlens"` and `setup(ctx)` tool transforms while preserving backwards-compatible V1 function execution
+- Added repository rule requiring documentation updates (`CHANGELOG.md`, `README.md`, docs/wiki) across `CLAUDE.md`, `AGENTS.md`, and `GEMINI.md`
+- Discovered rules in `src/config/rules.ts` now includes `GEMINI.md`
+
+### Changed
+- Updated core dependencies to latest:
+  - `zod` 4.3.6 → 4.6.7
+  - `hono` 4.12.9 → 4.13.13
+  - `@hono/node-server` 1.19.11 → 1.19.17
+  - `yargs` 18.0.0 → 18.2.0
+  - `@clack/prompts` 1.1.0 → 1.8.1
+  - `typescript` 6.0.2 → 6.0.3
+  - `bun-types` 1.3.11 → 1.4.4
+  - `@opencode-ai/*` legacy packages updated to 1.19.4
+
+### Fixed
+- Git diff parsing with custom/mnemonic prefixes: `getDiff` now passes `--no-ext-diff --src-prefix=a/ --dst-prefix=b/` to override user/system `diff.mnemonicprefix = true` (which emitted `c/` and `i/` prefixes) and unanchored `b/` directory matching
+- Robust git diff header parsing in `getDiffStats` handling quoted paths (`"a/path with spaces"`) and custom prefixes
+- Unhandled server exceptions: added `app.onError` to `src/server/server.ts` returning JSON `{ error: message }` with 500 status instead of plain text `Internal Server Error`
+- OpenCode version display in `openlens doctor`: stripped redundant leading `opencode` text so versions format as `v2.1.4` instead of `vopencode v2.1.4`
+- Hermetic test environment in `setup.test.ts`: isolated `HOME` during plugin skill tests to prevent CI failures on clean runners and avoid writing to host user directories
 ## [0.2.3] - 2026-03-27
 
 ### Added
